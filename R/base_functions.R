@@ -1,0 +1,303 @@
+################# validation statistics #####################
+
+
+#' This function calculates time-dependent BrierScore for df_newdata, similar to
+#' https://scikit-survival.readthedocs.io/en/stable/api/generated/sksurv.metrics.brier_score.html#sksurv.metrics.brier_score
+#' https://github.com/sebp/scikit-survival/blob/v0.19.0.post1/sksurv/metrics.py#L524-L644
+#' Uses IPCW (inverse probability of censoring weights), computed with K-M curve,
+#' where events are censored events from train data
+#'
+#' @param y_predicted_newdata computed event probabilities
+#' @param df_brier_train train data
+#' @param df_newdata test data for which brier score is computed
+#' @param time_points times at which BS calculated
+#' @param weighted TRUE/FALSE for IPWC to use or not
+#' @examples
+#' df <- simsurv_nonlinear()
+#' @return vector of BS for each time in time_points
+bs_surv <-
+  function(y_predicted_newdata,
+           df_brier_train,
+           df_newdata,
+           time_points,
+           weighted = TRUE) {
+    # IPWC to use or not
+    # K-M prob of censoring for each observation till its individual time
+    df_newdata$p_km_obs <-
+      survival_prob_km(df_brier_train, df_newdata$time, estimate_censoring = TRUE)
+    df_newdata$p_km_obs <-
+      pmax(pmin(df_newdata$p_km_obs, 0.9999), 0.0001)
+    # !! impute with mean observations if can't estimate !!
+    # !!!
+    df_newdata[is.na(df_newdata$p_km_obs), "p_km_obs"] <-
+      mean(df_newdata$p_km_obs, na.rm = 1)
+    # one number P(t_i is censored) = P(T > t_i) = S(t_i):
+    p_km_t <-
+      survival_prob_km(df_brier_train, time_points, estimate_censoring = TRUE)
+    p_km_t <- pmax(pmin(p_km_t, 0.9999), 0.0001)
+    p_km_t
+
+    bs <- c()
+    for (j in 1:length(time_points)) {
+      # assign t_point and predicted  probabilities
+      if (length(time_points) == 1) {
+        # only 1 time
+        t_point <- time_points
+        ppp <- pmax(pmin(y_predicted_newdata, 0.99999), 0.00001)
+      } else {
+        # many times
+        t_point <- time_points[j]
+        ppp <- pmax(pmin(y_predicted_newdata[, j], 0.99999), 0.00001)
+      }
+      # cases and controls by time t_point
+      id_case <-
+        ((df_newdata$time <= t_point) & (df_newdata$event == 1))
+      id_control <- (df_newdata$time > t_point)
+
+      # compute BS with weights which are 1/G(t) for controls and 1/G(obs_i) for cases
+      # if weights == false, use w=1 for all
+      if (weighted == TRUE) {
+        # brier score is average of weighted squared errors
+        bs[j] <-
+          (
+            sum(
+              as.numeric(id_case) * (1 - ppp)^2 * 1 / df_newdata$p_km_obs,
+              na.rm = 1
+            ) +
+              sum(id_control * (0 - ppp)^2 * 1 / p_km_t[j], na.rm = 1)
+          ) / dim(df_newdata)[1]
+      } else {
+        # unweighted BS
+        bs[j] <-
+          sum(id_case * (1 - ppp)^2 + id_control * (0 - ppp)^2, na.rm = 1) / dim(df_newdata)[1]
+      }
+    }
+    names(bs) <- round(time_points, 6)
+    return(bs)
+  }
+
+
+
+#' Calculates survival probability estimated by Kaplan-Meier survival curve
+#' Uses polynomial extrapolation in survival function space, using poly(n=3)
+#' @param df_km_train event probabilities (!not survival)
+#' @param times times at which survival is estimated
+#' @param estimate_censoring FALSE by default, if TRUE, event and censoring is reversed (for IPCW calculations)
+#' @examples
+#' df <- simsurv_nonlinear()
+#' @return vector of survival probabilities for time_points
+survival_prob_km <-
+  function(df_km_train, times, estimate_censoring = FALSE) {
+    if (estimate_censoring == FALSE) {
+      km <-
+        survival::survfit(survival::Surv(time, event) ~ 1, data = df_km_train)
+      kmf <- stats::approxfun(km$time, km$surv, method = "constant")
+      kmdf <- data.frame(cbind("time" = km$time, "surv" = km$surv))
+      extrap <- stats::lm(surv ~ poly(time, 3, raw = TRUE), data = kmdf)
+      km_extrap <- function(x) {
+        (cbind(1, x, x**2, x**3) %*% extrap$coefficients[1:4])
+      }
+    } else {
+      df_km_train$censor_as_event <- 1 - df_km_train$event
+      km <-
+        survival::survfit(survival::Surv(time, censor_as_event) ~ 1, data = df_km_train)
+      kmdf <- data.frame(cbind("time" = km$time, "surv" = km$surv))
+      kmf <- stats::approxfun(km$time, km$surv, method = "constant")
+      extrap <- stats::lm(surv ~ poly(time, 3, raw = TRUE), data = kmdf)
+      km_extrap <- function(x) {
+        (cbind(1, x, x**2, x**3) %*% extrap$coefficients[1:4])
+      }
+    }
+    return(km_extrap(times))
+  }
+
+
+#' Computes performance statistics given the predicted event probabilities
+#'
+#' @param y_predict probabilities of event by times_to_predict (matrix=observations x times)
+#' @param times_to_predict times for which event probabilities are given
+#' @param df_train train data, data frame
+#' @param df_test test data, data frame
+#' @param weighted TRUE/FALSE, for IPWC
+#' @param alpha calibration alpha as mean difference or from logistic regression
+#' @examples
+#' df <- simsurv_nonlinear()
+#' @return  data.frame("T" ,"AUCROC","BS","BS_scaled,"C_score" ,"Calib_slope","Calib_alpha")
+#' @export
+survval <- function(y_predict,
+                    times_to_predict,
+                    df_train,
+                    df_test,
+                    weighted = TRUE,
+                    alpha = "logit") {
+  # This function computes auc, brier score, c-index,
+  # calibration slope and alpha for df_test
+  # for apparent statistics use test  = train
+  auc_score <- c()
+  brier_score <- c()
+  brier_score_scaled <- c()
+  c_score <- c()
+  calibration_slope <- c()
+  calibration_alpha <- c()
+  #Surv <- survival::Surv
+
+  for (i in 1:length(times_to_predict)) {
+    t_i <- times_to_predict[i]
+    if (length(times_to_predict) > 1) {
+      y_hat <- y_predict[, i]
+    } else {
+      y_hat <- unlist(y_predict)
+    }
+
+    # time dependent AUC
+    if (class(try(
+      timeROC::timeROC(
+        T = df_test$time,
+        delta = df_test$event,
+        marker = y_hat,
+        times = t_i * 0.9999999,
+        cause = 1,
+        weighting = "marginal"
+      ),
+      silent = TRUE
+    )) == "try-error") {
+      auc_score[i] <- NaN
+    } else {
+      auc_score[i] <- timeROC::timeROC(
+        T = df_test$time,
+        delta = df_test$event,
+        marker = y_hat,
+        times = t_i * 0.9999999,
+        cause = 1,
+        weighting = "marginal"
+      )$AUC[2]
+    }
+    # compute time-dependent Brier score:
+    if (class(try(
+      bs_surv(y_hat, df_train, df_test, t_i, weighted = weighted),
+      silent = TRUE
+    )) == "try-error") {
+      brier_score[i] <- NaN
+    } else {
+      brier_score[i] <-
+        bs_surv(y_hat, df_train, df_test, t_i, weighted = weighted)
+      brier_score_base_i <-
+        bs_surv(rep(mean((df_test$event) * (df_test$time <= t_i)), dim(df_test)[1]),
+                df_train, df_test, t_i, weighted = weighted)
+      brier_score_scaled[i] <-
+        1 - brier_score[i] / brier_score_base_i
+    }
+
+    # compute concordance - time-dependent in a sense that a predictor is
+    # event probability at t_i. For Cox model it is the same for each time
+    # (probabilities are always ordered according to linear predictors for any t)
+    if (class(try(
+      survival::concordancefit(
+        survival::Surv(df_test$time, df_test$event), -1 * y_hat
+      ),
+      silent = TRUE
+    )) == "try-error") {
+      c_score[i] <- NaN
+    } else {
+      if (is.null(survival::concordancefit(
+        survival::Surv(df_test$time, df_test$event), -1 * y_hat
+      )$concordance)) {
+        c_score[i] <- NaN
+      } else {
+        c_score[i] <-
+          survival::concordancefit(
+            survival::Surv(df_test$time, df_test$event),
+            -1 * y_hat
+          )$concordance
+      }
+    }
+
+    # compute calibration slope and alpha:
+    # 1/0 by t_i:
+    df_test$event_ti <-
+      ifelse(df_test$time <= t_i & df_test$event == 1, 1, 0)
+
+    # cut 0 and 1 predicted probabilities for the logit to work:
+    df_test$predict_ti <- pmax(pmin(y_hat, 0.99999), 0.00001)
+
+    # Excluding censored observations before t_i, leave those with known state
+    df_test_in_scope <-
+      df_test[(df_test$time >= t_i) |
+                (df_test$time < t_i & df_test$event == 1), ]
+
+    # Calibration slope and alpha.
+    y_hat_hat <-
+      log(df_test_in_scope$predict_ti / (1 - df_test_in_scope$predict_ti))
+    y_actual_i <- df_test_in_scope$event_ti
+
+    if (class(try(stats::glm(y_actual_i ~ y_hat_hat, family = binomial(link = "logit")),
+                  silent = TRUE
+    ))[1] == "try-error") {
+      calibration_slope[i] <- NaN
+      calibration_alpha[i] <- NaN
+    } else {
+      calibration_slope[i] <- stats::glm(y_actual_i ~ y_hat_hat,
+                                  family = binomial(link = "logit")
+      )$coefficients[2]
+      if (alpha == "logit") {
+        # take alpha from alpha: logit(y)~ logit(y_hat) + alpha
+        calibration_alpha[i] <- stats::glm(y_actual_i ~ offset(y_hat_hat),
+                                    family = binomial(link = "logit")
+        )$coefficients[1]
+      } else {
+        # take alpha as alpha= mean(y) - mean(y_hat)
+        calibration_alpha[i] <-
+          mean(y_actual_i) - mean(df_test_in_scope$predict_ti)
+      }
+    } # end "else"
+  } # end "for"
+
+  output <- data.frame(
+    "T" = times_to_predict,
+    "AUCROC" = auc_score,
+    "BS" = brier_score,
+    "BS_scaled" = brier_score_scaled,
+    "C_score" = c_score,
+    "Calib_slope" = calibration_slope,
+    "Calib_alpha" = calibration_alpha
+  )
+  return(output)
+}
+
+
+#' Computes calibration alpha and slope from Cox regression
+#'
+#' Details: function computes for a given coxph() model and test
+#' data calibration alpha and slope, as per
+#' # https://journals.sagepub.com/doi/pdf/10.1177/0962280213497434
+#' Crowson, C. S., Atkinson, E. J., & Therneau, T. M. (2016).
+#' Assessing calibration of prognostic risk scores.
+#' Statistical methods in medical research, 25(4), 1692-1706.
+#'
+#' @param cox_model fitted cox model
+#' @param testdata test data
+#' @return c("calib_alpha"=calib_alpha, "calib_slope"=calib_slope)
+#' @export
+calibration_stats <- function(cox_model,
+                              testdata) {
+  p <- log(predict(cox_model, newdata = testdata, type = "expected"))
+  lp <- predict(cox_model, newdata = testdata, type = "lp")
+  logbase <- p - lp
+  fit1 <- stats::glm(Event ~ offset(p), family = poisson, data = testdata)
+  fit2 <-
+    stats::glm(Event ~ lp + offset(logbase),
+        family = poisson,
+        data = testdata
+    )
+  group <- cut(lp, c(-Inf, quantile(lp, (1:9) / 10), Inf))
+  fit3 <-
+    stats::glm(Event ~ -1 + group + offset(p),
+        family = poisson,
+        data = testdata
+    )
+  calib_alpha <- as.numeric(fit1$coefficients[1])
+  calib_slope <- as.numeric(fit2$coefficients[2])
+
+  return(c("calib_alpha" = calib_alpha, "calib_slope" = calib_slope))
+}
+

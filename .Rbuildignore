@@ -1,0 +1,10 @@
+^survcompare\.Rproj$
+^ensemblesurv\.Rproj$
+^\.Rproj\.user$
+^LICENSE\.md$
+^vignettes/articles$
+^tests/*
+^docs/*
+^data/*
+^Examples/*
+^extra/*
