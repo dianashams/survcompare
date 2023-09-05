@@ -2,14 +2,26 @@
 #' September 2023,  code by Diana Shamsutdinova
 #' 
 #' Illustrative example of using the survcompare package
+#' a) linear data
+#' b) non-linear and interaction terms data
+#' c) GBSG2 data https://rdrr.io/cran/pec/man/GBSG2.html  
+#'    German Breast Cancer Study Group, Schumacher et al. (1994) 
 #' 
 ########################################################
 
-### Aims: 
+### Aims of survcompare() method: 
 ### 1) Check if there are non-linear and interaction terms in the data
 ### 2) Quantify their contribution to the models' performance
-### Methods:
-### 1) Compare the 
+### Method: 
+### Using repeated cross-validation, validate the performance of the Cox model (or Cox Lasso)
+### and compare it to the ensemble of the Cox model and Survival Random Forest(SRF), as SRF
+### which captures non-linearity and interactions automatically. 
+### Why ensemble and not just SRF? 
+### -> The ensemble of Cox and SRF takes the predictions of Cox model and adds to the list of 
+### predictors to train SRF. This way, we make sure that linearity is captured by SRF at 
+### least as good as the Cox model, and hence the marginal outperformance can be attributed to 
+### the qualities of SRF that Cox does not have, i.e. data complexity.
+
 
 # 1) simulate observations with survival outcome depending 
 # linearly on log-hazards using package's function simsurv_linear()
@@ -127,7 +139,7 @@ compare_models_gbsg <- survcompare(gbsg_data, params, predict_t = final_time,
 # |=============================================================| 100%
 # Time difference of 56.00061 secs
 # 
-# Internally validated test performance of CoxPH     and Survival Random Forest ensemble:
+# Internally validated test performance of CoxPH and Survival Random Forest ensemble:
 #                T C_score  AUCROC      BS BS_scaled Calib_slope
 # CoxPH          5  0.6773  0.7266  0.2435    0.0631      1.1869
 # SRF_Ensemble   5  0.6938  0.7230  0.2188    0.1584      1.3555
