@@ -1,49 +1,46 @@
 #########################################################
-#' Illustrative example survcompare using package 
+#' September 2023,  code by Diana Shamsutdinova
 #' 
-#' September 2023 version,  code by Diana Shamsutdinova
+#' Illustrative example of using the survcompare package
 #' 
 ########################################################
 
+### Aims: 
+### 1) Check if there are non-linear and interaction terms in the data
+### 2) Quantify their contribution to the models' performance
+### Methods:
+### 1) Compare the 
 
-###### Checking predictive value of non-linearity in simulated data
+# 1) simulate observations with survival outcome depending 
+# linearly on log-hazards using package's function simsurv_linear()
 
-# 1) simulate 500 observations with survival outcome depending 
-# linearly on log-hazards using package's function simsurv_linear
-
-mydata_1 <- simsurv_linear(500)
+mydata_1 <- simsurv_linear(200)
 predictors <- names(mydata_1)[1:4]
 compare_models_1 <- survcompare(mydata_1, predictors, predict_t = 10,
-                              outer_cv = 3, inner_cv = 3, repeat_cv = 5, 
-                              useCoxLasso = FALSE)
+                              outer_cv = 3, inner_cv = 3, repeat_cv = 1, 
+                              useCoxLasso = TRUE)
 
-# [1] "Cross-validating Cox-PH ( 5 repeat(s), 3 loops)"
-# |=============================================================| 100%
-# [1] "Cross-validating Survival Random Forest - Cox PH Ensemble ( 5 repeat(s), 3 outer, 3 inner loops)"
-# |=============================================================| 100%
-# Time difference of 22.84245 secs
+summary.survcompare(compare_models_1, 1)
+# Internally validated test performance of CoxLasso   and Survival Random Forest ensemble:
+#                 T C_score  AUCROC     BS BS_scaled Calib_slope
+# CoxLasso      10  0.7684  0.7562 0.1133    0.3045      1.1366
+# SRF_Ensemble  10  0.7657  0.7489 0.1186    0.2726      1.4142
+# Diff           0 -0.0027 -0.0073 0.0052   -0.0319      0.2775
+# pvalue       NaN  0.5334  0.6005 0.6239    0.9887      0.2409
+#               Calib_alpha  sec
+# CoxLasso          0.2148 0.34
+# SRF_Ensemble      0.1627 3.03
+# Diff             -0.0521 2.69
+# pvalue            0.7563  NaN
 # 
-# Internally validated test performance of Cox-PH, Cox-Lasso and Ensemble 1 (Cox-Survival Random Forest):
-#                T   C_score    AUCROC       BS BS_scaled Calib_slope
-# CoxPH         10  0.738787  0.784237 0.097204  0.353087    0.981809
-# SRF_ensemble  10  0.713515  0.755536 0.102395  0.318406    0.908804
-# Diff           0 -0.025271 -0.028701 0.005192 -0.034681   -0.073005
-# pvalue       NaN  0.999684  0.999124 0.718629  0.998758    0.947258
-# Calib_alpha   sec
-# CoxPH           0.207910  1.21
-# SRF_ensemble    0.211322 22.84
-# Diff            0.003412 21.63
-# pvalue          0.429440   NaN
-# 
-# Survival Random Forest ensemble has NOT outperformed Cox-PH model.
-# The difference in validated C-index is -0.0253 , which is not 
-# statistically significant with p-value = 0.9997.
+# Survival Random Forest ensemble has NOT outperformed CoxLasso  with mean c-index difference of-0.0027.
+# The difference is not statistically significant, p-value = 0.5334. The data may NOT contain considerable non-linear or cross-term dependencies, better captured by the Survival Random Forest.
 # C-score: 
-#    CoxPH  0.7388(95CI=0.6701-0.8056;SD=0.043)
-# Ensemble1 0.7135(95CI=0.6417-0.7852;SD=0.043)
+#   CoxLasso    0.7684(95CI=0.7075-0.823;SD=0.0611)
+#   SRF_Ensemble 0.7657(95CI=0.7229-0.8217;SD=0.0537)
 # AUCROC:
-#    CoxPH  0.7842(95CI=0.7053-0.8534;SD=0.0459)
-# Ensemble1 0.7555(95CI=0.6655-0.8235;SD=0.046)
+#  CoxLasso   0.7562(95CI=0.6938-0.8617;SD=0.0987)
+#  SRF_Ensemble 0.7489(95CI=0.6508-0.8798;SD=0.1251)
 
 
 compare_models_1$main_stats
@@ -58,7 +55,7 @@ compare_models_1$main_stats
 # on interaction and non-linear terms (using package's function simsurv_crossterms)
 
 mydata_2 <- simsurv_crossterms(500)
-compare_models <- survcompare(mydata, names(mydata)[1:4], predict_t = 10,
+compare_models_2 <- survcompare(mydata, names(mydata)[1:4], predict_t = 10,
                               outer_cv = 3, inner_cv = 3, repeat_cv = 5, 
                               useCoxLasso = FALSE)
 
@@ -93,7 +90,7 @@ compare_models <- survcompare(mydata, names(mydata)[1:4], predict_t = 10,
 # Ensemble1 0.7307(95CI=0.6705-0.7896;SD=0.038)
 #  
 
-compare_models$main_stats
+compare_models_2$main_stats
 #                         mean         sd   95CILow  95CIHigh
 # CoxPH_______C_score 0.6288199 0.06148075 0.5219370 0.7208713
 # SRFensemble_C_score 0.7248778 0.03114461 0.6881374 0.7813728

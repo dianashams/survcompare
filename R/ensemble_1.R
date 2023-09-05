@@ -190,7 +190,7 @@ survensemble1_cv <- function(df,
     repeat_cv = 1
   }
 
-  print(paste("Cross-validating Survival Random Forest - Cox PH Ensemble ( ",repeat_cv,
+  print(paste("Cross-validating Survival Random Forest - Cox model ensemble ( ",repeat_cv,
               " repeat(s), ", cv_number," outer, ",
               inner_cv," inner loops)",sep=""))
 

@@ -3,10 +3,9 @@
 #'
 #' @description
 #' The following models are evaluated:
-#' 1) Cox-PH (survival package, survival::coxph)
-#' 2) Cox-Lasso (glmnet package, glmnet::cox.fit)
-#' 3) Survival random forest, SRF (randomForestSRC::rfsrc)
-#' 4) Ensemble of Cox-PH or Cox-Lasso and SRF
+#' 1) Cox-PH (survival package, survival::coxph) or Cox-Lasso (glmnet package, glmnet::cox.fit)
+#' 2) Ensemble of the Cox model and Survival Random Forest (randomForestSRC::rfsrc)
+#' 3) Survival Random Forest on its own, if train_srf = TRUE
 #'
 #' The same random seed for the train/test splits are used for all models.
 #' The comparison can aid model selection and quantify the loss of predictive
@@ -15,17 +14,17 @@
 #' can be viewed as quantification of the non-linear and cross-terms contribution to
 #' the predictive power of the supplied predictors
 #'
-#' @param df_train data frame
-#' @param predict_factors list of predictors to use
+#' @param df_train training data, a data frame with "time" and "event" columns to define the survival outcome
+#' @param predict_factors list of column names to be used as predictors
 #' @param predict_t prediction time of interest. If NULL, 90% quantile of event times is used
 #' @param randomseed random seed for replication
-#' @param useCoxLasso TRUE / FALSE, FALSE by default
+#' @param useCoxLasso TRUE / FALSE, for whether to use regularized version of the Cox model, FALSE is default
 #' @param outer_cv k in k-fold CV
-#' @param inner_cv k in k-fold CV for internal tuning of survival random forest
-#' @param srf_tuning list of tuning parameters for srf, e.g. list("mtry"=c(3,6,16), "ndepth" = c(3,6,19))
-#' @param return_models TRUE/FALSE, if returns all the trained models; default is FALSE, only performance is returned
-#' @param repeat_cv if NULL, runs once, otherwise repeats several times, reports average of all
-#' @param train_srf TRUE/FALSE, default is FALSE, as Ensemble 1 by definition is very similar
+#' @param inner_cv k in k-fold CV for internal CV to tune survival random forest hyper-parameters
+#' @param srf_tuning list of tuning parameters for random forest, NULL for default list, or a list, e.g. list("mtry"=c(3,6,16), "ndepth" = c(3,6,19))
+#' @param return_models TRUE/FALSE to return the trained models; default is FALSE, only performance is returned
+#' @param repeat_cv if NULL, runs once, otherwise repeats several times with different random split for CV, reports average of all
+#' @param train_srf TRUE/FALSE for whether to train SRF on its own, apart from the CoxPH->SRF ensemble. Default is FALSE as there is not much information in SRF itself compared to the ensembled version.
 #' @return outcome = list(data frame with performance results, fitted Cox models, fitted SRF)
 #' @export
 survcompare <- function(df_train,
@@ -40,18 +39,18 @@ survcompare <- function(df_train,
                         repeat_cv = 5,
                         train_srf= FALSE) {
 
-  stopifnot(expr = {
-    is.data.frame(df_train)
-    predict_factors %in% colnames(df_train)
-  })
+  stopifnot(
+    "The data is not a data frame" = is.data.frame(df_train), 
+    "Predictors are not in the data supplied" = predict_factors %in% colnames(df_train)
+  )
   if (is.null(randomseed)) {
     randomseed <- round(stats::runif(1) * 1e9, 0) + 1
   }
   if (is.null(predict_t)) {
     predict_t <- quantile(df_train[df_train$event == 1, "time"], 0.9)
   }
-  # __________________________________________________
-  # cross-validating
+  
+  # cross-validation
   cox_cv <- survcox_cv(
     df = df_train,
     predict.factors = predict_factors,
@@ -87,66 +86,9 @@ survcompare <- function(df_train,
     useCoxLasso = useCoxLasso,
     repeat_cv = repeat_cv
   )
-  # __________________________________________________
-  # gathering results for the output: test&train performance
-  results_mean <- as.data.frame(
-    rbind(
-      "CoxPH" = cox_cv$testaverage,
-      #      "SRF" = srf_cv$testaverage,
-      "SRF_ensemble" = ens1_cv$testaverage
-    )
-  )
-  results_mean$sec <-
-    round(as.numeric(c(
-      cox_cv$time,
-      # srf_cv$time,
-      ens1_cv$time)), 2)
-  results_mean <-
-    results_mean[c("T",
-                   "C_score",
-                   "AUCROC",
-                   "BS",
-                   "BS_scaled",
-                   "Calib_slope",
-                   "Calib_alpha",
-                   "sec")]
-  results_mean_train <- as.data.frame(
-    rbind(
-      "CoxPH" = cox_cv$trainaverage,
-      # "SRF" = srf_cv$trainaverage,
-      "SRF_ensemble" = ens1_cv$trainaverage
-    ))
-  results_mean_train$sec <- results_mean$sec
-  results_mean_train <-
-    results_mean_train[c("T",
-                         "C_score",
-                         "AUCROC",
-                         "BS",
-                         "BS_scaled",
-                         "Calib_slope",
-                         "Calib_alpha",
-                         "sec")]
-  # _____________________________________________________
-  # testing outperformance of Ensemble 1 over CoxPH and CoxLasso
-  t_coxph <-
-    difftest(ens1_cv$test,
-             cox_cv$test,
-             dim(df_train)[1],
-             length(predict_factors))
-
-  t_coxph_train <-
-    difftest(ens1_cv$train,
-             cox_cv$train,
-             dim(df_train)[1],
-             length(predict_factors))
-
-  # adding results line for the differences with Cox-PH
-  results_mean["Diff", ]=results_mean[2, ]-results_mean[1,]
-  results_mean_train["Diff", ]=results_mean[2, ]-results_mean[1,]
-  results_mean["pvalue", ]= c(t_coxph[3,], NaN) #NaN for "sec" column
-  results_mean_train["pvalue", ]= c(t_coxph_train[3,], NaN)
-  # __________________________________________________
-
+   
+  # gathering the output: test&train performance
+  
   stats_ci <- function(x, col = "C_score") {
     temp <- x[, col]
     c(
@@ -155,39 +97,75 @@ survcompare <- function(df_train,
       "95CILow" = unname(quantile(temp, 0.025)),
       "95CIHigh" = unname(quantile(temp, 0.975))
     )
-  }
-  auc_c_stats <-
-    rbind(
-      "CoxPH_______C_score" = stats_ci(cox_cv$test,  "C_score"),
-      "SRFensemble_C_score" = stats_ci(ens1_cv$test, "C_score"),
-      "CoxPH________AUCROC" = stats_ci(cox_cv$test,  "AUCROC"),
-      "SRFensemble__AUCROC" = stats_ci(ens1_cv$test, "AUCROC")
-    )
+  }  
+  
+  if (train_srf){
+    modelnames <- c(ifelse(useCoxLasso, "CoxLasso", "CoxPH"), "SRF_Ensemble", "SRF")
+    results_mean<- as.data.frame(rbind(cox_cv$testaverage,ens1_cv$testaverage, srf_cv$testaverage))
+    results_mean_train <- as.data.frame(rbind(cox_cv$trainaverage, ens1_cv$trainaverage, srf_cv$trainaverage))
+    results_mean$sec <-round(as.numeric(c(cox_cv$time, ens1_cv$time,srf_cv$time)), 2)
+    results_mean_train$sec <- results_mean$sec
+    auc_c_stats <- as.data.frame(rbind(
+      stats_ci(cox_cv$test,  "C_score"),
+      stats_ci(ens1_cv$test, "C_score"),
+      stats_ci(srf_cv$test, "C_score"),
+      stats_ci(cox_cv$test,  "AUCROC"),
+      stats_ci(ens1_cv$test, "AUCROC"),
+      stats_ci(srf_cv$test, "AUCROC"),
+      ))
+    }else{
+    modelnames <- c(ifelse(useCoxLasso, "CoxLasso", "CoxPH"), "SRF_Ensemble")
+    results_mean <- as.data.frame(rbind(cox_cv$testaverage,ens1_cv$testaverage))
+    results_mean_train <- as.data.frame(rbind(cox_cv$trainaverage,ens1_cv$trainaverage))
+    results_mean$sec <-round(as.numeric(c(cox_cv$time, ens1_cv$time)), 2)
+    results_mean_train$sec <- results_mean$sec
+    auc_c_stats <- as.data.frame(rbind(
+      stats_ci(cox_cv$test,  "C_score"),
+      stats_ci(ens1_cv$test, "C_score"),
+      stats_ci(cox_cv$test,  "AUCROC"),
+      stats_ci(ens1_cv$test, "AUCROC")
+      ))
+    }
+
+  col_order <- c("T","C_score","AUCROC", "BS","BS_scaled",
+                 "Calib_slope","Calib_alpha","sec")
+  row.names(results_mean_train)<- modelnames
+  row.names(results_mean)<- modelnames
+  row.names(auc_c_stats)<- c(paste("C_score",modelnames, sep="_"), paste("AUCROC",modelnames, sep="_"))
+  results_mean <- results_mean[col_order]
+  results_mean_train <- results_mean_train[col_order]
+  
+  # testing outperformance of the SRF ensemble over the Cox model
+  t_coxph <- difftest(ens1_cv$test,cox_cv$test,dim(df_train)[1],length(predict_factors))
+  t_coxph_train <-difftest(ens1_cv$train,cox_cv$train,dim(df_train)[1],length(predict_factors))
+
+  # adding results line for the differences with Cox-PH
+  results_mean["Diff", ]=results_mean[2, ]-results_mean[1,]
+  results_mean_train["Diff", ]=results_mean[2, ]-results_mean[1,]
+  results_mean["pvalue", ]= c(t_coxph[3,], NaN) #NaN for "sec" column
+  results_mean_train["pvalue", ]= c(t_coxph_train[3,], NaN)
+  # __________________________________________________
 
   # output
   output <- list()
   output$results_mean <- results_mean
   output$results_mean_train <- results_mean_train
-  #output$results_apparent <- results_apparent
   output$return_models <- list(
     "CoxPH" = cox_cv$tuned_cv_models,
-    #"SRF" = srf_cv$tuned_cv_models,
     "SRF_ensemble" = ens1_cv$tuned_cv_models
   )
   output$test <- list(
     "CoxPH" = cox_cv$test,
-    # "SRF" = srf_cv$test,
     "SRF_ensemble" = ens1_cv$test
   )
   output$train <- list(
     "CoxPH" = cox_cv$train,
-    # "SRF" =  srf_cv$train,
     "SRF_ensemble" = ens1_cv$train
   )
   output$difftest <- t_coxph
   output$main_stats <-auc_c_stats
   output$randomseed <- randomseed
-  summary.ensemblesurv(output)
+  summary.survcompare(output,useCoxLasso)
   return(output)
 }
 

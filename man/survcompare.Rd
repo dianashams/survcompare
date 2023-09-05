@@ -14,32 +14,32 @@ survcompare(
   inner_cv = 3,
   srf_tuning = NaN,
   return_models = FALSE,
-  repeat_cv = NULL,
+  repeat_cv = 5,
   train_srf = FALSE
 )
 }
 \arguments{
-\item{df_train}{data frame}
+\item{df_train}{training data, a data frame with "time" and "event" columns to define the survival outcome}
 
-\item{predict_factors}{list of predictors to use}
+\item{predict_factors}{list of column names to be used as predictors}
 
 \item{predict_t}{prediction time of interest. If NULL, 90\% quantile of event times is used}
 
 \item{randomseed}{random seed for replication}
 
-\item{useCoxLasso}{TRUE / FALSE, FALSE by default}
+\item{useCoxLasso}{TRUE / FALSE, for whether to use regularized version of the Cox model, FALSE is default}
 
 \item{outer_cv}{k in k-fold CV}
 
-\item{inner_cv}{k in k-fold CV for internal tuning of survival random forest}
+\item{inner_cv}{k in k-fold CV for internal CV to tune survival random forest hyper-parameters}
 
-\item{srf_tuning}{list of tuning parameters for srf, e.g. list("mtry"=c(3,6,16), "ndepth" = c(3,6,19))}
+\item{srf_tuning}{list of tuning parameters for random forest, NULL for default list, or a list, e.g. list("mtry"=c(3,6,16), "ndepth" = c(3,6,19))}
 
-\item{return_models}{TRUE/FALSE, if returns all the trained models; default is FALSE, only performance is returned}
+\item{return_models}{TRUE/FALSE to return the trained models; default is FALSE, only performance is returned}
 
-\item{repeat_cv}{if NULL, runs once, otherwise repeats several times, reports average of all}
+\item{repeat_cv}{if NULL, runs once, otherwise repeats several times with different random split for CV, reports average of all}
 
-\item{train_srf}{TRUE/FALSE, default is FALSE, as Ensemble 1 by definition is very similar}
+\item{train_srf}{TRUE/FALSE for whether to train SRF on its own, apart from the CoxPH->SRF ensemble. Default is FALSE as there is not much information in SRF itself compared to the ensembled version.}
 }
 \value{
 outcome = list(data frame with performance results, fitted Cox models, fitted SRF)
@@ -47,10 +47,9 @@ outcome = list(data frame with performance results, fitted Cox models, fitted SR
 \description{
 The following models are evaluated:
 \enumerate{
-\item Cox-PH (survival package, survival::coxph)
-\item Cox-Lasso (glmnet package, glmnet::cox.fit)
-\item Survival random forest, SRF (randomForestSRC::rfsrc)
-\item Ensemble of Cox-PH or Cox-Lasso and SRF
+\item Cox-PH (survival package, survival::coxph) or Cox-Lasso (glmnet package, glmnet::cox.fit)
+\item Ensemble of the Cox model and Survival Random Forest (randomForestSRC::rfsrc)
+\item Survival Random Forest on its own, if train_srf = TRUE
 }
 
 The same random seed for the train/test splits are used for all models.
