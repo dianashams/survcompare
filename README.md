@@ -69,7 +69,7 @@ compare_models$main_stats
 # AUCROC_SRF_Ensemble  0.7600702 0.04495999 0.6985573 0.8381287
 ```
 
-### If you use this project's code, please cite:
+### If you use the package or its code, please cite:
 
 Shamsutdinova, D., Stamate, D., Roberts, A., & Stahl, D. (2022). Combining Cox Model and Tree-Based Algorithms to Boost Performance and Preserve Interpretability for Health Outcomes. In IFIP International Conference on Artificial Intelligence Applications and Innovations (pp. 170-181). Springer, Cham.
 
