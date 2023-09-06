@@ -67,44 +67,41 @@ compare_models_1$main_stats
 # on interaction and non-linear terms (using package's function simsurv_crossterms)
 
 mydata_2 <- simsurv_crossterms(500)
-compare_models_2 <- survcompare(mydata, names(mydata)[1:4], predict_t = 10,
+mypredictors <- names(mydata_2)[1:4]
+compare_models_2 <- survcompare(mydata_2, mypredictors, predict_t = 10,
                               outer_cv = 3, inner_cv = 3, repeat_cv = 5, 
                               useCoxLasso = FALSE)
 
-
 # [1] "Cross-validating Cox-PH ( 5 repeat(s), 3 loops)"
-# |=============================================================| 100%
+# |===============================================================| 100%
 # [1] "Cross-validating Survival Random Forest - Cox model ensemble ( 5 repeat(s), 3 outer, 3 inner loops)"
-# |=============================================================| 100%
-# Time difference of 21.4098 secs
+# |===============================================================| 100%
+# Time difference of 22.68073 secs
 # 
 # Internally validated test performance of CoxPH     and Survival Random Forest ensemble:
-#                T C_score  AUCROC     BS BS_scaled Calib_slope
-# CoxPH         10  0.7392  0.7822 0.0978    0.3514      0.9453
-# SRF_Ensemble  10  0.7217  0.7640 0.1027    0.3199      0.9806
-# Diff           0 -0.0175 -0.0182 0.0049   -0.0316      0.0353
-# pvalue       NaN  0.9571  0.9612 0.7068    0.9915      0.3044
-#              Calib_alpha   sec
-# CoxPH             0.2229  1.22
-# SRF_Ensemble      0.2153 21.41
-# Diff             -0.0077 20.19
-# pvalue            0.6798   NaN
+#                T C_score AUCROC      BS BS_scaled Calib_slope Calib_alpha   sec
+# CoxPH         10  0.6484 0.6502  0.1306    0.1714      0.7985      0.2242  1.18
+# SRF_Ensemble  10  0.7479 0.7601  0.1061    0.3282      0.7336      0.2361 22.68
+# Diff           0  0.0995 0.1098 -0.0245    0.1568     -0.0648      0.0119 21.50
+# pvalue       NaN  0.0000 0.0000  0.0104    0.0000      0.7684      0.3294   NaN
 # 
-# Survival Random Forest ensemble has NOT outperformed CoxPH   with mean c-index difference of-0.0175.
-# The difference is not statistically significant, p-value = 0.9571. The data may NOT contain considerable non-linear or cross-term dependencies, better captured by the Survival Random Forest.
+# Survival Random Forest ensemble has outperformed CoxPH    by 0.0995*** in C-index.
+# The difference is statistically significant, p-value = 0.
+# The supplied data may contain non-linear or cross-term dependencies, 
+# better captured by the Survival Random Forest.
 # C-score: 
-#   CoxPH      0.7392(95CI=0.6958-0.7933;SD=0.0338)
-# SRF_Ensemble 0.7217(95CI=0.6368-0.7833;SD=0.0446)
+#   CoxPH      0.6484(95CI=0.5491-0.7104;SD=0.0476)
+# SRF_Ensemble 0.7479(95CI=0.6933-0.8316;SD=0.0433)
 # AUCROC:
-#   CoxPH      0.7822(95CI=0.7349-0.8316;SD=0.0334)
-# SRF_Ensemble 0.764(95CI=0.6886-0.8281;SD=0.0433)
-
+#   CoxPH      0.6502(95CI=0.5428-0.7078;SD=0.0484)
+# SRF_Ensemble 0.7601(95CI=0.6986-0.8381;SD=0.045
+                    
 compare_models_2$main_stats
-#                         mean         sd   95CILow  95CIHigh
-# C_score_CoxPH        0.7391683 0.03378723 0.6958052 0.7933356
-# C_score_SRF_Ensemble 0.7216899 0.04459629 0.6368015 0.7833033
-# AUCROC_CoxPH         0.7822150 0.03336371 0.7349474 0.8316363
-# AUCROC_SRF_Ensemble  0.7640463 0.04331564 0.6885705 0.8280955
+#                           mean         sd   95CILow  95CIHigh
+# C_score_CoxPH        0.6483860 0.04764071 0.5491227 0.7103612
+# C_score_SRF_Ensemble 0.7478547 0.04332483 0.6933300 0.8315516
+# AUCROC_CoxPH         0.6502224 0.04842263 0.5428135 0.7077804
+# AUCROC_SRF_Ensemble  0.7600702 0.04495999 0.6985573 0.8381287
 
 
 ##################

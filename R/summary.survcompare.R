@@ -17,17 +17,17 @@ summary.survcompare <-
     #output message:
     if (x$difftest["pvalue", "C_score"] < 0.05) {
       t1<- paste("Survival Random Forest ensemble has outperformed ",
-                 coxend, "by ", round(m, 4),pvstars, " in C-index.\n",sep="")
-      t2<- "The difference is statistically significant, p-value = "
+                 coxend, "by ", round(m, 4), " in C-index.\n",sep="")
+      t2<- "The difference is statistically significant with the p-value = "
       t3<- ".\nThe supplied data may contain non-linear or cross-term dependencies, \nbetter captured by the Survival Random Forest.\n"
     }else{
       t1<- paste("Survival Random Forest ensemble has NOT outperformed ",
-                 coxend, "with mean c-index difference of", round(m, 4),pvstars, ".\n",sep="")
-      t2<- "The difference is not statistically significant, p-value = "
+                 coxend, "with mean c-index difference of", round(m, 4), ".\n",sep="")
+      t2<- "The difference is not statistically significant with the p-value = "
       t3<- ". \nThe data may NOT contain considerable non-linear or cross-term dependencies, \nthat could be captured by the Survival Random Forest.\n"
     }
     # print the resulting message
-    cat(paste(t1, t2, ifelse(pv < 0.001, round(pv, 6), round(pv, 4)), t3, sep = ""))
+    cat(paste(t1, t2, ifelse(pv < 0.001, round(pv, 6), round(pv, 4)), pvstars, t3, sep = ""))
     
     #print main stats
     ms<- x$main_stats
