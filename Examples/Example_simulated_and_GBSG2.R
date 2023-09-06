@@ -12,10 +12,16 @@
 ### Aims of survcompare() method: 
 ### 1) Check if there are non-linear and interaction terms in the data
 ### 2) Quantify their contribution to the models' performance
+### 3) Help researchers to make an informed decision on whether 
+###     the benefit of using a flexible but less transparent machine learning method is high enough,
+###     or the classical (or regularized) Cox model should be preferred.
+
 ### Method: 
-### Using repeated cross-validation, validate the performance of the Cox model (or Cox Lasso)
-### and compare it to the ensemble of the Cox model and Survival Random Forest(SRF), as SRF
-### which captures non-linearity and interactions automatically. 
+### 1) Using repeated cross-validation, validate the performance of the Cox model (or Cox Lasso)
+### 2) Validate the performance of the Survival Random Forest(SRF) (ensembled with the Cox model) which captures non-linearity and interactions automatically. 
+### 3) Perform statistical test to compare the models
+### 
+
 ### Why ensemble and not just SRF? 
 ### -> The ensemble of Cox and SRF takes the predictions of Cox model and adds to the list of 
 ### predictors to train SRF. This way, we make sure that linearity is captured by SRF at 
@@ -23,9 +29,11 @@
 ### the qualities of SRF that Cox does not have, i.e. data complexity.
 
 
-# 1) simulate observations with survival outcome depending 
-# linearly on log-hazards using package's function simsurv_linear()
+###############################################################
 
+# a) Application to the simulated data with simple linear dependencies
+
+# simulate data using simsurv_linear()
 mydata_1 <- simsurv_linear(200)
 predictors <- names(mydata_1)[1:4]
 compare_models_1 <- survcompare(mydata_1, predictors, predict_t = 10,
@@ -63,9 +71,9 @@ compare_models_1$main_stats
 # SRFensemble__AUCROC 0.7555365 0.04596786 0.6655202 0.8234735
 
 
-# 2) simulate 500 observations with survival outcome depending 
-# on interaction and non-linear terms (using package's function simsurv_crossterms)
+# b) Application to the simulated data with complex dependencies
 
+# simulate data using simsurv_crossterms()
 mydata_2 <- simsurv_crossterms(500)
 mypredictors <- names(mydata_2)[1:4]
 compare_models_2 <- survcompare(mydata_2, mypredictors, predict_t = 10,
@@ -85,8 +93,8 @@ compare_models_2 <- survcompare(mydata_2, mypredictors, predict_t = 10,
 # Diff           0  0.0995 0.1098 -0.0245    0.1568     -0.0648      0.0119 21.50
 # pvalue       NaN  0.0000 0.0000  0.0104    0.0000      0.7684      0.3294   NaN
 # 
-# Survival Random Forest ensemble has outperformed CoxPH    by 0.0995*** in C-index.
-# The difference is statistically significant, p-value = 0.
+# Survival Random Forest ensemble has outperformed CoxPH    by 0.0995 in C-index.
+# The difference is statistically significant with the p-value = 0***.
 # The supplied data may contain non-linear or cross-term dependencies, 
 # better captured by the Survival Random Forest.
 # C-score: 
@@ -94,8 +102,9 @@ compare_models_2 <- survcompare(mydata_2, mypredictors, predict_t = 10,
 # SRF_Ensemble 0.7479(95CI=0.6933-0.8316;SD=0.0433)
 # AUCROC:
 #   CoxPH      0.6502(95CI=0.5428-0.7078;SD=0.0484)
-# SRF_Ensemble 0.7601(95CI=0.6986-0.8381;SD=0.045
+# SRF_Ensemble 0.7601(95CI=0.6986-0.8381;SD=0.045)
                     
+
 compare_models_2$main_stats
 #                           mean         sd   95CILow  95CIHigh
 # C_score_CoxPH        0.6483860 0.04764071 0.5491227 0.7103612
@@ -104,11 +113,12 @@ compare_models_2$main_stats
 # AUCROC_SRF_Ensemble  0.7600702 0.04495999 0.6985573 0.8381287
 
 
-##################
+##################################################################
+# c) Application to the GBSG2 data https://rdrr.io/cran/pec/man/GBSG2.html  
+#  German Breast Cancer Study Group, Schumacher et al. (1994) 
+
 library(pec) #for GBSG2 data
 data("GBSG2")
-#names(gbsg_data)
-dim(GBSG2)
 # re-format the data - hot-coding binary variables horTh and menostat,
 # also assuming that tgrade is ordinary variable 1<2<3
 gbsg_data = GBSG2
@@ -122,13 +132,21 @@ gbsg_data$time = gbsg_data$time/365 #convert into years
 
 # final data for the analyses
 gbsg_data = gbsg_data[c("time", "event", params)]
+# choose the time horizon for predictions
 quantile(gbsg_data[gbsg_data$event==1, "time"],0.95) #4.96
 quantile(gbsg_data[gbsg_data$event==0, "time"],0.95) #6.34
 final_time = 5
 
-compare_models_gbsg <- survcompare(gbsg_data, params, predict_t = final_time,
-                                outer_cv = 3, inner_cv = 3, repeat_cv = 5, 
-                                useCoxLasso = FALSE)
+compare_models_gbsg <-
+  survcompare(
+    gbsg_data,
+    params,
+    predict_t = final_time,
+    outer_cv = 3,
+    inner_cv = 3,
+    repeat_cv = 5,
+    useCoxLasso = FALSE
+  )
 
 # [1] "Cross-validating Cox-PH ( 5 repeat(s), 3 loops)"
 # |=============================================================| 100%
