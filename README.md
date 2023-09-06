@@ -1,12 +1,12 @@
 # R package "survcompare": 
-### Internal validation and comparison of the Cox Proportionate Hazards model and Survival Random Forest performances using repeated cross-validation.
+### Internal validation and comparison of the Cox Proportionate Hazards model (CoxPH) and Survival Random Forest (SRF) performances using repeated cross-validation.
 
 #### The package aims to help researchers to make an informed decision on whether the benefit of using a flexible but less transparent machine learning method is high enough, or the classical (or regularized) Cox model should be preferred.
 
 ### Method: 
 The package checks whether there are considerable non-linear and interaction terms in the data, and quantifies their contributions to the models' performance. Using repeated nested cross-validation, the package
   * validates Cox Proportionate Hazards model (or Cox Lasso depending on the user's input)
-  * validates Survival Random Forest(SRF) ensembled with the baseline Cox model
+  * validates Survival Random Forest ensembled with the baseline Cox model
   * performs statistical testing of whether the Survival Random Forest ensemble outperforms the Cox model
 
 The performance metrics include
@@ -14,15 +14,15 @@ The performance metrics include
  * calibration measures: calibration slope, calibration alpha,
  * overall fit: Brier score, Scaled Brier score. 
 
-#### FAQ1: Why to compare these models? 
-CoxPH model is a very popular survival model, which assumes linear dependency of the log-hazards on the predictors. In its classical form, the effect of predictors is constant in time which underlies the proportionality assumption; this also means that the estimates are the averaged-over-time effects. CoxPH is a robust and easy-to-interpret model.
+#### FAQ1: Why these (CoxPH and SRF) models? 
+CoxPH model is a widely used survival model proved to be robust and easy to interprete. It assumes linear dependency of the log-hazards on the predictors; in its classical form, the effect of predictors is time-invariant which underlies the proportionality assumption. This  means that models' estimates are the averaged over time effects of predictors on the instant chances of survival. 
 
-SRF is a machine learning algorithm that recursively splits the data into the sub-samples with similar survival profiles. It can deal with non-proportionate hazards and automatically captures non-linear and interaction terms. 
+SRF is a machine learning algorithm that recursively splits the data into the sub-samples with similar survival profiles. It can deal with non-proportionate hazards and automatically captures non-linear and interaction terms, on top of the linear dependencies that CoxPH handles. However, it tends to overfit, and interpretation of radom forests' predictions is not straightforward especially for the survival data.
 
-Given these qualities, choosing the SRF as the comparison allows to  test the presence of the compex dependencies in the data, which are not handled by the CoxPH. A researcher may choose to use a different model at the end, but the relative performance of these models can be instrumental in deciding if a complex model is needed at all.
+Given these qualities, SRF vs CoxPH's comparison is indicative of compex data dependencies, and quantifies the cost of using a simpler CoxPH model versus more flexible alternatives.
 
 #### FAQ2: Why the ensemble and not just SRF? 
-The ensemble of Cox and SRF takes the predictions of the Cox model and adds to the list of predictors to train SRF. This way, we make sure that linearity is captured by SRF at  least as good as the Cox model, and hence the marginal outperformance can be attributed to the qualities of SRF that Cox does not have, i.e. data complexity.
+The ensemble of Cox and SRF takes the predictions of the Cox model and adds to the list of predictors to train SRF. This way, we make sure that linearity is captured by SRF at least as good as in the Cox model, and hence the marginal outperformance of the ensemble over the Cox model can be fully attributed to the qualities of SRF that Cox does not have, that is, data complexity.
 
 ### How to use the package 
 You can install the package from its github directory by running the `devtools::install_github("dianashams/survcompare")` command. The main function to use is `survcompare(data, predictors)`. The data should be in a form of a data frame, with "time" and "event" columns defining the survival outcome. A list of column names corresponding to the predictors to be used should also be supplied.
@@ -83,5 +83,4 @@ diana.shamsutdinova@kcl.ac.uk
 
 [3] Shamsutdinova, D., Stamate, D., Roberts, A., & Stahl, D. (2022). Combining Cox Model and Tree-Based Algorithms to Boost Performance and Preserve Interpretability for Health Outcomes. In IFIP International Conference on Artificial Intelligence Applications and Innovations (pp. 170-181). Springer, Cham.
 
-[4] Amunategui, M.: Data Exploration & Machine Learning, Hands-on. https://amunategui.github.io/survival-ensembles/index.html
-
+[4] Steyerberg, E. W., & Vergouwe, Y. (2014). Towards better clinical prediction models: seven steps for development and an ABCD for validation. European heart journal, 35(29), 1925-1931.
