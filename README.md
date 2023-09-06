@@ -24,6 +24,12 @@ Given these qualities, SRF vs CoxPH's comparison is indicative of compex data de
 #### FAQ2: Why the ensemble and not just SRF? 
 The ensemble of Cox and SRF takes the predictions of the Cox model and adds to the list of predictors to train SRF. This way, we make sure that linearity is captured by SRF at least as good as in the Cox model, and hence the marginal outperformance of the ensemble over the Cox model can be fully attributed to the qualities of SRF that Cox does not have, that is, data complexity.
 
+#### FAQ3: How do I use the results? 
+First, try to run sufficient number of repetitions (repeat_cv), at least 5, ideally 20-50 depending on the data heterogeneity and size.
+There are two possible outcomes: "Survival Random Forest ensemble has outperformed CoxPH by ... in C-index", or "Survival Random Forest ensemble has NOT outperformed CoxPH". 
+  * If there is **no outperformance**, this result can justify the employment of CoxPH model and indicate a negligible advantage of using a more flexible model such as Survival Random Forest.
+  * In the case of **outperformance**, a researcher can 1) decide to go for a more complex model, 2) look for the interaction and non-linear terms that could be added to the CoxPH and re-run the test again, or 3) consider still using the CoxPH model if the difference is not large in the context of the performed task, or not enough to sacrifice model interpretability.
+
 ### How to use the package 
 You can install the package from its github directory by running the `devtools::install_github("dianashams/survcompare")` command. The main function to use is `survcompare(data, predictors)`. The data should be in a form of a data frame, with "time" and "event" columns defining the survival outcome. A list of column names corresponding to the predictors to be used should also be supplied.
 
@@ -81,6 +87,6 @@ diana.shamsutdinova@kcl.ac.uk
 
 [2] Cox, D. R. (1972). Regression models and life‐tables. Journal of the Royal Statistical Society: Series B (Methodological), 34(2), 187-202.
 
-[3] Shamsutdinova, D., Stamate, D., Roberts, A., & Stahl, D. (2022). Combining Cox Model and Tree-Based Algorithms to Boost Performance and Preserve Interpretability for Health Outcomes. In IFIP International Conference on Artificial Intelligence Applications and Innovations (pp. 170-181). Springer, Cham.
+[3] Steyerberg, E. W., & Vergouwe, Y. (2014). Towards better clinical prediction models: seven steps for development and an ABCD for validation. European heart journal, 35(29), 1925-1931.
 
-[4] Steyerberg, E. W., & Vergouwe, Y. (2014). Towards better clinical prediction models: seven steps for development and an ABCD for validation. European heart journal, 35(29), 1925-1931.
+[4] Shamsutdinova, D., Stamate, D., Roberts, A., & Stahl, D. (2022). Combining Cox Model and Tree-Based Algorithms to Boost Performance and Preserve Interpretability for Health Outcomes. In IFIP International Conference on Artificial Intelligence Applications and Innovations (pp. 170-181). Springer, Cham.
