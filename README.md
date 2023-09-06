@@ -11,18 +11,21 @@ The package checks whether there are considerable non-linear and interaction ter
 
 The performance metrics include
  * discrimination measures: Harrell's concordance index, time-dependent AUCROC,
- * calibration measures: calibration slope, calibration alpha
- * overall fit: Brier score, Scaled Brier score 
+ * calibration measures: calibration slope, calibration alpha,
+ * overall fit: Brier score, Scaled Brier score. 
 
-#### FAQ: Why the ensemble and not just SRF? 
+#### FAQ1: Why to compare these models? 
+CoxPH model is a very popular survival model, which assumes linear dependency of the log-hazards on the predictors. In its classical form, the effect of predictors is constant in time which underlies the proportionality assumption; this also means that the estimates are the averaged-over-time effects. CoxPH is a robust and easy-to-interpret model.
+
+SRF is a machine learning algorithm that recursively splits the data into the sub-samples with similar survival profiles. It can deal with non-proportionate hazards and automatically captures non-linear and interaction terms. 
+
+Given these qualities, choosing the SRF as the comparison allows to  test the presence of the compex dependencies in the data, which are not handled by the CoxPH. A researcher may choose to use a different model at the end, but the relative performance of these models can be instrumental in deciding if a complex model is needed at all.
+
+#### FAQ2: Why the ensemble and not just SRF? 
 The ensemble of Cox and SRF takes the predictions of the Cox model and adds to the list of predictors to train SRF. This way, we make sure that linearity is captured by SRF at  least as good as the Cox model, and hence the marginal outperformance can be attributed to the qualities of SRF that Cox does not have, i.e. data complexity.
 
-which captures non-linearity and interactions automatically is validated.
-
 ### How to use the package 
-You can install the package from its github directory by running the `devtools::install_github("dianashams/survcompare")` command. 
-
-**The main function is `survcompare(data, predictors)`. The data should be a data frame, with "time" and "event" columns defining the survival outcome. A list of column names corresponding to the predictors to be used should also be supplied.**
+You can install the package from its github directory by running the `devtools::install_github("dianashams/survcompare")` command. The main function to use is `survcompare(data, predictors)`. The data should be in a form of a data frame, with "time" and "event" columns defining the survival outcome. A list of column names corresponding to the predictors to be used should also be supplied.
 
 The files in the "Example/" folder illustrate `survcompare`'s  application to the simulated and GBSG2  (https://rdrr.io/cran/pec/man/GBSG2.html) datasets. The outputs contain  internally-validated performance metrics along with the results of the statistical testing of whether Survival Random Forest outperforms the Cox Proportionate Hazard model (or Cox Lasso).  
 
