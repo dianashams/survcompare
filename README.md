@@ -5,9 +5,9 @@
 
 ### Method: 
 The package checks whether there are considerable non-linear and interaction terms in the data, and quantifies their contributions to the models' performance. Using repeated nested cross-validation, the package
-  * validates Cox Proportionate Hazards model (or Cox Lasso depending on the user's input)
-  * validates Survival Random Forest ensembled with the baseline Cox model
-  * performs statistical testing of whether the Survival Random Forest ensemble outperforms the Cox model
+  * validates Cox Proportionate Hazards model, or Cox Lasso depending on the user's input. Uses 'survival::coxph()' or 'glmnet::glmnet(...m, family="cox")' functions.
+  * validates Survival Random Forest ensembled with the baseline Cox model. Uses 'randomForestSRC::rfsrc()' function.
+  * performs statistical testing of whether the Survival Random Forest ensemble outperforms the Cox model.
 
 The performance metrics include
  * discrimination measures: Harrell's concordance index, time-dependent AUCROC,
@@ -83,10 +83,12 @@ Shamsutdinova, D., Stamate, D., Roberts, A., & Stahl, D. (2022). Combining Cox M
 diana.shamsutdinova@kcl.ac.uk
 
 ### Links and references: 
-[1] Ishwaran, H., Lauer, M.S., Blackstone, E.H., Lu, M.: randomForestSRC: Random Survival Forests Vignette (2021)
+[1] Therneau, T. M., & Lumley, T. (2015). Package ‘survival’. R Top Doc, 128(10), 28-33.
 
-[2] Cox, D. R. (1972). Regression models and life‐tables. Journal of the Royal Statistical Society: Series B (Methodological), 34(2), 187-202.
+[2] Ishwaran, H., Lauer, M.S., Blackstone, E.H., Lu, M.: randomForestSRC: Random Survival Forests Vignette (2021)
 
-[3] Steyerberg, E. W., & Vergouwe, Y. (2014). Towards better clinical prediction models: seven steps for development and an ABCD for validation. European heart journal, 35(29), 1925-1931.
+[3] Cox, D. R. (1972). Regression models and life‐tables. Journal of the Royal Statistical Society: Series B (Methodological), 34(2), 187-202.
 
-[4] Shamsutdinova, D., Stamate, D., Roberts, A., & Stahl, D. (2022). Combining Cox Model and Tree-Based Algorithms to Boost Performance and Preserve Interpretability for Health Outcomes. In IFIP International Conference on Artificial Intelligence Applications and Innovations (pp. 170-181). Springer, Cham.
+[4] Steyerberg, E. W., & Vergouwe, Y. (2014). Towards better clinical prediction models: seven steps for development and an ABCD for validation. European heart journal, 35(29), 1925-1931.
+
+[5] Shamsutdinova, D., Stamate, D., Roberts, A., & Stahl, D. (2022). Combining Cox Model and Tree-Based Algorithms to Boost Performance and Preserve Interpretability for Health Outcomes. In IFIP International Conference on Artificial Intelligence Applications and Innovations (pp. 170-181). Springer, Cham.
