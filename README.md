@@ -4,15 +4,15 @@
 #### The package aims to help researchers to make an informed decision on whether the benefit of using a flexible but less transparent machine learning method is high enough, or the classical (or regularized) Cox model should be preferred.
 
 ### Method: 
-The package checks whether there are considerable non-linear and interaction terms in the data, and quantifies their contributions to the models' performance. Using repeated nested cross-validation, the package
-  * validates Cox Proportionate Hazards model, or Cox Lasso depending on the user's input. Uses 'survival::coxph()' or 'glmnet::glmnet(...m, family="cox")' functions.
-  * validates Survival Random Forest ensembled with the baseline Cox model. Uses 'randomForestSRC::rfsrc()' function.
-  * performs statistical testing of whether the Survival Random Forest ensemble outperforms the Cox model.
+The package checks whether there are considerable non-linear and interaction terms in the data, and quantifies their contributions to the models' performance. Using repeated nested cross-validation, the package:
+  * Validates Cox Proportionate Hazards model, or Cox Lasso depending on the user's input. Uses 'survival::coxph()' or 'glmnet::glmnet(...m, family="cox")' functions.
+  * Validates Survival Random Forest ensembled with the baseline Cox model. Uses 'randomForestSRC::rfsrc()' function.
+  * Performs statistical testing of whether the Survival Random Forest ensemble outperforms the Cox model.
 
-The performance metrics include
- * discrimination measures: Harrell's concordance index, time-dependent AUCROC,
- * calibration measures: calibration slope, calibration alpha,
- * overall fit: Brier score, Scaled Brier score. 
+The performance metrics include:
+ * Discrimination measures: Harrell's concordance index, time-dependent AUCROC.
+ * Calibration measures: calibration slope, calibration alpha.
+ * Overall fit: Brier score, Scaled Brier score. 
 
 #### FAQ1: Why these (CoxPH and SRF) models? 
 CoxPH model is a widely used survival model proved to be robust and easy to interprete. It assumes linear dependency of the log-hazards on the predictors; in its classical form, the effect of predictors is time-invariant which underlies the proportionality assumption. This  means that models' estimates are the averaged over time effects of predictors on the instant chances of survival. 
