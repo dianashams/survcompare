@@ -5,7 +5,7 @@
 
 ### Method: 
 The package checks whether there are considerable non-linear and interaction terms in the data, and quantifies their contributions to the models' performance. Using repeated nested cross-validation, the package:
-  * Validates Cox Proportionate Hazards model, or Cox Lasso depending on the user's input. Uses 'survival::coxph()' or 'glmnet::glmnet(...m, family="cox")' functions.
+  * Validates Cox Proportionate Hazards model, or Cox Lasso depending on the user's input. Uses 'survival::coxph()' or 'glmnet::glmnet(..., family="cox")' functions.
   * Validates Survival Random Forest ensembled with the baseline Cox model. Uses 'randomForestSRC::rfsrc()' function.
   * Performs statistical testing of whether the Survival Random Forest ensemble outperforms the Cox model.
 
