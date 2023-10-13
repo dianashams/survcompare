@@ -14,6 +14,9 @@ The performance metrics include:
  * Calibration measures: calibration slope, calibration alpha.
  * Overall fit: Brier score, Scaled Brier score. 
 
+### Getting started 
+You can install the package from its github directory by running the `devtools::install_github("dianashams/survcompare")` command. The main function to use is `survcompare(data, predictors)`. The data should be in a form of a data frame, with "time" and "event" columns defining the survival outcome. A list of column names corresponding to the predictors to be used should also be supplied.
+
 #### FAQ1: Why these (CoxPH and SRF) models? 
 CoxPH model is a widely used survival model proved to be robust and easy to interprete. It assumes linear dependency of the log-hazards on the predictors; in its classical form, the effect of predictors is time-invariant which underlies the proportionality assumption. This  means that models' estimates are the averaged over time effects of predictors on the instant chances of survival. 
 
@@ -30,13 +33,8 @@ There are two possible outcomes: "Survival Random Forest ensemble has outperform
   * If there is **no outperformance**, this result can justify the employment of CoxPH model and indicate a negligible advantage of using a more flexible model such as Survival Random Forest.
   * In the case of **outperformance**, a researcher can 1) decide to go for a more complex model, 2) look for the interaction and non-linear terms that could be added to the CoxPH and re-run the test again, or 3) consider still using the CoxPH model if the difference is not large in the context of the performed task, or not enough to sacrifice model interpretability.
 
-### How to use the package 
-You can install the package from its github directory by running the `devtools::install_github("dianashams/survcompare")` command. The main function to use is `survcompare(data, predictors)`. The data should be in a form of a data frame, with "time" and "event" columns defining the survival outcome. A list of column names corresponding to the predictors to be used should also be supplied.
-
-The files in the "Example/" folder illustrate `survcompare`'s  application to the simulated and GBSG2  (https://rdrr.io/cran/pec/man/GBSG2.html) datasets. The outputs contain  internally-validated performance metrics along with the results of the statistical testing of whether Survival Random Forest outperforms the Cox Proportionate Hazard model (or Cox Lasso).  
-
 ### Example:
-
+The files in the "Example/" folder illustrate `survcompare`'s  application to the simulated and GBSG2  (https://rdrr.io/cran/pec/man/GBSG2.html) datasets. The outputs contain  internally-validated performance metrics along with the results of the statistical testing of whether Survival Random Forest outperforms the Cox Proportionate Hazard model (or Cox Lasso).  
 ```R
 mydata <- simsurv_crossterms(500)
 mypredictors <- names(mydata)[1:4]
