@@ -31,6 +31,3 @@ fitted CoxPH or CoxLasso model
 Trains CoxPH using survival package, or trains CoxLasso (cv.glmnet, lambda.min),
 and then re-trains survival:coxph on non-zero predictors
 }
-\examples{
-df<- simsurv_nonlinear()
-}

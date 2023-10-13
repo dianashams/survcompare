@@ -2,25 +2,23 @@
 % Please edit documentation in R/base_functions.R
 \name{calibration_stats}
 \alias{calibration_stats}
-\title{Computes calibration alpha and slope from Cox regression}
+\title{Computes calibration alpha and slope for a Cox model}
 \usage{
 calibration_stats(cox_model, testdata)
 }
 \arguments{
-\item{cox_model}{fitted cox model}
+\item{cox_model}{fitted cox model, namely, coxph() object}
 
-\item{testdata}{test data}
+\item{testdata}{test data, data frame with "time" and "event" columns}
 }
 \value{
-c("calib_alpha"=calib_alpha, "calib_slope"=calib_slope)
+c(calib_alpha, calib_slope)
 }
 \description{
-Details: function computes for a given coxph() model and test
-data calibration alpha and slope, as per
-}
-\section{https://journals.sagepub.com/doi/pdf/10.1177/0962280213497434}{
+Details: computes calibration alpha and slope for a given coxph model
+and test data, as per
 Crowson, C. S., Atkinson, E. J., & Therneau, T. M. (2016).
 Assessing calibration of prognostic risk scores.
 Statistical methods in medical research, 25(4), 1692-1706.
+https://journals.sagepub.com/doi/pdf/10.1177/0962280213497434
 }
-

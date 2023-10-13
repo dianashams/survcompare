@@ -2,11 +2,7 @@
 % Please edit documentation in R/base_functions.R
 \name{bs_surv}
 \alias{bs_surv}
-\title{This function calculates time-dependent BrierScore for df_newdata, similar to
-https://scikit-survival.readthedocs.io/en/stable/api/generated/sksurv.metrics.brier_score.html#sksurv.metrics.brier_score
-https://github.com/sebp/scikit-survival/blob/v0.19.0.post1/sksurv/metrics.py#L524-L644
-Uses IPCW (inverse probability of censoring weights), computed with K-M curve,
-where events are censored events from train data}
+\title{Calculates time-dependent Brier Score}
 \usage{
 bs_surv(
   y_predicted_newdata,
@@ -28,15 +24,13 @@ bs_surv(
 \item{weighted}{TRUE/FALSE for IPWC to use or not}
 }
 \value{
-vector of BS for each time in time_points
+vector of time-dependent Brier Scores for all time_points
 }
 \description{
-This function calculates time-dependent BrierScore for df_newdata, similar to
+Calculates time-dependent Brier Scores for a vector of times. Calculations are similar to that in:
 https://scikit-survival.readthedocs.io/en/stable/api/generated/sksurv.metrics.brier_score.html#sksurv.metrics.brier_score
 https://github.com/sebp/scikit-survival/blob/v0.19.0.post1/sksurv/metrics.py#L524-L644
-Uses IPCW (inverse probability of censoring weights), computed with K-M curve,
-where events are censored events from train data
-}
-\examples{
-df <- simsurv_nonlinear()
+
+The function uses IPCW (inverse probability of censoring weights), computed using the Kaplan-Meier
+survival function, where events are censored events from train data
 }

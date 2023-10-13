@@ -8,9 +8,8 @@
 #' @param useCoxLasso  TRUE or FALSE
 #' @param fixed_time  not used here, to re-align with other methods
 #' @param retrain_cox if useCoxLasso is TRUE, whether to re-train coxph on non-zero predictors, FALSE by default
-#' @examples
-#' df<- simsurv_nonlinear()
 #' @return fitted CoxPH or CoxLasso model
+#' @export
 survcox_train <- function(df_train,
                              predict.factors,
                              useCoxLasso = FALSE,
@@ -61,9 +60,8 @@ survcox_train <- function(df_train,
 #' @param fixed_time  not used here, to re-align with other methods
 #' @param retrain_cox whether to re-train coxph on non-zero predictors; FALSE by default
 #' @param verbose TRUE/FALSE prints warnings if no predictors in Lasso
-#' @examples
-#' df<- simsurv_nonlinear()
 #' @return fitted CoxPH model
+#' @export
 survcoxlasso_train <- function(df_train,
                                   predict.factors,
                                   fixed_time = NaN,
@@ -138,6 +136,13 @@ survcox_predict <- function(model_cox,
                                newdata,
                                times) {
   # returns event probability from trained cox model model_cox
+
+  #checks
+  if(!inherits(model_cox,"coxph")) {stop("Supply coxph model."); return(NULL) }
+  if(!inherits(newdata,"data.frame")) stop("Supply newdata as data.frame.")
+  if(!inherits(times,"numeric")) stop("Supply times as a non-empty numeric list.")
+  if(length(times)==0) stop("Supply times as a non-empty numeric list.")
+  if(is.null(newdata)|dim(newdata)[1]==0|dim(newdata)[2]==0) stop("Empty or NULL data is supplied.")
 
   # define bh - baseline hazard as dataframe with "time" and "hazard"
   # if baseline hazard can't be calibrated, # return mean(y) for all times
@@ -241,6 +246,7 @@ survcox_predict <- function(model_cox,
 #' @examples
 #' df<- simsurv_nonlinear()
 #' @return output list: output$train, test, testaverage, traintaverage, time,tuned_cv_models
+#' @export
 survcox_cv <- function(df,
                           predict.factors,
                           fixed_time = NaN,
@@ -320,10 +326,10 @@ survcox_cv <- function(df,
           cox.model
         }
       utils::setTxtProgressBar(pb, cv_iteration + (rep_cv-1)*cv_number)
-      # create data frame with results:
     }
   }
 
+  # create data frame with results:
   df_modelstats_test <- data.frame(modelstats_test[[1]])
   df_modelstats_train <- data.frame(modelstats_train[[1]])
   for (i in 2:(cv_number*repeat_cv)) {
@@ -350,25 +356,16 @@ survcox_cv <- function(df,
   return(output)
 }
 
-#' Internal function, checks eligible parameters
-#' to avoid tree-building with non-existing or constant predictors
-#'
-#' @param params list of predictor names
-#' @param df data frame
-#'
-#' @return params_eligible - list of params which are in the df and have more than 1 value
-#'
+
 eligible_params <- function(params,df) {
   # This function checks eligible predictors from params list for split
   # It deletes those which are
   # 1) not in df and
   # 2) taking only 1 value (constants)
-  # ! Later may delete collinear factors
-  
+  # TODOLater may delete collinear factors
   if (length(params) == 0) {
     return(NULL)
   }
-  
   # take only columns which are in df
   z <- params %in% names(df)
   if (sum(!z) == length(params)) {

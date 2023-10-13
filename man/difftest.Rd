@@ -25,6 +25,5 @@ Model 1 over Model 0
 T-test is used for AUC and C-score, and Fisher test for Brier Scores
 Models are given with the results of the survval function applied
 to several cross-validation or bootstrap iterations, one per row
-It is assumed that the same training data is used for Model 1 and Model 2
-in each row
+It is assumed that the same training data is used for Model 1 and Model 2 in each row
 }

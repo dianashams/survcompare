@@ -1,37 +1,38 @@
-################# validation statistics #####################
-
-
-#' This function calculates time-dependent BrierScore for df_newdata, similar to
+#' Calculates time-dependent Brier Score
+#' @description
+#' Calculates time-dependent Brier Scores for a vector of times. Calculations are similar to that in:
 #' https://scikit-survival.readthedocs.io/en/stable/api/generated/sksurv.metrics.brier_score.html#sksurv.metrics.brier_score
 #' https://github.com/sebp/scikit-survival/blob/v0.19.0.post1/sksurv/metrics.py#L524-L644
-#' Uses IPCW (inverse probability of censoring weights), computed with K-M curve,
-#' where events are censored events from train data
+#'
+#' The function uses IPCW (inverse probability of censoring weights), computed using the Kaplan-Meier
+#' survival function, where events are censored events from train data
 #'
 #' @param y_predicted_newdata computed event probabilities
 #' @param df_brier_train train data
 #' @param df_newdata test data for which brier score is computed
 #' @param time_points times at which BS calculated
 #' @param weighted TRUE/FALSE for IPWC to use or not
-#' @examples
-#' df <- simsurv_nonlinear()
-#' @return vector of BS for each time in time_points
+#' @return vector of time-dependent Brier Scores for all time_points
+#' @export
 bs_surv <-
   function(y_predicted_newdata,
            df_brier_train,
            df_newdata,
            time_points,
            weighted = TRUE) {
-    # IPWC to use or not
-    # K-M prob of censoring for each observation till its individual time
+
+
+
+    # compute K-M probabilities of censoring for each observation till its individual time
     df_newdata$p_km_obs <-
       survival_prob_km(df_brier_train, df_newdata$time, estimate_censoring = TRUE)
     df_newdata$p_km_obs <-
       pmax(pmin(df_newdata$p_km_obs, 0.9999), 0.0001)
-    # !! impute with mean observations if can't estimate !!
-    # !!!
+
+    # ! impute with mean observations if can't estimate !
     df_newdata[is.na(df_newdata$p_km_obs), "p_km_obs"] <-
       mean(df_newdata$p_km_obs, na.rm = 1)
-    # one number P(t_i is censored) = P(T > t_i) = S(t_i):
+
     p_km_t <-
       survival_prob_km(df_brier_train, time_points, estimate_censoring = TRUE)
     p_km_t <- pmax(pmin(p_km_t, 0.9999), 0.0001)
@@ -77,14 +78,11 @@ bs_surv <-
   }
 
 
-
 #' Calculates survival probability estimated by Kaplan-Meier survival curve
 #' Uses polynomial extrapolation in survival function space, using poly(n=3)
 #' @param df_km_train event probabilities (!not survival)
 #' @param times times at which survival is estimated
 #' @param estimate_censoring FALSE by default, if TRUE, event and censoring is reversed (for IPCW calculations)
-#' @examples
-#' df <- simsurv_nonlinear()
 #' @return vector of survival probabilities for time_points
 survival_prob_km <-
   function(df_km_train, times, estimate_censoring = FALSE) {
@@ -120,9 +118,7 @@ survival_prob_km <-
 #' @param df_test test data, data frame
 #' @param weighted TRUE/FALSE, for IPWC
 #' @param alpha calibration alpha as mean difference or from logistic regression
-#' @examples
-#' df <- simsurv_nonlinear()
-#' @return  data.frame("T" ,"AUCROC","BS","BS_scaled,"C_score" ,"Calib_slope","Calib_alpha")
+#' @return  data.frame(T, AUCROC, Brier Score, Scaled Brier Score, C_score, Calib slope, Calib alpha)
 #' @export
 survval <- function(y_predict,
                     times_to_predict,
@@ -130,7 +126,7 @@ survval <- function(y_predict,
                     df_test,
                     weighted = TRUE,
                     alpha = "logit") {
-  # This function computes auc, brier score, c-index,
+  # The function computes auc, brier score, c-index,
   # calibration slope and alpha for df_test
   # for apparent statistics use test  = train
   auc_score <- c()
@@ -139,7 +135,6 @@ survval <- function(y_predict,
   c_score <- c()
   calibration_slope <- c()
   calibration_alpha <- c()
-  #Surv <- survival::Surv
 
   for (i in 1:length(times_to_predict)) {
     t_i <- times_to_predict[i]
@@ -265,18 +260,18 @@ survval <- function(y_predict,
 }
 
 
-#' Computes calibration alpha and slope from Cox regression
-#'
-#' Details: function computes for a given coxph() model and test
-#' data calibration alpha and slope, as per
-#' # https://journals.sagepub.com/doi/pdf/10.1177/0962280213497434
+#' Computes calibration alpha and slope for a Cox model
+#' @description
+#' Details: computes calibration alpha and slope for a given coxph model
+#' and test data, as per
 #' Crowson, C. S., Atkinson, E. J., & Therneau, T. M. (2016).
 #' Assessing calibration of prognostic risk scores.
 #' Statistical methods in medical research, 25(4), 1692-1706.
+#' https://journals.sagepub.com/doi/pdf/10.1177/0962280213497434
 #'
-#' @param cox_model fitted cox model
-#' @param testdata test data
-#' @return c("calib_alpha"=calib_alpha, "calib_slope"=calib_slope)
+#' @param cox_model fitted cox model, namely, coxph() object
+#' @param testdata test data, data frame with "time" and "event" columns
+#' @return c(calib_alpha, calib_slope)
 #' @export
 calibration_stats <- function(cox_model,
                               testdata) {

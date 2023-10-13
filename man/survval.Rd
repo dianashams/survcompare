@@ -27,11 +27,8 @@ survval(
 \item{alpha}{calibration alpha as mean difference or from logistic regression}
 }
 \value{
-data.frame("T" ,"AUCROC","BS","BS_scaled,"C_score" ,"Calib_slope","Calib_alpha")
+data.frame(T, AUCROC, Brier Score, Scaled Brier Score, C_score, Calib slope, Calib alpha)
 }
 \description{
 Computes performance statistics given the predicted event probabilities
-}
-\examples{
-df <- simsurv_nonlinear()
 }

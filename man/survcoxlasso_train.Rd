@@ -29,6 +29,3 @@ fitted CoxPH model
 \description{
 Trains CoxLasso, using cv.glmnet(s="lambda.min")
 }
-\examples{
-df<- simsurv_nonlinear()
-}

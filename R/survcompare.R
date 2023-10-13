@@ -1,6 +1,5 @@
 
 #' Cross-validates predictive performance of the baseline Cox-PH model and Survival random forest
-#'
 #' @description
 #' The following models are evaluated:
 #' 1) Cox-PH (survival package, survival::coxph) or Cox-Lasso (glmnet package, glmnet::cox.fit)
@@ -40,7 +39,7 @@ survcompare <- function(df_train,
                         train_srf= FALSE) {
 
   stopifnot(
-    "The data is not a data frame" = is.data.frame(df_train), 
+    "The data is not a data frame" = is.data.frame(df_train),
     "Predictors are not in the data supplied" = predict_factors %in% colnames(df_train)
   )
   if (is.null(randomseed)) {
@@ -49,7 +48,7 @@ survcompare <- function(df_train,
   if (is.null(predict_t)) {
     predict_t <- quantile(df_train[df_train$event == 1, "time"], 0.9)
   }
-  
+
   # cross-validation
   cox_cv <- survcox_cv(
     df = df_train,
@@ -86,9 +85,9 @@ survcompare <- function(df_train,
     useCoxLasso = useCoxLasso,
     repeat_cv = repeat_cv
   )
-   
+
   # gathering the output: test&train performance
-  
+
   stats_ci <- function(x, col = "C_score") {
     temp <- x[, col]
     c(
@@ -97,8 +96,8 @@ survcompare <- function(df_train,
       "95CILow" = unname(quantile(temp, 0.025)),
       "95CIHigh" = unname(quantile(temp, 0.975))
     )
-  }  
-  
+  }
+
   if (train_srf){
     modelnames <- c(ifelse(useCoxLasso, "CoxLasso", "CoxPH"), "SRF_Ensemble", "SRF")
     results_mean<- as.data.frame(rbind(cox_cv$testaverage,ens1_cv$testaverage, srf_cv$testaverage))
@@ -134,7 +133,7 @@ survcompare <- function(df_train,
   row.names(auc_c_stats)<- c(paste("C_score",modelnames, sep="_"), paste("AUCROC",modelnames, sep="_"))
   results_mean <- results_mean[col_order]
   results_mean_train <- results_mean_train[col_order]
-  
+
   # testing outperformance of the SRF ensemble over the Cox model
   t_coxph <- difftest(ens1_cv$test,cox_cv$test,dim(df_train)[1],length(predict_factors))
   t_coxph_train <-difftest(ens1_cv$train,cox_cv$train,dim(df_train)[1],length(predict_factors))
@@ -178,9 +177,7 @@ survcompare <- function(df_train,
 #' T-test is used for AUC and C-score, and Fisher test for Brier Scores
 #' Models are given with the results of the survval function applied
 #' to several cross-validation or bootstrap iterations, one per row
-#' It is assumed that the same training data is used for Model 1 and Model 2
-#' in each row
-#'
+#' It is assumed that the same training data is used for Model 1 and Model 2 in each row
 #' @param res1 data frame
 #' @param res0 list of predictors to use
 #' @param sample_n prediction time of interest. If NULL, 90% quantile of event times is used

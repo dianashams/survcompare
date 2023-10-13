@@ -21,6 +21,3 @@ vector of survival probabilities for time_points
 Calculates survival probability estimated by Kaplan-Meier survival curve
 Uses polynomial extrapolation in survival function space, using poly(n=3)
 }
-\examples{
-df <- simsurv_nonlinear()
-}
