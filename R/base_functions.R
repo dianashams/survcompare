@@ -3,7 +3,6 @@
 #' Calculates time-dependent Brier Scores for a vector of times. Calculations are similar to that in:
 #' https://scikit-survival.readthedocs.io/en/stable/api/generated/sksurv.metrics.brier_score.html#sksurv.metrics.brier_score
 #' https://github.com/sebp/scikit-survival/blob/v0.19.0.post1/sksurv/metrics.py#L524-L644
-#'
 #' The function uses IPCW (inverse probability of censoring weights), computed using the Kaplan-Meier
 #' survival function, where events are censored events from train data
 #'
@@ -20,8 +19,6 @@ bs_surv <-
            df_newdata,
            time_points,
            weighted = TRUE) {
-
-
 
     # compute K-M probabilities of censoring for each observation till its individual time
     df_newdata$p_km_obs <-
@@ -260,21 +257,25 @@ survval <- function(y_predict,
 }
 
 
-#' Computes calibration alpha and slope for a Cox model
+#' Calibration stats of a fitted Cox PH model
 #' @description
-#' Details: computes calibration alpha and slope for a given coxph model
-#' and test data, as per
+#' Computes calibration alpha and slope for a fitted coxph model
+#' in the data.
+#'
 #' Crowson, C. S., Atkinson, E. J., & Therneau, T. M. (2016).
 #' Assessing calibration of prognostic risk scores.
 #' Statistical methods in medical research, 25(4), 1692-1706.
+#'
 #' https://journals.sagepub.com/doi/pdf/10.1177/0962280213497434
 #'
 #' @param cox_model fitted cox model, namely, coxph() object
-#' @param testdata test data, data frame with "time" and "event" columns
-#' @return c(calib_alpha, calib_slope)
+#' @param testdata test data, should be a data frame with "time" and "event" columns for survival outcome
+#' @return c(calibration alpha, calibration slope)
 #' @export
-calibration_stats <- function(cox_model,
+cox_calibration_stats <- function(cox_model,
                               testdata) {
+
+
   p <- log(predict(cox_model, newdata = testdata, type = "expected"))
   lp <- predict(cox_model, newdata = testdata, type = "lp")
   logbase <- p - lp

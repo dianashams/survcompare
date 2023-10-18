@@ -1,21 +1,26 @@
 
-#' Cross-validates predictive performance of the baseline Cox-PH model and Survival random forest
+#' Cross-validates and compares Cox Proportionate Hazards and Survival Random Forest models
 #' @description
-#' The following models are evaluated:
+#' The function performs a repeated nested cross-validation for
 #' 1) Cox-PH (survival package, survival::coxph) or Cox-Lasso (glmnet package, glmnet::cox.fit)
 #' 2) Ensemble of the Cox model and Survival Random Forest (randomForestSRC::rfsrc)
 #' 3) Survival Random Forest on its own, if train_srf = TRUE
 #'
-#' The same random seed for the train/test splits are used for all models.
-#' The comparison can aid model selection and quantify the loss of predictive
+#' The same random seed for the train/test splits are used for all models to aid fair comparison;
+#' and the performance metrics are computed for the tree models including Harrel's c-index,
+#' time-dependent AUC-ROC, time-dependent Brier Score, and calibration slope.
+#' The statistical significance of the performance differences between Cox-PH and Cox-SRF Ensemble is tested and reported.
+#'
+#' The function is designed to help with the model selection by quantifying the loss of predictive
 #' performance (if any) if Cox-PH is used instead of a more complex model such as SRF
+#' which can capture non-linear and interaction terms, as well as non-proportionate hazards.
 #' The difference in performance of the Ensembled Cox and SRF and the baseline Cox-PH
 #' can be viewed as quantification of the non-linear and cross-terms contribution to
-#' the predictive power of the supplied predictors
+#' the predictive power of the supplied predictors.
 #'
 #' @param df_train training data, a data frame with "time" and "event" columns to define the survival outcome
 #' @param predict_factors list of column names to be used as predictors
-#' @param predict_t prediction time of interest. If NULL, 90% quantile of event times is used
+#' @param predict_t prediction time of interest. If NULL, 0.90th quantile of event times is used
 #' @param randomseed random seed for replication
 #' @param useCoxLasso TRUE / FALSE, for whether to use regularized version of the Cox model, FALSE is default
 #' @param outer_cv k in k-fold CV
@@ -25,6 +30,10 @@
 #' @param repeat_cv if NULL, runs once, otherwise repeats several times with different random split for CV, reports average of all
 #' @param train_srf TRUE/FALSE for whether to train SRF on its own, apart from the CoxPH->SRF ensemble. Default is FALSE as there is not much information in SRF itself compared to the ensembled version.
 #' @return outcome = list(data frame with performance results, fitted Cox models, fitted SRF)
+#' @examples
+#' df <-simsurv_nonlinear(300)
+#' survcompare(df, names(df)[1:4])
+#'
 #' @export
 survcompare <- function(df_train,
                         predict_factors,
@@ -164,7 +173,9 @@ survcompare <- function(df_train,
   output$difftest <- t_coxph
   output$main_stats <-auc_c_stats
   output$randomseed <- randomseed
-  summary.survcompare(output,useCoxLasso)
+  output$useCoxLasso <- useCoxLasso
+  class(output) <- "survcompare"
+  summary.survcompare(output)
   return(output)
 }
 

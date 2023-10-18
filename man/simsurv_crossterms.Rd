@@ -2,7 +2,7 @@
 % Please edit documentation in R/simulate_survival.R
 \name{simsurv_crossterms}
 \alias{simsurv_crossterms}
-\title{Simulates population with cross-term dependencies}
+\title{Simulated sample with survival outcomes with non-linear and cross-term dependencies}
 \usage{
 simsurv_crossterms(
   N = 1000,
@@ -16,9 +16,9 @@ simsurv_crossterms(
 )
 }
 \arguments{
-\item{N}{sample size}
+\item{N}{sample size, 1000 by default}
 
-\item{observe_time}{study's observation time, defaul is 10}
+\item{observe_time}{study's observation time, 10 by default}
 
 \item{percentcensored}{expected number of non-events by observe_time, 0.75 by default (i.e. event rate is 0.25)}
 
@@ -33,12 +33,13 @@ simsurv_crossterms(
 \item{drop_out}{expected rate of drop out before observe_time, 0.3 by default}
 }
 \value{
-data frame
+data frame; "time" and "event" columns describe survival outcome; predictors are "age", "sex", "hyp", "bmi"
 }
 \description{
-Simulates population with cross-term dependencies
+Simulated sample with exponentially or Weibull distributed time-to-event;
+log-hazard depends non-linearly on risk factors, and includes cross-terms.
 }
 \examples{
-mydata <- simsurv_crossterms(1000)
+mydata <- simsurv_crossterms()
 head(mydata)
 }

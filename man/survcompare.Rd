@@ -2,7 +2,7 @@
 % Please edit documentation in R/survcompare.R
 \name{survcompare}
 \alias{survcompare}
-\title{Cross-validates predictive performance of the baseline Cox-PH model and Survival random forest}
+\title{Cross-validates and compares Cox Proportionate Hazards and Survival Random Forest models}
 \usage{
 survcompare(
   df_train,
@@ -23,7 +23,7 @@ survcompare(
 
 \item{predict_factors}{list of column names to be used as predictors}
 
-\item{predict_t}{prediction time of interest. If NULL, 90\% quantile of event times is used}
+\item{predict_t}{prediction time of interest. If NULL, 0.90th quantile of event times is used}
 
 \item{randomseed}{random seed for replication}
 
@@ -45,17 +45,27 @@ survcompare(
 outcome = list(data frame with performance results, fitted Cox models, fitted SRF)
 }
 \description{
-The following models are evaluated:
+The function performs a repeated nested cross-validation for
 \enumerate{
 \item Cox-PH (survival package, survival::coxph) or Cox-Lasso (glmnet package, glmnet::cox.fit)
 \item Ensemble of the Cox model and Survival Random Forest (randomForestSRC::rfsrc)
 \item Survival Random Forest on its own, if train_srf = TRUE
 }
 
-The same random seed for the train/test splits are used for all models.
-The comparison can aid model selection and quantify the loss of predictive
+The same random seed for the train/test splits are used for all models to aid fair comparison;
+and the performance metrics are computed for the tree models including Harrel's c-index,
+time-dependent AUC-ROC, time-dependent Brier Score, and calibration slope.
+The statistical significance of the performance differences between Cox-PH and Cox-SRF Ensemble is tested and reported.
+
+The function is designed to help with the model selection by quantifying the loss of predictive
 performance (if any) if Cox-PH is used instead of a more complex model such as SRF
+which can capture non-linear and interaction terms, as well as non-proportionate hazards.
 The difference in performance of the Ensembled Cox and SRF and the baseline Cox-PH
 can be viewed as quantification of the non-linear and cross-terms contribution to
-the predictive power of the supplied predictors
+the predictive power of the supplied predictors.
+}
+\examples{
+df <-simsurv_nonlinear(300)
+survcompare(df, names(df)[1:4])
+
 }

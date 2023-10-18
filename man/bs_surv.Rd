@@ -30,7 +30,6 @@ vector of time-dependent Brier Scores for all time_points
 Calculates time-dependent Brier Scores for a vector of times. Calculations are similar to that in:
 https://scikit-survival.readthedocs.io/en/stable/api/generated/sksurv.metrics.brier_score.html#sksurv.metrics.brier_score
 https://github.com/sebp/scikit-survival/blob/v0.19.0.post1/sksurv/metrics.py#L524-L644
-
 The function uses IPCW (inverse probability of censoring weights), computed using the Kaplan-Meier
 survival function, where events are censored events from train data
 }

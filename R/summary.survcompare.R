@@ -1,8 +1,14 @@
 
 summary.survcompare <-
-  function(output_object, useCoxLasso) {
-    if (!inherits(output_object, "list")) {stop("Not a legitimate object")}
-    coxend <- ifelse(useCoxLasso, "CoxLasso  ", "CoxPH    ")
+  function(output_object) {
+
+    # prints summary statement for the output of the 'survcompare' function
+
+    #check
+    if (!inherits(output_object, "survcompare")) {stop("Not a legitimate object")}
+
+    # Cox model Lasso or PH
+    coxend <- ifelse(output_object$useCoxLasso, "CoxLasso  ", "CoxPH    ")
     x <- output_object
     cat(
       "\nInternally validated test performance of",coxend,"and Survival Random Forest ensemble:\n"
@@ -13,8 +19,8 @@ summary.survcompare <-
     pv <- x$difftest["pvalue", "C_score"]
     m <- x$difftest["m", "C_score"]
     pvstars <-  ifelse(pv < 0.001, "***", ifelse(pv <= 0.01, "**", ifelse(pv <= 0.05, "*", "")))
-    
-    #output message:
+
+    # compile the output message:
     if (x$difftest["pvalue", "C_score"] < 0.05) {
       t1<- paste("Survival Random Forest ensemble has outperformed ",
                  coxend, "by ", round(m, 4), " in C-index.\n",sep="")
@@ -26,10 +32,11 @@ summary.survcompare <-
       t2<- "The difference is not statistically significant with the p-value = "
       t3<- ". \nThe data may NOT contain considerable non-linear or cross-term dependencies, \nthat could be captured by the Survival Random Forest.\n"
     }
-    # print the resulting message
+
+    # print the output message
     cat(paste(t1, t2, ifelse(pv < 0.001, round(pv, 8), round(pv, 4)), pvstars, t3, sep = ""))
-    
-    #print main stats
+
+    #print the main stats
     ms<- x$main_stats
     f<- function(i){
       paste(round(mean(ms[i, "mean"]),4),

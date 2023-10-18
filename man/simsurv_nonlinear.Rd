@@ -2,7 +2,7 @@
 % Please edit documentation in R/simulate_survival.R
 \name{simsurv_nonlinear}
 \alias{simsurv_nonlinear}
-\title{Simulates population with non-linear dependencies}
+\title{Simulated sample with survival outcomes with non-linear dependencies}
 \usage{
 simsurv_nonlinear(
   N = 1000,
@@ -18,7 +18,7 @@ simsurv_nonlinear(
 \arguments{
 \item{N}{sample size}
 
-\item{observe_time}{study's observation time, defaul is 10}
+\item{observe_time}{study's observation time, 10 by default}
 
 \item{percentcensored}{expected number of non-events by observe_time, 0.75 by default (i.e. event rate is 0.25)}
 
@@ -33,10 +33,11 @@ simsurv_nonlinear(
 \item{drop_out}{expected rate of drop out before observe_time, 0.3 by default}
 }
 \value{
-data frame
+data frame; "time" and "event" columns describe survival outcome; predictors are "age", "sex", "hyp", "bmi"
 }
 \description{
-Simulates population with non-linear dependencies
+Simulated sample with exponentially or Weibull distributed time-to-event;
+log-hazard (lambda parameter) depends non-linearly on risk factors.
 }
 \examples{
 mydata <- simsurv_nonlinear(1000)
