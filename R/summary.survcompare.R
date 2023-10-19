@@ -50,3 +50,14 @@ summary.survcompare <-
       )
     )
   }
+
+
+
+print.survcompare<- function(obj){
+  #check
+  if (!inherits(obj, "survcompare")) {stop("Not a survcompare object")}
+
+  summary.survcompare(obj)
+  cat("\n", "See other items as obj$item. Items available:")
+  cat(names(a), sep=", ")
+}
