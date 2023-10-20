@@ -1,4 +1,3 @@
-
 #' Cross-validates and compares Cox Proportionate Hazards and Survival Random Forest models
 #' @description
 #' The function performs a repeated nested cross-validation for
@@ -18,6 +17,20 @@
 #' can be viewed as quantification of the non-linear and cross-terms contribution to
 #' the predictive power of the supplied predictors.
 #'
+#' @importFrom survival Surv
+#' @importFrom timeROC timeROC
+#' @importFrom mfp fp
+#' @importFrom stats as.formula
+#' @importFrom stats quantile
+#' @importFrom stats runif
+#' @importFrom stats coef
+#' @importFrom rpart.plot rpart.plot
+#' @importFrom foreach foreach
+#' @importFrom stats predict
+#' @importFrom stats sd
+#' @importFrom randomForestSRC rfsrc
+#' @importFrom survival coxph
+#' @importFrom pec ipcw
 #' @param df_train training data, a data frame with "time" and "event" columns to define the survival outcome
 #' @param predict_factors list of column names to be used as predictors
 #' @param predict_t prediction time of interest. If NULL, 0.90th quantile of event times is used

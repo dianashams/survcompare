@@ -1,6 +1,6 @@
 
 #' Prints summary for a survcompare object
-#' @param output_object a surcompare object, output of a survcompare() function
+#' @param output_object a survcompare object, output of a survcompare() function
 #' @export
 summary.survcompare <-
   function(output_object) {

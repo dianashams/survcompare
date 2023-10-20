@@ -7,7 +7,7 @@
 \method{summary}{survcompare}(output_object)
 }
 \arguments{
-\item{output_object}{a surcompare object, output of a survcompare() function}
+\item{output_object}{a survcompare object, output of a survcompare() function}
 }
 \description{
 Prints summary for a survcompare object

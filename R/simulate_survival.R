@@ -191,9 +191,6 @@ linear_beta <- function(df) {
   return(exp(0.4 * df$age + 1.0 * df$bmi + 0.7 * df$hyp))
 }
 
-
-#' Auxiliary function for simulatedata functions
-#' @param df data
 nonlinear_beta <- function(df) {
   # BMI impact is 2 for very low and high levels,
   # 1 for high/ low level, 0 for normal range
@@ -206,8 +203,6 @@ nonlinear_beta <- function(df) {
   return(exp(bmi_beta + (df$hyp * 0.7) + df$age * 0.2 + age_beta))
 }
 
-#' Auxiliary function for simulatedata functions
-#' @param df data
 xt_beta <- function(df) {
   # BMI impact is 2 for very low and high levels,
   # 1 for high/ low level, 0 for normal range
@@ -224,13 +219,12 @@ xt_beta <- function(df) {
 }
 
 
-#' Auxiliary function for simulatedata
-#'
-#' Simulates age, bmi, hyp and sex for a generated population
-#' @param N sample size
-#' @param randomseed random seed, 42 by default
-#' @return data frame
 simulate_population <- function(N = 500, randomseed = 42) {
+  # Auxiliary function for simulatedata
+  # Simulates age, bmi, hyp and sex for a generated population
+  # param N sample size
+  # param randomseed random seed, 42 by default
+  # return data frame
   set.seed(randomseed)
   df <- data.frame(
     age = round(stats::runif(N, -1.73, 1.73), 1),
@@ -241,20 +235,18 @@ simulate_population <- function(N = 500, randomseed = 42) {
   return(df)
 }
 
-#' Auxiliary function for simsurve_linear, non_linear, crossterms
-#'
-#' @param exp_beta exponential distribution beta param
-#' @param df data
-#' @param N sample size
-#' @param observe_time observation time
-#' @param percentcensored percent of censored observations (with no event) by observe_time
-#' @param randomseed random seed
-#' @param lambda exponential/Weibull distribution lambda param
-#' @param distr distribution for times, "Exp" or "W" for exponential or Weibull
-#' @param rho_w Rho parameter for Weibull distribution
-#' @param drop_out drop out rate of those censored before observe_time
-#' @return data frame with added columns "time", "event", "event_time"
-#'
+# Auxiliary function for simsurve_linear, non_linear, crossterms
+# param exp_beta exponential distribution beta param
+# param df data
+# param N sample size
+# param observe_time observation time
+# param percentcensored percent of censored observations (with no event) by observe_time
+# param randomseed random seed
+# param lambda exponential/Weibull distribution lambda param
+# param distr distribution for times, "Exp" or "W" for exponential or Weibull
+# param rho_w Rho parameter for Weibull distribution
+# param drop_out drop out rate of those censored before observe_time
+# return data frame with added columns "time", "event", "event_time"
 df_event_times <- function(exp_beta, df, N, observe_time,
                            percentcensored, randomseed,
                            lambda, distr, rho_w, drop_out) {
