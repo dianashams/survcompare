@@ -4,7 +4,7 @@
 \alias{summary.survensemble1}
 \title{summary for a trained Cox-SRF ensemble, should be a survensemble1 object}
 \usage{
-\method{summary}{survensemble1}(obj1)
+\method{summary}{survensemble1}(obj, ...)
 }
 \arguments{
 \item{obj1}{survensemble1 object}

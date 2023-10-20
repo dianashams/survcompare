@@ -19,7 +19,6 @@
 #'
 #' @importFrom survival Surv
 #' @importFrom timeROC timeROC
-#' @importFrom mfp fp
 #' @importFrom stats as.formula
 #' @importFrom stats quantile
 #' @importFrom stats runif

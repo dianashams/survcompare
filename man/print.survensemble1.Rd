@@ -4,7 +4,7 @@
 \alias{print.survensemble1}
 \title{prints survensemble1 object}
 \usage{
-\method{print}{survensemble1}(obj1)
+\method{print}{survensemble1}(obj, ...)
 }
 \arguments{
 \item{obj1}{survensemble1 object}

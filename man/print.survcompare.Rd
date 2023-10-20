@@ -4,7 +4,7 @@
 \alias{print.survcompare}
 \title{Prints survcompare object}
 \usage{
-\method{print}{survcompare}(obj)
+\method{print}{survcompare}(obj, ...)
 }
 \arguments{
 \item{obj}{a surcompare object, output of a survcompare() function}

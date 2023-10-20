@@ -21,9 +21,6 @@ Imports:
   caret,
   glmnet,
   randomForestSRC,
-  rpart,
-  dplyr,
-  rpart.plot,
   pec,
   foreach
 Roxygen: list(markdown = TRUE)

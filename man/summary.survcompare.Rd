@@ -4,7 +4,7 @@
 \alias{summary.survcompare}
 \title{Prints summary for a survcompare object}
 \usage{
-\method{summary}{survcompare}(output_object)
+\method{summary}{survcompare}(output_object, ...)
 }
 \arguments{
 \item{output_object}{a survcompare object, output of a survcompare() function}

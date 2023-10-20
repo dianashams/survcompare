@@ -3,7 +3,7 @@
 #' @param output_object a survcompare object, output of a survcompare() function
 #' @export
 summary.survcompare <-
-  function(output_object) {
+  function(output_object, ...) {
 
     # prints summary statement for the output of the 'survcompare' function
 
@@ -58,7 +58,7 @@ summary.survcompare <-
 #' Prints survcompare object
 #' @param obj a surcompare object, output of a survcompare() function
 #' @export
-print.survcompare<- function(obj){
+print.survcompare<- function(obj, ...){
 
   #check
   if (!inherits(obj, "survcompare")) {stop("Not a \"survcompare\" object")}

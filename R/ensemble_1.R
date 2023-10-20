@@ -286,25 +286,25 @@ survensemble1cv <- function(df,
 #' prints survensemble1 object
 #' @param obj1 survensemble1 object
 #' @export
-print.survensemble1<- function(obj1){
-  if (!inherits(obj1, "survensemble1")) {stop("Not a \"survensemble1\" object")}
-  summary.survensemble1(obj1)
+print.survensemble1<- function(obj, ...){
+  if (!inherits(obj, "survensemble1")) {stop("Not a \"survensemble1\" object")}
+  summary.survensemble1(obj)
 }
 
 #' summary for a trained Cox-SRF ensemble, should be a survensemble1 object
 #' @param obj1 survensemble1 object
 #' @export
-summary.survensemble1<- function(obj1){
-  if (!inherits(obj1, "survensemble1")) {stop("Not a \"survensemble1\" object")}
+summary.survensemble1<- function(obj, ...){
+  if (!inherits(obj, "survensemble1")) {stop("Not a \"survensemble1\" object")}
   cat("Survival ensemble of Cox PH and Survival Random Forest.\n")
-  if(!is.null(cl<- obj1$call)) {
+  if(!is.null(cl<- obj$call)) {
     cat("Call:\n")
     dput(cl)
   }
   cat("\n=> Ensemble Cox-SRF:\n")
-  print(obj1$model)
+  print(obj$model)
   cat("\n=> Underlying CoxPH:\n")
-  print(obj1$model_base)
+  print(obj$model_base)
   cat("\n=> Items available as object$item are: ")
-  cat(names(obj1), sep=", ")
+  cat(names(obj), sep=", ")
 }
