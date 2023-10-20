@@ -1,6 +1,4 @@
 
-
-
 # These functions return simulated data with exponential or weibull distributions
 # 0.5 / 0.75 / 0.9 - by time = 10 (scaled) expected number of events
 # distr = "Exp" or "Weibull"
@@ -13,7 +11,7 @@
 #' Simulated sample with exponentially or Weibull distributed time-to-event;
 #' log-hazard (lambda parameter) depends linearly on risk factors.
 #'
-#' @param N sample size, 1000 by default
+#' @param N sample size, 500 by default
 #' @param observe_time study's observation time, 10 by default
 #' @param percentcensored expected number of non-events by observe_time, 0.75 by default (i.e. event rate is 0.25)
 #' @param drop_out expected rate of drop out before observe_time, 0.3 by default
@@ -26,7 +24,7 @@
 #' head(mydata)
 #' @return data frame; "time" and "event" columns describe survival outcome; predictors are "age", "sex", "hyp", "bmi"
 #' @export
-simsurv_linear <- function(N = 1000, observe_time = 10,
+simsurv_linear <- function(N = 500, observe_time = 10,
                                 percentcensored = 0.75,
                                 randomseed = NULL, lambda = 0.1,
                                 distr = "Exp", rho_w = 1,
@@ -53,7 +51,7 @@ simsurv_linear <- function(N = 1000, observe_time = 10,
 #' @description
 #' Simulated sample with exponentially or Weibull distributed time-to-event;
 #' log-hazard (lambda parameter) depends non-linearly on risk factors.
-#' @param N sample size
+#' @param N sample size, 500 by default
 #' @param observe_time study's observation time, 10 by default
 #' @param percentcensored expected number of non-events by observe_time, 0.75 by default (i.e. event rate is 0.25)
 #' @param drop_out expected rate of drop out before observe_time, 0.3 by default
@@ -62,11 +60,11 @@ simsurv_linear <- function(N = 1000, observe_time = 10,
 #' @param lambda baseline hazard rate, 0.1 by default
 #' @param rho_w shape parameter for Weibull distribution, 0.3 by default
 #' @examples
-#' mydata <- simsurv_nonlinear(1000)
+#' mydata <- simsurv_nonlinear()
 #' head(mydata)
 #' @return data frame; "time" and "event" columns describe survival outcome; predictors are "age", "sex", "hyp", "bmi"
 #' @export
-simsurv_nonlinear <- function(N = 1000, observe_time = 10,
+simsurv_nonlinear <- function(N = 500, observe_time = 10,
                                    percentcensored = 0.75,
                                    randomseed = NULL, lambda = 0.1,
                                    distr = "Exp", rho_w = 1,
@@ -89,7 +87,7 @@ simsurv_nonlinear <- function(N = 1000, observe_time = 10,
 #' @description
 #' Simulated sample with exponentially or Weibull distributed time-to-event;
 #' log-hazard depends non-linearly on risk factors, and includes cross-terms.
-#' @param N sample size, 1000 by default
+#' @param N sample size, 500 by default
 #' @param observe_time study's observation time, 10 by default
 #' @param percentcensored expected number of non-events by observe_time, 0.75 by default (i.e. event rate is 0.25)
 #' @param drop_out expected rate of drop out before observe_time, 0.3 by default
@@ -102,7 +100,7 @@ simsurv_nonlinear <- function(N = 1000, observe_time = 10,
 #' head(mydata)
 #' @return data frame; "time" and "event" columns describe survival outcome; predictors are "age", "sex", "hyp", "bmi"
 #' @export
-simsurv_crossterms <- function(N = 1000, observe_time = 10,
+simsurv_crossterms <- function(N = 500, observe_time = 10,
                                     percentcensored = 0.75,
                                     randomseed = NULL, lambda = 0.1,
                                     distr = "Exp", rho_w = 1,
@@ -126,7 +124,7 @@ simsurv_crossterms <- function(N = 1000, observe_time = 10,
 #' Simulated sample with Weibull distributed time-to-event;
 #' log-hazard are non-linear and with cross-terms. Survival curves for different sexes intersect (non-PH).
 #'
-#' @param N sample size, 1000 by default
+#' @param N sample size, 500 by default
 #' @param observe_time study's observation time, 10 by default
 #' @param percentcensored expected number of non-events by observe_time, 0.75 by default (i.e. event rate is 0.25)
 #' @param drop_out expected rate of drop out before observe_time, 0.3 by default
@@ -137,7 +135,7 @@ simsurv_crossterms <- function(N = 1000, observe_time = 10,
 #' head(mydata)
 #' @return data frame; "time" and "event" columns describe survival outcome; predictors are "age", "sex", "hyp", "bmi"
 #' @export
-simsurv_lin_nonPH <- function(N = 1000,
+simsurv_lin_nonPH <- function(N = 500,
                                    observe_time = 10,
                                    percentcensored = 0.75,
                                    randomseed = NULL,
@@ -232,7 +230,7 @@ xt_beta <- function(df) {
 #' @param N sample size
 #' @param randomseed random seed, 42 by default
 #' @return data frame
-simulate_population <- function(N = 1000, randomseed = 42) {
+simulate_population <- function(N = 500, randomseed = 42) {
   set.seed(randomseed)
   df <- data.frame(
     age = round(stats::runif(N, -1.73, 1.73), 1),

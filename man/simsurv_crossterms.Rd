@@ -5,7 +5,7 @@
 \title{Simulated sample with survival outcomes with non-linear and cross-term dependencies}
 \usage{
 simsurv_crossterms(
-  N = 1000,
+  N = 500,
   observe_time = 10,
   percentcensored = 0.75,
   randomseed = NULL,
@@ -16,7 +16,7 @@ simsurv_crossterms(
 )
 }
 \arguments{
-\item{N}{sample size, 1000 by default}
+\item{N}{sample size, 500 by default}
 
 \item{observe_time}{study's observation time, 10 by default}
 

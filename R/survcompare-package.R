@@ -8,6 +8,7 @@
 #' @importFrom stats as.formula
 #' @importFrom stats quantile
 #' @importFrom stats runif
+#' @importFrom stats coef
 #' @importFrom rpart.plot rpart.plot
 #' @importFrom foreach foreach
 #' @importFrom stats predict

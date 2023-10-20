@@ -4,7 +4,7 @@
 \alias{simulate_population}
 \title{Auxiliary function for simulatedata}
 \usage{
-simulate_population(N = 1000, randomseed = 42)
+simulate_population(N = 500, randomseed = 42)
 }
 \arguments{
 \item{N}{sample size}

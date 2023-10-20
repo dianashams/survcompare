@@ -5,7 +5,7 @@
 \title{Simulated sample with survival outcomes with non-linear dependencies}
 \usage{
 simsurv_nonlinear(
-  N = 1000,
+  N = 500,
   observe_time = 10,
   percentcensored = 0.75,
   randomseed = NULL,
@@ -16,7 +16,7 @@ simsurv_nonlinear(
 )
 }
 \arguments{
-\item{N}{sample size}
+\item{N}{sample size, 500 by default}
 
 \item{observe_time}{study's observation time, 10 by default}
 
@@ -40,6 +40,6 @@ Simulated sample with exponentially or Weibull distributed time-to-event;
 log-hazard (lambda parameter) depends non-linearly on risk factors.
 }
 \examples{
-mydata <- simsurv_nonlinear(1000)
+mydata <- simsurv_nonlinear()
 head(mydata)
 }

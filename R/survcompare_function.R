@@ -82,7 +82,7 @@ survcompare <- function(df_train,
       repeat_cv = repeat_cv
     )
   }
-  ens1_cv <- survensemble1_cv(
+  ens1_cv <- survensemble1cv(
     df = df_train,
     predict.factors = predict_factors,
     fixed_time=predict_t,
@@ -179,21 +179,8 @@ survcompare <- function(df_train,
   return(output)
 }
 
-#' Testing statistical significance of the ensembled model outperformance
-#' over the baseline model (Model 1 vs Model 0)
-#'
-#' @description
-#' Testing statistical significance of the outperformance of
-#' Model 1 over Model 0
-#' T-test is used for AUC and C-score, and Fisher test for Brier Scores
-#' Models are given with the results of the survval function applied
-#' to several cross-validation or bootstrap iterations, one per row
-#' It is assumed that the same training data is used for Model 1 and Model 2 in each row
-#' @param res1 data frame
-#' @param res0 list of predictors to use
-#' @param sample_n prediction time of interest. If NULL, 90% quantile of event times is used
-#' @param param_n random seed for replication
-#' @return matrix: mean, std and p-values for AUC, BS, BS_scaled, C_score, Calib_slope, Calib_alpha
+# Testing statistical significance of the ensembled model outperformance
+# over the baseline model (Model 1 vs Model 0)
 difftest <- function(res1, res0, sample_n, param_n) {
   m <- apply(res1 - res0, FUN = mean, 2, na.rm = 1)
   std <- apply(res1 - res0, FUN = stats::sd, 2, na.rm = 1)

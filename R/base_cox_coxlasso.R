@@ -1,5 +1,5 @@
-############# Basic Cox Model functions ##########
 
+############# Basic Cox Model functions ##########
 #' Trains CoxPH using survival package, or trains CoxLasso (cv.glmnet, lambda.min),
 #'  and then re-trains survival:coxph on non-zero predictors
 #'
@@ -60,8 +60,7 @@ survcox_train <- function(df_train,
 #' @param fixed_time  not used here, to re-align with other methods
 #' @param retrain_cox whether to re-train coxph on non-zero predictors; FALSE by default
 #' @param verbose TRUE/FALSE prints warnings if no predictors in Lasso
-#' @return fitted CoxPH model
-#' @export
+#' @return fitted CoxPH object with coefficient of CoxLasso or re-trained CoxPH with non-zero CoxLasso if retrain_cox = FALSE or TRUE
 survcoxlasso_train <- function(df_train,
                                   predict.factors,
                                   fixed_time = NaN,

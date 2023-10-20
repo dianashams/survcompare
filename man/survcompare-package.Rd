@@ -4,12 +4,17 @@
 \name{survcompare-package}
 \alias{survcompare}
 \alias{survcompare-package}
-\title{survcompare: Internally validates and compares performance of the Cox Proportionate Hazards and Survival Random Forest}
+\title{survcompare: Compares predictive performance of the Cox Proportionate Hazards and Survival Random Forest models to quantify interpretability-accuracy trade off}
 \description{
-The package performs repeated nested cross-validation for a given survival data for Cox PH, Cox Lasso, and Survival Random Forest. The outcome includes internally validated concordance index, time-dependent AUC, Brier score and calibration slope, and statistical testing results for the over-performance of SRF over the Cox PH and Cox Lasso. The package will help researchers analysing time-to-event data to quantify the gain of opting to a more complex model, or justify their redundancy. Equally, it will show the performance value of the non-linear and interaction terms, and may highlight the need of further feature transformation.
+The package performs repeated nested cross-validation for a given survival data for Cox PH, Cox Lasso, Survival Random Forest (SRF), and ensemble of Cox and SRF. The outcome includes internally validated concordance index, time-dependent AUC, Brier score and calibration slope, and statistical testing results for the over-performance of SRF over the Cox PH and Cox Lasso. The package will help researchers analysing time-to-event data to quantify the gain of opting to a more complex model, or justify their redundancy. Equally, it will show the performance value of the non-linear and interaction terms, and may highlight the need of further feature transformation.
 }
 \author{
 \strong{Maintainer}: Diana Shamsutdinova \email{diana.shamsutdinova@kcl.ac.uk} (\href{https://orcid.org/YOUR-ORCID-ID}{ORCID})
+
+Authors:
+\itemize{
+  \item Daniel Stahl \email{daniel.r.stahl@kcl.ac.uk} (\href{https://orcid.org/YOUR-ORCID-ID}{ORCID})
+}
 
 }
 \keyword{internal}

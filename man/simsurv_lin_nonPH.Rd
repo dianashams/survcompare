@@ -5,7 +5,7 @@
 \title{Simulated sample with survival outcomes with non-linear and cross-term dependencies and non-PH survival times.}
 \usage{
 simsurv_lin_nonPH(
-  N = 1000,
+  N = 500,
   observe_time = 10,
   percentcensored = 0.75,
   randomseed = NULL,
@@ -14,7 +14,7 @@ simsurv_lin_nonPH(
 )
 }
 \arguments{
-\item{N}{sample size, 1000 by default}
+\item{N}{sample size, 500 by default}
 
 \item{observe_time}{study's observation time, 10 by default}
 

@@ -24,7 +24,7 @@ survcoxlasso_train(
 \item{verbose}{TRUE/FALSE prints warnings if no predictors in Lasso}
 }
 \value{
-fitted CoxPH model
+fitted CoxPH object with coefficient of CoxLasso or re-trained CoxPH with non-zero CoxLasso if retrain_cox = FALSE or TRUE
 }
 \description{
 Trains CoxLasso, using cv.glmnet(s="lambda.min")
