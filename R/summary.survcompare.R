@@ -1,18 +1,15 @@
 
-#' Prints summary for a survcompare object
-#' @param output_object a survcompare object, output of a survcompare() function
-#' @export
 summary.survcompare <-
-  function(output_object, ...) {
+  function(object, ...) {
 
     # prints summary statement for the output of the 'survcompare' function
 
     #check
-    if (!inherits(output_object, "survcompare")) {stop("Not a \"survcompare\" object")}
+    if (!inherits(object, "survcompare")) {stop("Not a \"survcompare\" object")}
 
     # Cox model Lasso or PH
-    coxend <- ifelse(output_object$useCoxLasso, "CoxLasso  ", "CoxPH    ")
-    x <- output_object
+    coxend <- ifelse(object$useCoxLasso, "CoxLasso  ", "CoxPH    ")
+    x <- object
     cat(
       "\nInternally validated test performance of",coxend,"and Survival Random Forest ensemble:\n"
     )
@@ -55,16 +52,13 @@ summary.survcompare <-
   }
 
 
-#' Prints survcompare object
-#' @param obj a surcompare object, output of a survcompare() function
-#' @export
-print.survcompare<- function(obj, ...){
+print.survcompare<- function(x, ...){
 
   #check
-  if (!inherits(obj, "survcompare")) {stop("Not a \"survcompare\" object")}
+  if (!inherits(x, "survcompare")) {stop("Not a \"survcompare\" object")}
 
-  summary.survcompare(obj)
+  summary.survcompare(x)
 
-  cat("\n", "See other items as obj$item. Items available:")
-  cat(names(obj), sep=", ")
+  cat("\n", "See other items as x$item. Items available:")
+  cat(names(x), sep=", ")
 }

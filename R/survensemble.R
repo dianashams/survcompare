@@ -21,9 +21,9 @@
 #' @param var_importance_calc FALSE/TRUE, TRUE by default
 #' @examples
 #' df <- simsurv_nonlinear()
-#' @return trained object of class survensemble1
+#' @return trained object of class survensemble
 #' @export
-survensemble1 <- function(df_train,
+survensemble <- function(df_train,
                           predict.factors,
                           fixed_time = NaN,
                           inner_cv = 3,
@@ -110,40 +110,39 @@ survensemble1 <- function(df_train,
   ensemble1_model$model_base <- cox_base_model
   ensemble1_model$randomseed <- randomseed
   ensemble1_model$call <- Call
-  class(ensemble1_model)<- "survensemble1"
+  class(ensemble1_model)<- "survensemble"
   return(ensemble1_model)
 }
 
 
-
-#' Predicts event probability for a fitted Ensemble 1 method
+#' Predicts event probability for a fitted survensemble
 #' @description
-#' \link[survcompare:predict.survensemble1]{predict.survensemble1}
-#'
-#' @param survens1 trained survensemble1 model
+#' \link[survcompare:predict.survensemble]{predict.survensemble}
+#' @param object trained survensemble model
 #' @param df_test test data
 #' @param fixed_time  time for which probabilities are computed
-#' @param oob TRUE/FALSE , default is FALSE
+#' @param oob TRUE/FALSE , default is FALSE, if out of bag predictions are to be made from SRF
 #' @param useCoxLasso TRUE/FALSE , default is FALSE
-#' @examples
-#' df <- simsurv_nonlinear()
-#' @return returns matrix(nrow = length(newdata), ncol = length(times))
+#' @param ... other parameters to pass
+#' @return matrix of predictions for observations in df_test by times
 #' @export
-predict.survensemble1 <- function(survens1,
+predict.survensemble <- function(object,
                                   df_test,
                                   fixed_time,
                                   oob = FALSE,
-                                  useCoxLasso = FALSE) {
-  if (!inherits(survens1, "survensemble1")) {stop("Not a \"survensemble1\" object")}
+                                  useCoxLasso = FALSE,
+                                  ...) {
+
+  if (!inherits(object, "survensemble")) {stop("Not a \"survensemble\" object")}
   if (is.null(df_test)) {stop("The data for predictions is not supplied")}
 
   # use model_base with the base Cox model to find cox_predict
-  df_test$cox_predict <- survcox_predict(survens1$model_base,
+  df_test$cox_predict <- survcox_predict(object$model_base,
                                          df_test, fixed_time)
   # now use "model" which is SRF which needs additional risk factor
   # "cox_predict" which was created in the previous row
   predicted_event_prob <-
-    1 - srf_survival_prob_for_time(survens1$model, df_test, fixed_time, oob = oob)
+    1 - srf_survival_prob_for_time(object$model, df_test, fixed_time, oob = oob)
   return(predicted_event_prob)
 }
 
@@ -164,7 +163,7 @@ predict.survensemble1 <- function(survens1,
 #' df <- simsurv_nonlinear()
 #' @return output list: output$train, test, testaverage, traintaverage, time
 #' @export
-survensemble1cv <- function(df,
+survensembleCV <- function(df,
                            predict.factors,
                            fixed_time = NaN,
                            cv_number = 3,
@@ -225,7 +224,7 @@ survensemble1cv <- function(df,
       #print(paste("CV ", cv_iteration,"/",cv_number, sep=""))
       df_train_cv <- df[cv_folds != cv_iteration,]
       df_test_cv <- df[cv_folds == cv_iteration,]
-      model.tuned <- survensemble1(
+      model.tuned <- survensemble(
         df_train = df_train_cv,
         predict.factors = predict.factors,
         fixed_time = fixed_time,
@@ -238,9 +237,9 @@ survensemble1cv <- function(df,
       )
       #  calculating tuned model predictions
       y_predict_test <-
-        predict.survensemble1(model.tuned, df_test_cv, fixed_time, oob = FALSE)
+        predict.survensemble(model.tuned, df_test_cv, fixed_time, oob = FALSE)
       y_predict_train <-
-        predict.survensemble1(model.tuned, df_train_cv, fixed_time, oob = FALSE)
+        predict.survensemble(model.tuned, df_train_cv, fixed_time, oob = FALSE)
       modelstats_test[[cv_iteration + (rep_cv-1)*cv_number]] <-
         survval(y_predict_test, fixed_time, df_train_cv,
                         df_test_cv, weighted = 1)
@@ -276,35 +275,91 @@ survensemble1cv <- function(df,
   output$tuned_cv_models <- models_for_each_cv
   output$randomseed <- randomseed
   output$call <- Call
-  class(output) <- "survensemble1cv"
+  class(output) <- "survensembleCV"
   time_1 <- Sys.time()
   output$time <- time_1 - time_0
   print(time_1 - time_0)
   return(output)
 }
 
-#' prints survensemble1 object
-#' @param obj1 survensemble1 object
-#' @export
-print.survensemble1<- function(obj, ...){
-  if (!inherits(obj, "survensemble1")) {stop("Not a \"survensemble1\" object")}
-  summary.survensemble1(obj)
+
+##################################################################
+
+#' Prints trained survensemble object
+#'
+#'@param x survensemble object
+#'@param ... additional arguments to be passed
+#'@return x
+#'@export
+print.survensemble<- function(x, ...){
+  if (!inherits(x, "survensemble")) {stop("Not a \"survensemble\" object")}
+  summary.survensemble(x)
 }
 
-#' summary for a trained Cox-SRF ensemble, should be a survensemble1 object
-#' @param obj1 survensemble1 object
-#' @export
-summary.survensemble1<- function(obj, ...){
-  if (!inherits(obj, "survensemble1")) {stop("Not a \"survensemble1\" object")}
+#' Prints summary of a trained survensemble object
+#'
+#'@param object survensemble object
+#'@param ... additional arguments to be passed
+#'@return object
+#'@export
+summary.survensemble<- function(object, ...){
+
+  if (!inherits(object, "survensemble")) {stop("Not a \"survensemble\" object")}
   cat("Survival ensemble of Cox PH and Survival Random Forest.\n")
-  if(!is.null(cl<- obj$call)) {
+  if(!is.null(cl<- object$call)) {
     cat("Call:\n")
     dput(cl)
   }
   cat("\n=> Ensemble Cox-SRF:\n")
-  print(obj$model)
+  print(object$model)
   cat("\n=> Underlying CoxPH:\n")
-  print(obj$model_base)
+  print(object$model_base)
   cat("\n=> Items available as object$item are: ")
-  cat(names(obj), sep=", ")
+  cat(names(object), sep=", ")
+
+  }
+
+##################################################################
+#' Prints survensembleCV object
+#'
+#'@param x survensembleCV object
+#'@param ... additional arguments to be passed
+#'@return x
+#'@export
+print.survensembleCV<- function(x, ...){
+  if (!inherits(x, "survensembleCV")) {stop("Not a \"survensembleCV\" object")}
+  summary.survensembleCV(x)
+}
+
+
+#' Prints a summary of survensembleCV object
+#'
+#'@param object survensembleCV object
+#'@param ... additional arguments to be passed
+#'@return object
+#'@export
+summary.survensembleCV<- function(object, ...){
+  if (!inherits(object, "survensembleCV")) {stop("Not a \"survensembleCV\" object")}
+  cat("Cross-validation results for the Cox PH and Survival Random Forest Ensemble.\n")
+
+  if(!is.null(cl<- object$call)) {
+    cat("Call:\n")
+    dput(cl)
+  }
+
+  stats_summary <- function(x){
+    x=x[, 1:(dim(x)[2]-1)] #remove the last column ("test" 1 or 0)
+    as.data.frame(round(cbind(
+      "mean" = apply(x, 2, mean, na.rm=1),
+      "sd" = apply(x, 2, sd, na.rm=1),
+      "95CIHigh" = apply(x, 2, quantile, 0.0975),
+      "95CILow" = apply(x, 2, quantile, 0.025)),4))
+  }
+
+  #print mean, sd and confidence intervals for all test and train datasets
+  print(as.data.frame(cbind(
+    "test" = stats_summary(object$test),
+    "train" = stats_summary(object$train))))
+
+  cat("The stats are computed from the ", dim(object$test)[1]," data splits.")
 }

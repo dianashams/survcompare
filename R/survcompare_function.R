@@ -23,7 +23,8 @@
 #' @importFrom stats quantile
 #' @importFrom stats runif
 #' @importFrom stats coef
-#' @importFrom rpart.plot rpart.plot
+#' @importFrom stats binomial
+#' @importFrom stats poisson
 #' @importFrom foreach foreach
 #' @importFrom stats predict
 #' @importFrom stats sd
@@ -94,7 +95,7 @@ survcompare <- function(df_train,
       repeat_cv = repeat_cv
     )
   }
-  ens1_cv <- survensemble1cv(
+  ens1_cv <- survensembleCV(
     df = df_train,
     predict.factors = predict_factors,
     fixed_time=predict_t,
@@ -190,6 +191,7 @@ survcompare <- function(df_train,
   summary.survcompare(output)
   return(output)
 }
+
 
 # Testing statistical significance of the ensembled model outperformance
 # over the baseline model (Model 1 vs Model 0)

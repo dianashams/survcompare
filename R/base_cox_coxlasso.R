@@ -146,7 +146,8 @@ survcox_predict <- function(model_cox,
   # define bh - baseline hazard as dataframe with "time" and "hazard"
   # if baseline hazard can't be calibrated, # return mean(y) for all times
   # we take baseline hazard from K-M estimate and lp from Cox !!!! :((
-  if (class(try(survival::basehaz(model_cox), silent = TRUE)) == "try-error") {
+  temp<- try(survival::basehaz(model_cox), silent = TRUE)
+  if (inherits(temp,"try-error")) {
     bh <- summary(survival::survfit(model_cox$y ~ 1), times)$cumhaz
     predicted_event_prob <-
       matrix(nrow = dim(newdata)[1], ncol = length(times))
@@ -164,18 +165,20 @@ survcox_predict <- function(model_cox,
     colnames(predicted_event_prob) <- round(times, 6)
     return(predicted_event_prob)
   } else {
-    bh <- survival::basehaz(model_cox)
+    bh <- temp
   }
+  remove(temp)
 
   # define bh as function to compute bh for any time
   bh_approx <-
     stats::approxfun(bh[, "time"], bh[, "hazard"], method = "constant")
 
   # define bh_extrap how to extrapolate outside of the times in the training data
-  if (class(try(stats::lm(hazard ~ poly(time, 3, raw = TRUE),
-                   data = bh
-  ), silent = TRUE)) != "try-error") {
-    extrap <- stats::lm(hazard ~ poly(time, 3, raw = TRUE), data = bh)
+  temp <-
+    try(stats::lm(hazard ~ poly(time, 3, raw = TRUE),data = bh), silent = TRUE)
+
+  if (!inherits(temp, "try-error")) {
+    extrap <- temp
     bh_extrap <- function(x) {
       sum(c(1, x, x**2, x**3) * extrap$coefficients[1:4])
     }

@@ -107,7 +107,7 @@ survival_prob_km <-
   }
 
 
-#' Computes performance statistics given the predicted event probabilities
+#' Computes performance statistics for a survival data given the predicted event probabilities
 #'
 #' @param y_predict probabilities of event by times_to_predict (matrix=observations x times)
 #' @param times_to_predict times for which event probabilities are given
