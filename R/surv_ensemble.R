@@ -23,16 +23,16 @@
 #' df <- simsurv_nonlinear()
 #' @return trained object of class survensemble
 #' @export
-survensemble <- function(df_train,
-                          predict.factors,
-                          fixed_time = NaN,
-                          inner_cv = 3,
-                          randomseed = NULL,
-                          srf_tuning = NULL,
-                          fast_version = TRUE,
-                          oob = TRUE,
-                          useCoxLasso = FALSE,
-                          var_importance_calc = 1) {
+survensemble_train <- function(df_train,
+                               predict.factors,
+                               fixed_time = NaN,
+                               inner_cv = 3,
+                               randomseed = NULL,
+                               srf_tuning = NULL,
+                               fast_version = TRUE,
+                               oob = TRUE,
+                               useCoxLasso = FALSE,
+                               var_importance_calc = 1) {
   # the function trains Cox model, then adds its predictions
   # into Survival Random Forest model
   # to mimic stacking procedure and reduce overfitting,
@@ -80,7 +80,7 @@ survensemble <- function(df_train,
   # adding Cox predictions as a new factor to tune SRF
   predict.factors.1A <- c(predict.factors, "cox_predict")
   ensemble1_model <-
-    survrf_train(
+    survsrf_train(
       df_train = df_train,
       predict.factors = predict.factors.1A,
       fixed_time = fixed_time,
@@ -119,30 +119,28 @@ survensemble <- function(df_train,
 #' @description
 #' \link[survcompare:predict.survensemble]{predict.survensemble}
 #' @param object trained survensemble model
-#' @param df_test test data
+#' @param newdata test data
 #' @param fixed_time  time for which probabilities are computed
 #' @param oob TRUE/FALSE , default is FALSE, if out of bag predictions are to be made from SRF
-#' @param useCoxLasso TRUE/FALSE , default is FALSE
 #' @param ... other parameters to pass
-#' @return matrix of predictions for observations in df_test by times
+#' @return matrix of predictions for observations in newdata by times
 #' @export
 predict.survensemble <- function(object,
-                                  df_test,
-                                  fixed_time,
-                                  oob = FALSE,
-                                  useCoxLasso = FALSE,
-                                  ...) {
+                                 newdata,
+                                 fixed_time,
+                                 oob = FALSE,
+                                 ...) {
 
   if (!inherits(object, "survensemble")) {stop("Not a \"survensemble\" object")}
-  if (is.null(df_test)) {stop("The data for predictions is not supplied")}
+  if (is.null(newdata)) {stop("The data for predictions is not supplied")}
 
   # use model_base with the base Cox model to find cox_predict
-  df_test$cox_predict <- survcox_predict(object$model_base,
-                                         df_test, fixed_time)
+  newdata$cox_predict <- survcox_predict(object$model_base,
+                                         newdata, fixed_time)
   # now use "model" which is SRF which needs additional risk factor
   # "cox_predict" which was created in the previous row
   predicted_event_prob <-
-    1 - srf_survival_prob_for_time(object$model, df_test, fixed_time, oob = oob)
+    1 - srf_survival_prob_for_time(object$model, newdata, fixed_time, oob = oob)
   return(predicted_event_prob)
 }
 
@@ -154,134 +152,48 @@ predict.survensemble <- function(object,
 #' @param fixed_time  at which performance metrics are computed
 #' @param cv_number k in k-fold CV, default 3
 #' @param inner_cv kk in the inner look of kk-fold CV, default 3
+#' @param repeat_cv if NULL, runs once (or 1), otherwise repeats CV
 #' @param randomseed random seed
-#' @param useCoxLasso TRUE/FALSE, default is FALSE
 #' @param return_models TRUE/FALSE, if TRUE returns all CV objects
+#' @param useCoxLasso TRUE/FALSE, default is FALSE
 #' @param srf_tuning list of mtry, nodedepth, nodesize to tune, default is NULL
-#' @param repeat_cv if NULL, runs once, otherwise repeats CV
+#' @param oob TRUE/FALSE use out-of-bag predictions while tuning instead of cross-validation, TRUE by default
 #' @examples
 #' df <- simsurv_nonlinear()
+#' survensemble_cv(df, names(df)[1:4])
 #' @return output list: output$train, test, testaverage, traintaverage, time
 #' @export
-survensembleCV <- function(df,
+survensemble_cv <- function(df,
                            predict.factors,
                            fixed_time = NaN,
                            cv_number = 3,
                            inner_cv = 3,
+                           repeat_cv = 2,
                            randomseed = NULL,
-                           useCoxLasso = FALSE,
                            return_models = FALSE,
+                           useCoxLasso = FALSE,
                            srf_tuning = NULL,
-                           repeat_cv = NULL) {
-  time_0 <- Sys.time()
-
-  if (is.null(randomseed)) {randomseed <- round(stats::runif(1)*1e9,0)}
-
-  stopifnot(expr = {
-    is.data.frame(df)
-    predict.factors %in% colnames(df)
-  })
-
-  if (sum(is.nan(fixed_time)) > 0) {
-    fixed_time <- round(quantile(df[df$event == 1, "time"], 0.9), 1)
-  }
-
-  predict.factors <- eligible_params(predict.factors, df)
-  if (length(predict.factors) == 0) {
-    print("No eliible params")
-    return(NULL)
-  }
+                           oob=TRUE
+                           ){
 
   Call <- match.call()
-
-  #defining number of repeated cv
-  if (is.null(repeat_cv)) {repeat_cv = 1}
-  if (is.numeric(repeat_cv) & repeat_cv > 1) {
-    repeat_cv = round(repeat_cv, 0)
-  }else{
-    repeat_cv = 1
-  }
-
-  print(paste(
-    "Cross-validating Survival Random Forest - Cox model ensemble ( ",
-    repeat_cv," repeat(s), ", cv_number," outer, ",
-    inner_cv," inner loops)",sep="")
-    )
-
-  modelstats_train <- list()
-  modelstats_test <- list()
-  models_for_each_cv <- list()
-  #progress bar
-  pb <- utils::txtProgressBar(0, cv_number*repeat_cv, style = 3)
-  utils::setTxtProgressBar(pb, cv_number*repeat_cv / 50)
-
-  for (rep_cv in 1:repeat_cv) {
-    set.seed(randomseed + rep_cv)
-    if (rep_cv!=1) {df <- df[sample(1:nrow(df)), ]}
-    cv_folds <-
-      caret::createFolds(df$event, k = cv_number, list = FALSE)
-    for (cv_iteration in 1:cv_number) {
-      #print(paste("CV ", cv_iteration,"/",cv_number, sep=""))
-      df_train_cv <- df[cv_folds != cv_iteration,]
-      df_test_cv <- df[cv_folds == cv_iteration,]
-      model.tuned <- survensemble(
-        df_train = df_train_cv,
-        predict.factors = predict.factors,
-        fixed_time = fixed_time,
-        inner_cv = inner_cv,
-        randomseed = randomseed,
-        fast_version = TRUE,
-        oob = TRUE,
-        useCoxLasso = useCoxLasso,
-        srf_tuning = srf_tuning
-      )
-      #  calculating tuned model predictions
-      y_predict_test <-
-        predict.survensemble(model.tuned, df_test_cv, fixed_time, oob = FALSE)
-      y_predict_train <-
-        predict.survensemble(model.tuned, df_train_cv, fixed_time, oob = FALSE)
-      modelstats_test[[cv_iteration + (rep_cv-1)*cv_number]] <-
-        survval(y_predict_test, fixed_time, df_train_cv,
-                        df_test_cv, weighted = 1)
-      modelstats_train[[cv_iteration + (rep_cv-1)*cv_number]] <-
-        survval(y_predict_train,fixed_time,df_train_cv,
-                        df_train_cv,weighted = 1)
-      if (return_models) {
-        models_for_each_cv[[cv_iteration + (rep_cv-1)*cv_number]] <-
-          model.tuned
-      }
-      utils::setTxtProgressBar(pb, cv_iteration + (rep_cv-1)*cv_number)
-    }
-  }
-  df_modelstats_test<- data.frame(modelstats_test[[1]])
-  df_modelstats_train <- data.frame(modelstats_train[[1]])
-  for (i in 2:(cv_number*repeat_cv)) {
-    df_modelstats_test[i, ] <- modelstats_test[[i]]
-    df_modelstats_train[i, ] <- modelstats_train[[i]]
-  }
-  row.names(df_modelstats_train)<- 1:(cv_number*repeat_cv)
-  row.names(df_modelstats_test)<- 1:(cv_number*repeat_cv)
-
-  utils::setTxtProgressBar(pb, cv_number*repeat_cv)
-  close(pb)
-  df_modelstats_test$test <- 1
-  df_modelstats_train$test <- 0
-
-  output <- list()
-  output$test <- df_modelstats_test
-  output$train <- df_modelstats_train
-  output$testaverage <- sapply(df_modelstats_test, mean, na.rm = 1)
-  output$trainaverage <-  sapply(df_modelstats_train, mean, na.rm = 1)
-  output$tuned_cv_models <- models_for_each_cv
-  output$randomseed <- randomseed
+  output<-surv_CV(df=df,
+          predict.factors=predict.factors,
+          fixed_time=fixed_time,
+          cv_number=cv_number,
+          inner_cv=inner_cv,
+          repeat_cv=repeat_cv,
+          randomseed=randomseed,
+          return_models = return_models,
+          train_function = survensemble_train,
+          predict_function = predict.survensemble,
+          model_args = list("useCoxLasso" = useCoxLasso,
+                            "srf_tuning" = srf_tuning,
+                            "oob" = oob)
+          )
   output$call <- Call
-  class(output) <- "survensembleCV"
-  time_1 <- Sys.time()
-  output$time <- time_1 - time_0
-  print(time_1 - time_0)
   return(output)
 }
-
 
 ##################################################################
 
@@ -320,46 +232,36 @@ summary.survensemble<- function(object, ...){
   }
 
 ##################################################################
-#' Prints survensembleCV object
+#' Prints survensemble_cv object
 #'
-#'@param x survensembleCV object
+#'@param x survensemble_cv object
 #'@param ... additional arguments to be passed
 #'@return x
 #'@export
-print.survensembleCV<- function(x, ...){
-  if (!inherits(x, "survensembleCV")) {stop("Not a \"survensembleCV\" object")}
-  summary.survensembleCV(x)
+print.survensemble_cv<- function(x, ...){
+  if (!inherits(x, "survensemble_cv")) {
+    stop("\nNot a \"survensemble_cv\" object")
+    }
+  summary.survensemble_cv(x)
 }
 
 
-#' Prints a summary of survensembleCV object
+#' Prints a summary of survensemble_cv object
 #'
-#'@param object survensembleCV object
+#'@param object survensemble_cv object
 #'@param ... additional arguments to be passed
 #'@return object
 #'@export
-summary.survensembleCV<- function(object, ...){
-  if (!inherits(object, "survensembleCV")) {stop("Not a \"survensembleCV\" object")}
-  cat("Cross-validation results for the Cox PH and Survival Random Forest Ensemble.\n")
+summary.survensemble_cv<- function(object, ...){
+  if (!inherits(object, "survensemble_cv")) {
+    stop("Not a \"survensemble_cv\" object")
+    }
+  cat("Cross-validation results\n")
 
   if(!is.null(cl<- object$call)) {
     cat("Call:\n")
     dput(cl)
   }
-
-  stats_summary <- function(x){
-    x=x[, 1:(dim(x)[2]-1)] #remove the last column ("test" 1 or 0)
-    as.data.frame(round(cbind(
-      "mean" = apply(x, 2, mean, na.rm=1),
-      "sd" = apply(x, 2, sd, na.rm=1),
-      "95CIHigh" = apply(x, 2, quantile, 0.0975),
-      "95CILow" = apply(x, 2, quantile, 0.025)),4))
-  }
-
-  #print mean, sd and confidence intervals for all test and train datasets
-  print(as.data.frame(cbind(
-    "test" = stats_summary(object$test),
-    "train" = stats_summary(object$train))))
-
-  cat("The stats are computed from the ", dim(object$test)[1]," data splits.")
+  cat("\nThe stats are computed from the ", dim(object$test)[1]," data splits.\n")
+  print(object$summarydf)
 }

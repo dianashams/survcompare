@@ -3,15 +3,15 @@
 #' Internal function to compute survival probability
 #'  by time from a fitted survival random forest
 #'
-#' @param rfmodel pre-trained survrf_train model
+#' @param rfmodel pre-trained survsrf_train model
 #' @param df_to_predict test data
 #' @param fixed_time  at which event probabilities are computed
 #' @param oob TRUE/FALSE use out-of-bag prediction
 #' @examples
 #' df <- simsurv_nonlinear()
 #' #params<- c("age", "hyp", "bmi")
-#' #s <- survrf_train(df, params)
-#' #p <- survrf_predict(s, df, 5)
+#' #s <- survsrf_train(df, params)
+#' #p <- survsrf_predict(s, df, 5)
 #' @return output list: output$train, test, testaverage, traintaverage, time
 srf_survival_prob_for_time <-
   function(rfmodel,
@@ -53,7 +53,7 @@ srf_survival_prob_for_time <-
 #'
 #' @param df_tune data frame
 #' @param predict.factors predictor names
-#' @param cv_number k in k-fold CV
+#' @param cv_number k in k-fold CV, applied if oob=FALSE
 #' @param fixed_time  NaN
 #' @param randomseed  random seed
 #' @param mtry  c(3,4,5) tuning parameter
@@ -62,11 +62,9 @@ srf_survival_prob_for_time <-
 #' @param verbose  FALSE
 #' @param oob  TRUE
 #' @param nodesize  at which event probabilities are computed
-#' @param oob TRUE/FALSE use out-of-bag prediction
-#' @examples
-#' df <- simsurv_nonlinear()
+#' @param oob TRUE/FALSE use out-of-bag predictions while tuning instead of cross-validation
 #' @return  output=list(modelstats, bestbrier, bestauc, bestcindex)
-srf_tune <- function(df_tune,
+survsrf_tune <- function(df_tune,
                      predict.factors,
                      cv_number = 3,
                      fixed_time = NaN,
@@ -174,7 +172,7 @@ srf_tune <- function(df_tune,
         y_predicted <-
           1 - srf_survival_prob_for_time(rf.dt, df_test_cv, fixed_time, oob = FALSE)
         validation_stats <-
-          survval(y_predicted,
+          surv_validate(y_predicted,
                               fixed_time,
                               df_train_cv,
                               df_test_cv,
@@ -253,7 +251,7 @@ srf_tune <- function(df_tune,
       y_predicted <-
         1 - srf_survival_prob_for_time(rf.dt, df_tune, fixed_time, oob = TRUE)
       validation_stats <-
-        survval(y_predicted, fixed_time, df_tune, df_tune, weighted = TRUE)
+        surv_validate(y_predicted, fixed_time, df_tune, df_tune, weighted = TRUE)
       modelstats[[i]] <- c(
         "mtry" = mtry_i,
         "nodesize" = nodesize_i,
@@ -281,10 +279,10 @@ srf_tune <- function(df_tune,
 
   if (verbose == TRUE) {
 
-    print(paste("AUC varies from", round(min(
-      df_modelstats$AUCROC
+    print(paste("Concordance index (C-score) varies from", round(min(
+      df_modelstats$C_score
     ), 4), "to", round(max(
-      df_modelstats$AUCROC
+      df_modelstats$C_score
     ), 4)))
     print(paste(
       "Brier score varies from",
@@ -292,9 +290,9 @@ srf_tune <- function(df_tune,
       "to",
       round(max(df_modelstats$BS), 4)
     ))
-    print("Combination with highest AUC")
+    print("Combination with highest C_score")
     print(df_modelstats[
-      which.max(df_modelstats$AUCROC),
+      which.max(df_modelstats$C_score),
       c("mtry", "nodesize", "nodedepth")
     ])
     print("Combination with lowest Brier Score")
@@ -313,8 +311,8 @@ srf_tune <- function(df_tune,
 }
 
 
-#' Fits randomForestSRC, with tuning by mtry,nodedepth and nodesize
-#' underlying model is by Ishwaran et al(2008)
+#' Fits randomForestSRC, with tuning by mtry, nodedepth, and nodesize.
+#' Underlying model is by Ishwaran et al(2008)
 #' https://www.randomforestsrc.org/articles/survival.html
 #' Ishwaran H, Kogalur UB, Blackstone EH, Lauer MS. Random survival forests.
 #' The Annals of Applied Statistics. 2008;2:841–60.
@@ -328,10 +326,9 @@ srf_tune <- function(df_tune,
 #' @param fast_version  TRUE/FALSE, TRUE by default
 #' @param oob FALSE/TRUE, TRUE by default
 #' @param verbose TRUE/FALSE, FALSE by default
-#' @examples
-#' df <- simsurv_nonlinear()
 #' @return output = list(beststats, allstats, model)
-survrf_train <- function(df_train,
+#' @export
+survsrf_train <- function(df_train,
                          predict.factors,
                          fixed_time = NaN,
                          inner_cv = 3,
@@ -407,7 +404,7 @@ survrf_train <- function(df_train,
     # first, takes recommended mtry and optimizes by depth and node size,
     # second, optimizes by mtry
 
-    tune1 <- srf_tune(
+    tune1 <- survsrf_tune(
       df_tune = df_train,
       cv_number = inner_cv,
       predict.factors,
@@ -423,7 +420,7 @@ survrf_train <- function(df_train,
     nodedepth_best <- as.integer(tune1$bestauc["nodedepth"])
     # using the depth and size check the best mtry
 
-    tune2 <- srf_tune(
+    tune2 <- survsrf_tune(
       df_tune = df_train,
       cv_number = inner_cv,
       predict.factors,
@@ -441,9 +438,7 @@ survrf_train <- function(df_train,
     # slower version:
     # goes through all the grid combinations mtry, nodesize, nodedepth
 
-    print("tuneall")
-
-    tuneall <- srf_tune(
+    tuneall <- survsrf_tune(
       df_tune= df_train,
       cv_number = inner_cv,
       eligible_params(predict.factors, df_train),
@@ -493,32 +488,30 @@ survrf_train <- function(df_train,
 #' @description
 #' Predicts event probability for a fitted SRF model randomForestSRC::rfsrc.
 #' Essentially a wrapper of \link{srf_survival_prob_for_time}.
-#' @param model_srf trained model
-#' @param df_test test data
+#' @param trained_model trained model
+#' @param newdata test data
 #' @param fixed_time  time for which probabilities are computed
-#' @param oob TRUE/FALSE , default is FALSE
-#' @examples
-#' df <- simsurv_nonlinear()
-#' @return returns matrix(nrow = length(newdata), ncol = length(times))
-survrf_predict <- function(model_srf,
-                               df_test,
-                               fixed_time,
-                               oob = FALSE) {
-  if (class(model_srf) == "list") {
-    srf <- model_srf$model
+#' @param oob TRUE/FALSE for out-of-bag predictions, default is FALSE
+#' @return returns vector of predictions (or matrix if fixed_time is a vector of times)
+survsrf_predict <- function(trained_model,
+                            newdata,
+                            fixed_time,
+                            oob = FALSE) {
+  if (inherits(trained_model,"list")) {
+    srf <- trained_model$model
   } else {
-    srf <- model_srf
+    srf <- trained_model
   }
 
   if (length(fixed_time) == 1) {
-    return(1 - srf_survival_prob_for_time(srf, df_test, fixed_time, oob = oob))
+    return(1 - srf_survival_prob_for_time(srf, newdata, fixed_time, oob = oob))
   }
 
   predicted_event_prob <-
-    matrix(nrow = dim(df_test)[1], ncol = length(fixed_time))
+    matrix(nrow = dim(newdata)[1], ncol = length(fixed_time))
   for (t in 1:length(fixed_time)) {
     predicted_event_prob[, t] <-
-      1 - srf_survival_prob_for_time(srf, df_test, fixed_time[t], oob = oob)
+      1 - srf_survival_prob_for_time(srf, newdata, fixed_time[t], oob = oob)
   }
   colnames(predicted_event_prob) <- round(fixed_time, 3)
   return(predicted_event_prob)
@@ -530,125 +523,43 @@ survrf_predict <- function(model_srf,
 #' @param predict.factors list of predictor names
 #' @param fixed_time  at which performance metrics are computed
 #' @param cv_number k in k-fold CV, default 3
-#' @param inner_cv kk in the inner look of kk-fold CV, default 3
-#' @param randomseed random seed
-#' @param srf_tuning list of mtry, nodedepth and nodesize, default is NULL
-#' @param parallel TRUE/FALSE, default = FALSE
-#' @param return_models TRUE/FALSE, if TRUE returns all CV objects
 #' @param repeat_cv if NULL, runs once, otherwise repeats CV
+#' @param randomseed random seed
+#' @param return_models TRUE/FALSE, if TRUE returns all CV objects
+#' @param inner_cv k in the inner loop of k-fold CV, default 3
+#' @param srf_tuning list of candidate mtry, nodedepth and nodesize, default is NULL
+#' @param oob TRUE/FALSE use out-of-bag predictions while tuning instead of cross-validation, TRUE by default
 #' @examples
 #' df <- simsurv_nonlinear()
+#' survsrf_cv(df, names(df)[1:4])
 #' @return output list: output$train, test, testaverage, traintaverage, time
-survrf_cv <- function(df,
-                          predict.factors,
-                          fixed_time = NaN,
-                          cv_number = 3,
-                          inner_cv = 3,
-                          randomseed = NULL,
-                          srf_tuning = NULL,
-                          parallel = FALSE,
-                          return_models = FALSE,
-                          repeat_cv = NULL) {
-  time_0 <- Sys.time()
+#' @export
+survsrf_cv <- function(df,
+                      predict.factors,
+                      fixed_time = NaN,
+                      cv_number = 3,
+                      repeat_cv = 2,
+                      randomseed = NULL,
+                      return_models = FALSE,
+                      inner_cv = 3,
+                      srf_tuning = NULL,
+                      oob = TRUE
+                      ) {
 
-  if (is.null(randomseed)) {randomseed <- round(stats::runif(1)*1e9,0)}
-
-  stopifnot(expr = {
-    is.data.frame(df)
-    predict.factors %in% colnames(df)
-  })
-
-  if (sum(is.nan(fixed_time)) > 0) {
-    fixed_time <- round(quantile(df[df$event == 1, "time"], 0.9), 1)
-  }
-
-  predict.factors <- eligible_params(predict.factors, df)
-  if (length(predict.factors) == 0) {
-    print("No eliible params")
-    return(NULL)
-  }
-
-  #defining number of repeated cv
-  if (is.null(repeat_cv)) {repeat_cv = 1}
-  if (is.numeric(repeat_cv) & repeat_cv > 1) {
-    repeat_cv = round(repeat_cv, 0)
-  }else{
-    repeat_cv = 1
-  }
-
-  print(paste("Cross-validating SRF ( ",repeat_cv, " repeat(s), ",
-              cv_number," outer, ",inner_cv," inner loops)",sep=""))
-
-  modelstats_train <- list()
-  modelstats_test <- list()
-  models_for_each_cv <- list()
-  #progress bar
-  pb <- utils::txtProgressBar(0, cv_number*repeat_cv, style = 3)
-  utils::setTxtProgressBar(pb, cv_number*repeat_cv / 50)
-
-  for (rep_cv in 1:repeat_cv) {
-    set.seed(randomseed + rep_cv)
-    if (rep_cv != 1) {df <- df[sample(1:nrow(df)),]}
-    cv_folds <-
-      caret::createFolds(df$event, k = cv_number, list = FALSE)
-
-    for (cv_iteration in 1:cv_number) {
-      # print(paste("CV ",cv_iteration,"/",cv_number, sep =""))
-      df_train_cv <- df[cv_folds != cv_iteration, ]
-      df_test_cv <- df[cv_folds == cv_iteration, ]
-      srf.model.tuned <-
-        survrf_train(
-          df_train_cv,
-          predict.factors,
-          fixed_time = fixed_time,
-          inner_cv = inner_cv,
-          randomseed = randomseed,
-          srf_tuning = srf_tuning,
-          fast_version = TRUE,
-          oob = TRUE
-        )
-      y_predict_test <- survrf_predict(srf.model.tuned, df_test_cv,
-                                       fixed_time, oob = FALSE)
-      y_predict_train <- survrf_predict(srf.model.tuned, df_train_cv,
-                                        fixed_time, oob = FALSE)
-      modelstats_test[[cv_iteration + (rep_cv - 1) * cv_number]] <-
-        survval(y_predict_test,fixed_time,df_train_cv,
-                df_test_cv,weighted = 1)
-      modelstats_train[[cv_iteration + (rep_cv - 1) * cv_number]] <-
-        survval(y_predict_train,fixed_time,df_train_cv,
-                df_train_cv,weighted = 1)
-      if (return_models) {
-        models_for_each_cv[[cv_iteration + (rep_cv - 1) * cv_number]] <-
-          srf.model.tuned$model
-      }
-      utils::setTxtProgressBar(pb, cv_iteration + (rep_cv - 1) * cv_number)
-    }
-  }
-
-  df_modelstats_test <- data.frame(modelstats_test[[1]])
-  df_modelstats_train <- data.frame(modelstats_train[[1]])
-
-  for (i in 2:(repeat_cv*cv_number)) {
-    df_modelstats_test[i, ] <- modelstats_test[[i]]
-    df_modelstats_train[i, ] <- modelstats_train[[i]]
-  }
-  row.names(df_modelstats_train)<- 1:(cv_number*repeat_cv)
-  row.names(df_modelstats_test)<- 1:(cv_number*repeat_cv)
-
-  utils::setTxtProgressBar(pb, cv_number*repeat_cv)
-  close(pb)
-
-  df_modelstats_test$test <- 1
-  df_modelstats_train$test <- 0
-  output <- list()
-  output$test <- df_modelstats_test
-  output$train <- df_modelstats_train
-  output$testaverage <- sapply(df_modelstats_test, mean, na.rm = 1)
-  output$trainaverage <-  sapply(df_modelstats_train, mean, na.rm = 1)
-  output$pretrained_srf_models <- models_for_each_cv
-  time_1 <- Sys.time()
-  print(time_1 - time_0)
-  output$time <- time_1 - time_0
+  Call <- match.call()
+  output<-surv_CV(df=df,
+          predict.factors=predict.factors,
+          fixed_time=fixed_time,
+          cv_number=cv_number,
+          inner_cv=inner_cv,
+          repeat_cv=repeat_cv,
+          randomseed=randomseed,
+          return_models=return_models,
+          train_function = survsrf_train,
+          predict_function = survsrf_predict,
+          model_args = list("srf_tuning" = srf_tuning, "oob" = oob)
+          )
+  output$call<- Call
   return(output)
 }
 

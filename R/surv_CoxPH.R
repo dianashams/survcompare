@@ -1,20 +1,19 @@
-
-############# Basic Cox Model functions ##########
+###################### Basic Cox Model functions #################################
 #' Trains CoxPH using survival package, or trains CoxLasso (cv.glmnet, lambda.min),
 #'  and then re-trains survival:coxph on non-zero predictors
 #'
 #' @param df_train  data, "time" and "event" should describe survival outcome
 #' @param predict.factors list of the column names to be used as predictors
+#' @param fixed_time  target time, NaN by default; needed here only to re-align with other methods
 #' @param useCoxLasso  TRUE or FALSE
-#' @param fixed_time  not used here, to re-align with other methods
 #' @param retrain_cox if useCoxLasso is TRUE, whether to re-train coxph on non-zero predictors, FALSE by default
 #' @return fitted CoxPH or CoxLasso model
 #' @export
 survcox_train <- function(df_train,
-                             predict.factors,
-                             useCoxLasso = FALSE,
-                             fixed_time = NaN,
-                             retrain_cox = FALSE) {
+                          predict.factors,
+                          fixed_time = NaN,
+                          useCoxLasso = FALSE,
+                          retrain_cox = FALSE) {
   stopifnot(expr = {
     is.data.frame(df_train)
     predict.factors %in% colnames(df_train)
@@ -125,44 +124,44 @@ survcoxlasso_train <- function(df_train,
 
 #' Computes event probabilities from a trained cox model
 #'
-#' @param model_cox  pre-trained cox model
+#' @param trained_model  pre-trained cox model of coxph class
 #' @param newdata data to compute event probabilities for
-#' @param times  at which event probabilities are computed
+#' @param fixed_time  at which event probabilities are computed
 #' @examples
 #' df<- simsurv_nonlinear()
-#' @return returns matrix(nrow = length(newdata), ncol = length(times))
-survcox_predict <- function(model_cox,
-                               newdata,
-                               times) {
-  # returns event probability from trained cox model model_cox
+#' @return returns matrix(nrow = length(newdata), ncol = length(fixed_time))
+survcox_predict <- function(trained_model,
+                            newdata,
+                            fixed_time) {
+  # returns event probability from trained cox model trained_model
 
   #checks
-  if(!inherits(model_cox,"coxph")) {stop("Supply coxph model."); return(NULL) }
+  if(!inherits(trained_model,"coxph")) {stop("Supply coxph model."); return(NULL) }
   if(!inherits(newdata,"data.frame")) stop("Supply newdata as data.frame.")
-  if(!inherits(times,"numeric")) stop("Supply times as a non-empty numeric list.")
-  if(length(times)==0) stop("Supply times as a non-empty numeric list.")
+  if(!inherits(fixed_time,"numeric")) stop("Supply fixed_time as a non-empty numeric list.")
+  if(length(fixed_time)==0) stop("Supply fixed_time as a non-empty numeric list.")
   if(is.null(newdata)|dim(newdata)[1]==0|dim(newdata)[2]==0) stop("Empty or NULL data is supplied.")
 
   # define bh - baseline hazard as dataframe with "time" and "hazard"
-  # if baseline hazard can't be calibrated, # return mean(y) for all times
+  # if baseline hazard can't be calibrated, # return mean(y) for all fixed_time
   # we take baseline hazard from K-M estimate and lp from Cox !!!! :((
-  temp<- try(survival::basehaz(model_cox), silent = TRUE)
+  temp<- try(survival::basehaz(trained_model), silent = TRUE)
   if (inherits(temp,"try-error")) {
-    bh <- summary(survival::survfit(model_cox$y ~ 1), times)$cumhaz
+    bh <- summary(survival::survfit(trained_model$y ~ 1), fixed_time)$cumhaz
     predicted_event_prob <-
-      matrix(nrow = dim(newdata)[1], ncol = length(times))
-    for (i in seq(length(times))) {
+      matrix(nrow = dim(newdata)[1], ncol = length(fixed_time))
+    for (i in seq(length(fixed_time))) {
       predicted_event_prob[, i] <- 1 -
         exp(-bh[i] * exp(
           predict(
-            model_cox,
+            trained_model,
             newdata = newdata,
             type = "lp",
             reference = "zero"
           )
         ))
     }
-    colnames(predicted_event_prob) <- round(times, 6)
+    colnames(predicted_event_prob) <- round(fixed_time, 6)
     return(predicted_event_prob)
   } else {
     bh <- temp
@@ -173,7 +172,7 @@ survcox_predict <- function(model_cox,
   bh_approx <-
     stats::approxfun(bh[, "time"], bh[, "hazard"], method = "constant")
 
-  # define bh_extrap how to extrapolate outside of the times in the training data
+  # define bh_extrap how to extrapolate outside of the fixed_time in the training data
   temp <-
     try(stats::lm(hazard ~ poly(time, 3, raw = TRUE),data = bh), silent = TRUE)
 
@@ -192,20 +191,20 @@ survcox_predict <- function(model_cox,
     bh_extrap <-
       stats::approxfun(bh[, "time"], bh[, "hazard"], method = "constant")
   }
-  # compute event probability for times:
+  # compute event probability for fixed_time:
   # create placeholder
   predicted_event_prob <-
-    matrix(nrow = dim(newdata)[1], ncol = length(times))
-  # go over each time in times
-  for (i in seq(length(times))) {
-    if (is.na(bh_approx(times[i]))) {
+    matrix(nrow = dim(newdata)[1], ncol = length(fixed_time))
+  # go over each time in fixed_time
+  for (i in seq(length(fixed_time))) {
+    if (is.na(bh_approx(fixed_time))) {
       # if interpolation doesn't work, take extrapolated value
-      bh_time <- bh_extrap(times[i])
+      bh_time <- bh_extrap(fixed_time[i])
       if (is.na(bh_time)) {
         bh_time <- mean(bh[, "hazard"], na.rm = TRUE)
       }
     } else {
-      bh_time <- bh_approx(times[i])
+      bh_time <- bh_approx(fixed_time[i])
     }
     # if baseline hazard is infinite, event probability is 1
     if (bh_time == Inf) {
@@ -219,7 +218,7 @@ survcox_predict <- function(model_cox,
       predicted_event_prob[, i] <-
         1 - exp(-bh_time * exp(
          predict(
-            model_cox,
+            trained_model,
             newdata = newdata,
             type = "lp",
             reference = "zero"
@@ -228,7 +227,7 @@ survcox_predict <- function(model_cox,
     }
   }
   # name columns by the time for which it predicts event prob
-  colnames(predicted_event_prob) <- round(times, 6)
+  colnames(predicted_event_prob) <- round(fixed_time, 6)
   return(predicted_event_prob)
 }
 
@@ -238,149 +237,42 @@ survcox_predict <- function(model_cox,
 #'
 #' @param df data frame with the data, "time" and "event" for survival outcome
 #' @param predict.factors list of predictor names
-#' @param fixed_time  at which event probabilities are computed
-#' @param cv_number k in k-fold CV
+#' @param fixed_time  at which performance metrics are computed
+#' @param cv_number k in k-fold CV, default 3
+#' @param repeat_cv if NULL, runs once, otherwise repeats CV
 #' @param randomseed random seed
-#' @param useCoxLasso TRUE/FALSE
-#' @param parallel TRUE/FALSE
-#' @param return_models TRUE/FALSE, whether to return all CV models. Default is FALSE
-#' @param repeat_cv if not NULL, repeats CV repeat_cv times
+#' @param return_models TRUE/FALSE, if TRUE returns all CV objects
+#' @param inner_cv k in the inner loop of k-fold CV, default 3
+#' @param useCoxLasso TRUE/FALSE, FALSE by default
 #' @examples
 #' df<- simsurv_nonlinear()
 #' @return output list: output$train, test, testaverage, traintaverage, time,tuned_cv_models
 #' @export
 survcox_cv <- function(df,
-                          predict.factors,
-                          fixed_time = NaN,
-                          cv_number = 5,
-                          randomseed = NULL,
-                          useCoxLasso = FALSE,
-                          parallel = FALSE,
-                          return_models = FALSE,
-                          repeat_cv = NULL) {
-
-  time_0 <- Sys.time()
-  if (is.null(randomseed)) {randomseed <- round(stats::runif(1)*1e9,0)}
-
-  stopifnot(expr = {
-    is.data.frame(df)
-    predict.factors %in% colnames(df)
-  })
-
-  if (sum(is.nan(fixed_time)) > 0) {
-    fixed_time <- round(quantile(df[df$event == 1, "time"], 0.9), 1)
-  }
-
-  predict.factors <- eligible_params(predict.factors, df)
-  if (length(predict.factors) == 0) {
-    print("No eligible params")
-    return(NULL)
-  }
-
-  #defining number of repeated cv
-  if (is.null(repeat_cv)) {repeat_cv = 1}
-  if (is.numeric(repeat_cv) & repeat_cv > 1) {
-    repeat_cv = round(repeat_cv, 0)
-  }else{
-    repeat_cv = 1
-  }
-
-  print(paste("Cross-validating ",
-              ifelse(useCoxLasso, "Cox-Lasso", "Cox-PH"),
-              " ( ",repeat_cv,
-              " repeat(s), ", cv_number," loops)",sep=""))
-
-  modelstats_train <- list()
-  modelstats_test <- list()
-  models_for_each_cv <- list()
-  #progress bar
-  pb <- utils::txtProgressBar(0, cv_number*repeat_cv, style = 3)
-  utils::setTxtProgressBar(pb, cv_number*repeat_cv / 50)
-
-  for (rep_cv in 1:repeat_cv) {
-    set.seed(randomseed + rep_cv)
-    if (rep_cv != 1) {
-      df <- df[sample(1:nrow(df)),]
-    }
-    cv_folds <-
-      caret::createFolds(df$event, k = cv_number, list = FALSE)
-
-    for (cv_iteration in 1:cv_number) {
-      df_train_cv <- df[cv_folds != cv_iteration, ]
-      df_test_cv <- df[cv_folds == cv_iteration, ]
-      cox.model <- survcox_train(
-        df_train_cv,
-        predict.factors,
-        useCoxLasso = useCoxLasso
-      )
-      y_predict_test <-
-        survcox_predict(cox.model, df_test_cv, fixed_time)
-      y_predict_train <-
-        survcox_predict(cox.model, df_train_cv, fixed_time)
-      modelstats_test[[cv_iteration + (rep_cv-1)*cv_number]] <-
-        survval(y_predict_test, fixed_time, df_train_cv,
-                df_test_cv, weighted = 1)
-      modelstats_train[[cv_iteration + (rep_cv-1)*cv_number]] <-
-        survval(y_predict_train,fixed_time,df_train_cv,
-                df_train_cv,weighted = 1)
-      if (return_models) {
-        models_for_each_cv[[cv_iteration + (rep_cv-1)*cv_number]] <-
-          cox.model
-        }
-      utils::setTxtProgressBar(pb, cv_iteration + (rep_cv-1)*cv_number)
-    }
-  }
-
-  # create data frame with results:
-  df_modelstats_test <- data.frame(modelstats_test[[1]])
-  df_modelstats_train <- data.frame(modelstats_train[[1]])
-  for (i in 2:(cv_number*repeat_cv)) {
-    df_modelstats_test[i, ] <- modelstats_test[[i]]
-    df_modelstats_train[i, ] <- modelstats_train[[i]]
-  }
-  row.names(df_modelstats_train)<- 1:(cv_number*repeat_cv)
-  row.names(df_modelstats_test)<- 1:(cv_number*repeat_cv)
-
-  utils::setTxtProgressBar(pb, cv_number*repeat_cv)
-  close(pb)
-  df_modelstats_test$test <- 1
-  df_modelstats_train$test <- 0
-
-  # comprise  output object
-  output <- list()
-  output$test <- df_modelstats_test
-  output$train <- df_modelstats_train
-  output$testaverage <-sapply(df_modelstats_test[, 1:8], mean, na.rm = 1)
-  output$trainaverage <-sapply(df_modelstats_train[, 1:8], mean, na.rm = 1)
-  output$tuned_cv_models <- models_for_each_cv
-  time_1 <- Sys.time()
-  output$time <- time_1 - time_0
+                       predict.factors,
+                       fixed_time = NaN,
+                       cv_number = 3,
+                       repeat_cv = 2,
+                       randomseed = NULL,
+                       return_models = FALSE,
+                       inner_cv = 3,
+                       useCoxLasso = FALSE
+                       ) {
+  Call <- match.call()
+  output<-surv_CV(df=df,
+          predict.factors=predict.factors,
+          fixed_time=fixed_time,
+          cv_number=cv_number,
+          inner_cv=inner_cv,
+          repeat_cv=repeat_cv,
+          randomseed=randomseed,
+          return_models=return_models,
+          train_function= survcox_train,
+          predict_function = survcox_predict,
+          model_args = list("useCoxLasso" = useCoxLasso)
+          )
+  output$call <- Call
   return(output)
 }
 
-
-eligible_params <- function(params,df) {
-  # This function checks eligible predictors from params list for split
-  # It deletes those which are
-  # 1) not in df and
-  # 2) taking only 1 value (constants)
-  # TODOLater may delete collinear factors
-  if (length(params) == 0) {
-    return(NULL)
-  }
-  # take only columns which are in df
-  z <- params %in% names(df)
-  if (sum(!z) == length(params)) {
-    return(NULL) # no eligible params
-  } else {
-    params <- params[z] # there are some potentially eligible
-  }
-  params_eligible <- params
-  for (i in 1:length(params)) {
-    if (length(unique(df[, params[i]])) < 2) {
-      params_eligible <- params_eligible[params_eligible != params[i]]
-    }
-  }
-  return(params_eligible)
-}
 

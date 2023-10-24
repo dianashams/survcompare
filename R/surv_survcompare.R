@@ -33,7 +33,7 @@
 #' @importFrom pec ipcw
 #' @param df_train training data, a data frame with "time" and "event" columns to define the survival outcome
 #' @param predict_factors list of column names to be used as predictors
-#' @param predict_t prediction time of interest. If NULL, 0.90th quantile of event times is used
+#' @param predict_time prediction time of interest. If NULL, 0.90th quantile of event times is used
 #' @param randomseed random seed for replication
 #' @param useCoxLasso TRUE / FALSE, for whether to use regularized version of the Cox model, FALSE is default
 #' @param outer_cv k in k-fold CV
@@ -44,13 +44,13 @@
 #' @param train_srf TRUE/FALSE for whether to train SRF on its own, apart from the CoxPH->SRF ensemble. Default is FALSE as there is not much information in SRF itself compared to the ensembled version.
 #' @return outcome = list(data frame with performance results, fitted Cox models, fitted SRF)
 #' @examples
-#' df <-simsurv_nonlinear(300)
+#' df <-simsurv_nonlinear(250)
 #' survcompare(df, names(df)[1:4])
 #'
 #' @export
 survcompare <- function(df_train,
                         predict_factors,
-                        predict_t = NULL,
+                        predict_time = NULL,
                         randomseed = NULL,
                         useCoxLasso = FALSE,
                         outer_cv = 5,
@@ -67,15 +67,15 @@ survcompare <- function(df_train,
   if (is.null(randomseed)) {
     randomseed <- round(stats::runif(1) * 1e9, 0) + 1
   }
-  if (is.null(predict_t)) {
-    predict_t <- quantile(df_train[df_train$event == 1, "time"], 0.9)
+  if (is.null(predict_time)) {
+    predict_time <- quantile(df_train[df_train$event == 1, "time"], 0.9)
   }
 
   # cross-validation
   cox_cv <- survcox_cv(
     df = df_train,
     predict.factors = predict_factors,
-    fixed_time=predict_t ,
+    fixed_time=predict_time ,
     cv_number = outer_cv,
     randomseed = randomseed,
     useCoxLasso = useCoxLasso,
@@ -83,10 +83,10 @@ survcompare <- function(df_train,
     repeat_cv = repeat_cv
   )
   if (train_srf){
-    srf_cv <- survrf_cv(
+    srf_cv <- survsrf_cv(
       df = df_train,
       predict.factors = predict_factors,
-      fixed_time= predict_t,
+      fixed_time= predict_time,
       cv_number = outer_cv,
       inner_cv = inner_cv,
       randomseed = randomseed,
@@ -95,10 +95,10 @@ survcompare <- function(df_train,
       repeat_cv = repeat_cv
     )
   }
-  ens1_cv <- survensembleCV(
+  ens1_cv <- survensemble_cv(
     df = df_train,
     predict.factors = predict_factors,
-    fixed_time=predict_t,
+    fixed_time = predict_time,
     cv_number = outer_cv,
     inner_cv = inner_cv,
     randomseed = randomseed,

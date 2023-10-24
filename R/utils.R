@@ -12,8 +12,7 @@
 #' @param time_points times at which BS calculated
 #' @param weighted TRUE/FALSE for IPWC to use or not
 #' @return vector of time-dependent Brier Scores for all time_points
-#' @export
-bs_surv <-
+surv_brierscore <-
   function(y_predicted_newdata,
            df_brier_train,
            df_newdata,
@@ -109,16 +108,16 @@ survival_prob_km <-
 
 #' Computes performance statistics for a survival data given the predicted event probabilities
 #'
-#' @param y_predict probabilities of event by times_to_predict (matrix=observations x times)
-#' @param times_to_predict times for which event probabilities are given
+#' @param y_predict probabilities of event by predict_time (matrix=observations x times)
+#' @param predict_time times for which event probabilities are given
 #' @param df_train train data, data frame
 #' @param df_test test data, data frame
 #' @param weighted TRUE/FALSE, for IPWC
 #' @param alpha calibration alpha as mean difference or from logistic regression
 #' @return  data.frame(T, AUCROC, Brier Score, Scaled Brier Score, C_score, Calib slope, Calib alpha)
 #' @export
-survval <- function(y_predict,
-                    times_to_predict,
+surv_validate <- function(y_predict,
+                    predict_time,
                     df_train,
                     df_test,
                     weighted = TRUE,
@@ -133,76 +132,47 @@ survval <- function(y_predict,
   calibration_slope <- c()
   calibration_alpha <- c()
 
-  for (i in 1:length(times_to_predict)) {
-    t_i <- times_to_predict[i]
-    if (length(times_to_predict) > 1) {
+  for (i in 1:length(predict_time)) {
+    t_i <- predict_time[i]
+    if (length(predict_time) > 1) {
       y_hat <- y_predict[, i]
     } else {
       y_hat <- unlist(y_predict)
     }
 
+    temp<- try(timeROC::timeROC(T = df_test$time,delta = df_test$event,
+                                marker = y_hat,times = t_i * 0.9999999,
+                                cause = 1,weighting = "marginal"),
+               silent = TRUE)
     # time dependent AUC
-    if (class(try(
-      timeROC::timeROC(
-        T = df_test$time,
-        delta = df_test$event,
-        marker = y_hat,
-        times = t_i * 0.9999999,
-        cause = 1,
-        weighting = "marginal"
-      ),
-      silent = TRUE
-    )) == "try-error") {
-      auc_score[i] <- NaN
-    } else {
-      auc_score[i] <- timeROC::timeROC(
-        T = df_test$time,
-        delta = df_test$event,
-        marker = y_hat,
-        times = t_i * 0.9999999,
-        cause = 1,
-        weighting = "marginal"
-      )$AUC[2]
-    }
+    auc_score[i] <- ifelse( inherits(temp, "try-error"), NaN, temp$AUC[2])
+
     # compute time-dependent Brier score:
-    if (class(try(
-      bs_surv(y_hat, df_train, df_test, t_i, weighted = weighted),
-      silent = TRUE
-    )) == "try-error") {
-      brier_score[i] <- NaN
-    } else {
-      brier_score[i] <-
-        bs_surv(y_hat, df_train, df_test, t_i, weighted = weighted)
-      brier_score_base_i <-
-        bs_surv(rep(mean((df_test$event) * (df_test$time <= t_i)), dim(df_test)[1]),
-                df_train, df_test, t_i, weighted = weighted)
-      brier_score_scaled[i] <-
-        1 - brier_score[i] / brier_score_base_i
-    }
+    temp<- try(surv_brierscore(y_hat, df_train, df_test, t_i, weighted = weighted),
+               silent = TRUE)
+    brier_score_scaled[i] <- NaN
+    brier_score[i]<- NaN
+
+    if (!inherits(temp,"try-error")) {
+      brier_score[i]<- temp
+      bs_base <-
+        surv_brierscore(rep(mean((df_test$event) * (df_test$time <= t_i)),dim(df_test)[1]),
+                        df_train, df_test, t_i, weighted = weighted)
+      brier_score_scaled[i] <- 1 - brier_score[i] / bs_base
+      }
+
+    remove(temp)
 
     # compute concordance - time-dependent in a sense that a predictor is
     # event probability at t_i. For Cox model it is the same for each time
     # (probabilities are always ordered according to linear predictors for any t)
-    if (class(try(
-      survival::concordancefit(
-        survival::Surv(df_test$time, df_test$event), -1 * y_hat
-      ),
-      silent = TRUE
-    )) == "try-error") {
-      c_score[i] <- NaN
-    } else {
-      if (is.null(survival::concordancefit(
-        survival::Surv(df_test$time, df_test$event), -1 * y_hat
-      )$concordance)) {
-        c_score[i] <- NaN
-      } else {
-        c_score[i] <-
-          survival::concordancefit(
-            survival::Surv(df_test$time, df_test$event),
-            -1 * y_hat
-          )$concordance
-      }
-    }
+    temp<- try(survival::concordancefit(
+      survival::Surv(df_test$time, df_test$event), -1 * y_hat),
+      silent = TRUE)
+
+    c_score[i] <-
+      ifelse((inherits(temp,"try-error")) | is.null(temp$concordance),
+             NaN, temp$concordance)
 
     # compute calibration slope and alpha:
     # 1/0 by t_i:
@@ -222,20 +192,19 @@ survval <- function(y_predict,
       log(df_test_in_scope$predict_ti / (1 - df_test_in_scope$predict_ti))
     y_actual_i <- df_test_in_scope$event_ti
 
-    if (class(try(stats::glm(y_actual_i ~ y_hat_hat, family = binomial(link = "logit")),
-                  silent = TRUE
-    ))[1] == "try-error") {
+    temp<- try(stats::glm(y_actual_i ~ y_hat_hat, family = binomial(link = "logit")),
+         silent = TRUE)
+
+    if (inherits(temp,"try-error")) {
       calibration_slope[i] <- NaN
       calibration_alpha[i] <- NaN
     } else {
-      calibration_slope[i] <- stats::glm(y_actual_i ~ y_hat_hat,
-                                  family = binomial(link = "logit")
-      )$coefficients[2]
+      calibration_slope[i] <- temp$coefficients[2]
       if (alpha == "logit") {
         # take alpha from alpha: logit(y)~ logit(y_hat) + alpha
-        calibration_alpha[i] <- stats::glm(y_actual_i ~ offset(y_hat_hat),
-                                    family = binomial(link = "logit")
-        )$coefficients[1]
+        calibration_alpha[i] <-
+          stats::glm(y_actual_i ~ offset(y_hat_hat),
+                     family = binomial(link = "logit"))$coefficients[1]
       } else {
         # take alpha as alpha= mean(y) - mean(y_hat)
         calibration_alpha[i] <-
@@ -245,7 +214,7 @@ survval <- function(y_predict,
   } # end "for"
 
   output <- data.frame(
-    "T" = times_to_predict,
+    "T" = predict_time,
     "AUCROC" = auc_score,
     "BS" = brier_score,
     "BS_scaled" = brier_score_scaled,
@@ -269,31 +238,60 @@ survval <- function(y_predict,
 #' https://journals.sagepub.com/doi/pdf/10.1177/0962280213497434
 #'
 #' @param cox_model fitted cox model, namely, coxph() object
-#' @param testdata test data, should be a data frame with "time" and "event" columns for survival outcome
+#' @param test_data test data, should be a data frame with "time" and "event" columns for survival outcome
 #' @return c(calibration alpha, calibration slope)
 #' @export
-cox_calibration_stats <- function(cox_model,
-                              testdata) {
+cox_calibration_stats <-  function(cox_model, test_data) {
 
+  if(!inherits(cox_model,"coxph")){stop("The model should be a coxph object.")}
+  if(!inherits(test_data,"data.frame")){stop("The test data should be a dataframe.")}
 
-  p <- log(predict(cox_model, newdata = testdata, type = "expected"))
-  lp <- predict(cox_model, newdata = testdata, type = "lp")
+  temp<- try(predict(cox_model, newdata = test_data, type = "lp"), silent = TRUE)
+
+  if (inherits(temp, "try-error")){ stop ("Predictions can not be made for test data using the model provided.")}
+
+  p <- log(predict(cox_model, newdata = test_data, type = "expected"))
+  lp <- predict(cox_model, newdata = test_data, type = "lp")
   logbase <- p - lp
-  fit1 <- stats::glm(Event ~ offset(p), family = poisson, data = testdata)
-  fit2 <-
-    stats::glm(Event ~ lp + offset(logbase),
-        family = poisson,
-        data = testdata
-    )
-  group <- cut(lp, c(-Inf, quantile(lp, (1:9) / 10), Inf))
-  fit3 <-
-    stats::glm(Event ~ -1 + group + offset(p),
-        family = poisson,
-        data = testdata
-    )
+
+  fit1 <- try(stats::glm(event ~ offset(p), family = poisson, data = test_data), silent = TRUE)
+  fit2<- try(stats::glm(event ~ lp + offset(logbase),family = poisson,data = test_data), silent = TRUE)
+
+  if (inherits(fit1, "try-error")| (inherits(fit2, "try-error"))){stop("Stats computations failed.")}
+
+  #group <- cut(lp, c(-Inf, quantile(lp, (1:9) / 10), Inf))
+  #fit3 <- stats::glm(event ~ -1 + group + offset(p),family = poisson,data = test_data)
+
   calib_alpha <- as.numeric(fit1$coefficients[1])
   calib_slope <- as.numeric(fit2$coefficients[2])
 
   return(c("calib_alpha" = calib_alpha, "calib_slope" = calib_slope))
 }
+
+
+eligible_params <- function(params,df) {
+  # This function checks eligible predictors from params list for split
+  # It deletes those which are
+  # 1) not in df and
+  # 2) taking only 1 value (constants)
+  # TODOLater may delete collinear factors
+  if (length(params) == 0) {
+    return(NULL)
+  }
+  # take only columns which are in df
+  z <- params %in% names(df)
+  if (sum(!z) == length(params)) {
+    return(NULL) # no eligible params
+  } else {
+    params <- params[z] # there are some potentially eligible
+  }
+  params_eligible <- params
+  for (i in 1:length(params)) {
+    if (length(unique(df[, params[i]])) < 2) {
+      params_eligible <- params_eligible[params_eligible != params[i]]
+    }
+  }
+  return(params_eligible)
+}
+
 

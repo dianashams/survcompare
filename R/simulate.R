@@ -119,70 +119,70 @@ simsurv_crossterms <- function(N = 500, observe_time = 10,
   return(df)
 }
 
-#' Simulated sample with survival outcomes with non-linear and cross-term dependencies and non-PH survival times.
-#' @description
-#' Simulated sample with Weibull distributed time-to-event;
-#' log-hazard are non-linear and with cross-terms. Survival curves for different sexes intersect (non-PH).
-#'
-#' @param N sample size, 500 by default
-#' @param observe_time study's observation time, 10 by default
-#' @param percentcensored expected number of non-events by observe_time, 0.75 by default (i.e. event rate is 0.25)
-#' @param drop_out expected rate of drop out before observe_time, 0.3 by default
-#' @param randomseed random seed for replication
-#' @param lambda baseline hazard rate, 0.1 by default
-#' @examples
-#' mydata <- simsurv_lin_nonPH()
-#' head(mydata)
-#' @return data frame; "time" and "event" columns describe survival outcome; predictors are "age", "sex", "hyp", "bmi"
-#' @export
-simsurv_lin_nonPH <- function(N = 500,
-                                   observe_time = 10,
-                                   percentcensored = 0.75,
-                                   randomseed = NULL,
-                                   lambda = 0.1,
-                                   drop_out = 0.3) {
-  # simulate the data
-  if (is.null(randomseed)) {randomseed <- round(stats::runif(1)*1e9,0)}
-  df <- simulate_population(N, randomseed)
-  # calculate betas
-  exp_beta <-
-    exp(0.4 * df$age + 1.0 * df$bmi + 1 * df$hyp + 0.5 * df$sex)
-  df["exp_beta"] <- exp_beta
-  df["shape_rho"] <- ifelse(df$sex == 1, 2.5, 0.5)
-  # simulate event times
-  {
-    set.seed(randomseed)
-    v <- stats::runif(n = N)
-  }
-  # Weibull density
-  event_time <-
-    (-log(v) / (lambda * df$exp_beta))^(1 / df$shape_rho)
-
-  # re-scale the time to have 1-percentcensored of events=1
-  # by the observe_time
-  final_time <- quantile(event_time, 1 - percentcensored)
-  # scale to observe_time:
-  df$event_time <-
-    0.001 + pmin(round(event_time / final_time * observe_time, 3), observe_time)
-  # generate drop-out times for random drop_out % observations
-  if (drop_out > 0) {
-    set.seed(randomseed + 1)
-    randcentime <-
-      stats::runif(round(N * drop_out, 0), 0, observe_time)
-    cens_obs <- sample.int(nrow(df), round(N * drop_out, 0))
-    df[cens_obs, "cens_time"] <- randcentime
-    df[-cens_obs, "cens_time"] <- observe_time
-  } else {
-    df[, "cens_time"] <- observe_time
-  }
-
-  # final time and event definition
-  # event =1 if event time < cens_time and observe_time
-  df$time <- pmin(df$event_time, df$cens_time, observe_time)
-  df$event <- ifelse(df$event_time == df$time, 1, 0)
-
-  return(df)
-}
+# Simulated sample with survival outcomes with non-linear and cross-term dependencies and non-PH survival times.
+# @description
+# Simulated sample with Weibull distributed time-to-event;
+# log-hazard are non-linear and with cross-terms. Survival curves for different sexes intersect (non-PH).
+#
+# @param N sample size, 500 by default
+# @param observe_time study's observation time, 10 by default
+# @param percentcensored expected number of non-events by observe_time, 0.75 by default (i.e. event rate is 0.25)
+# @param drop_out expected rate of drop out before observe_time, 0.3 by default
+# @param randomseed random seed for replication
+# @param lambda baseline hazard rate, 0.1 by default
+# @examples
+# mydata <- simsurv_lin_nonPH()
+# head(mydata)
+# @return data frame; "time" and "event" columns describe survival outcome; predictors are "age", "sex", "hyp", "bmi"
+# simsurv_lin_nonPH <- function(N = 500,
+#                                    observe_time = 10,
+#                                    percentcensored = 0.75,
+#                                    randomseed = NULL,
+#                                    lambda = 0.1,
+#                                    drop_out = 0.3) {
+#   # TODO check why Cox model is performing so well for these simulations
+#   # simulate the data
+#   if (is.null(randomseed)) {randomseed <- round(stats::runif(1)*1e9,0)}
+#   df <- simulate_population(N, randomseed)
+#   # calculate betas
+#   exp_beta <-
+#     exp(0.4 * df$age + 1.0 * df$bmi + 1 * df$hyp + 0.5 * df$sex)
+#   df["exp_beta"] <- exp_beta
+#   df["shape_rho"] <- ifelse(df$sex == 1, 2.5, 0.5)
+#   # simulate event times
+#   {
+#     set.seed(randomseed)
+#     v <- stats::runif(n = N)
+#   }
+#   # Weibull density
+#   event_time <-
+#     (-log(v) / (lambda * df$exp_beta))^(1 / df$shape_rho)
+#
+#   # re-scale the time to have 1-percentcensored of events=1
+#   # by the observe_time
+#   final_time <- quantile(event_time, 1 - percentcensored)
+#   # scale to observe_time:
+#   df$event_time <-
+#     0.001 + pmin(round(event_time / final_time * observe_time, 3), observe_time)
+#   # generate drop-out times for random drop_out % observations
+#   if (drop_out > 0) {
+#     set.seed(randomseed + 1)
+#     randcentime <-
+#       stats::runif(round(N * drop_out, 0), 0, observe_time)
+#     cens_obs <- sample.int(nrow(df), round(N * drop_out, 0))
+#     df[cens_obs, "cens_time"] <- randcentime
+#     df[-cens_obs, "cens_time"] <- observe_time
+#   } else {
+#     df[, "cens_time"] <- observe_time
+#   }
+#
+#   # final time and event definition
+#   # event =1 if event time < cens_time and observe_time
+#   df$time <- pmin(df$event_time, df$cens_time, observe_time)
+#   df$event <- ifelse(df$event_time == df$time, 1, 0)
+#
+#   return(df)
+# }
 
 
 #' Auxiliary function for simulatedata functions

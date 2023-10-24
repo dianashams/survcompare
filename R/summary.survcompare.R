@@ -59,6 +59,6 @@ print.survcompare<- function(x, ...){
 
   summary.survcompare(x)
 
-  cat("\n", "See other items as x$item. Items available:")
+  cat("\n", "See other items as x$item. Items available:\n")
   cat(names(x), sep=", ")
 }
