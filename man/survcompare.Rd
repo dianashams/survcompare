@@ -68,7 +68,7 @@ the predictive power of the supplied predictors.
 Cross-validates and compares Cox Proportionate Hazards and Survival Random Forest models
 }
 \examples{
-df <-simsurv_nonlinear(250)
+df <-simulate_nonlinear()
 survcompare(df, names(df)[1:4])
 
 }

@@ -50,5 +50,5 @@ to mimic stacking procedure used in Machine Learning and reduce over-fitting.
 these out-of-the-bag predictions are passed on to SRF
 }
 \examples{
-df <- simsurv_nonlinear()
+df <- simulate_nonlinear()
 }

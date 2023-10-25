@@ -42,5 +42,5 @@ output list: output$train, test, testaverage, traintaverage, time,tuned_cv_model
 Cross-validates Cox or CoxLasso model
 }
 \examples{
-df<- simsurv_nonlinear()
+df<- simulate_nonlinear()
 }

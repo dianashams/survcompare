@@ -8,7 +8,7 @@
 #' @param fixed_time  at which event probabilities are computed
 #' @param oob TRUE/FALSE use out-of-bag prediction
 #' @examples
-#' df <- simsurv_nonlinear()
+#' df <- simulate_nonlinear()
 #' #params<- c("age", "hyp", "bmi")
 #' #s <- survsrf_train(df, params)
 #' #p <- survsrf_predict(s, df, 5)
@@ -530,7 +530,7 @@ survsrf_predict <- function(trained_model,
 #' @param srf_tuning list of candidate mtry, nodedepth and nodesize, default is NULL
 #' @param oob TRUE/FALSE use out-of-bag predictions while tuning instead of cross-validation, TRUE by default
 #' @examples
-#' df <- simsurv_nonlinear()
+#' df <- simulate_nonlinear()
 #' survsrf_cv(df, names(df)[1:4])
 #' @return output list: output$train, test, testaverage, traintaverage, time
 #' @export

@@ -44,7 +44,7 @@
 #' @param train_srf TRUE/FALSE for whether to train SRF on its own, apart from the CoxPH->SRF ensemble. Default is FALSE as there is not much information in SRF itself compared to the ensembled version.
 #' @return outcome = list(data frame with performance results, fitted Cox models, fitted SRF)
 #' @examples
-#' df <-simsurv_nonlinear(250)
+#' df <-simulate_nonlinear()
 #' survcompare(df, names(df)[1:4])
 #'
 #' @export
@@ -64,6 +64,7 @@ survcompare <- function(df_train,
     "The data is not a data frame" = is.data.frame(df_train),
     "Predictors are not in the data supplied" = predict_factors %in% colnames(df_train)
   )
+
   if (is.null(randomseed)) {
     randomseed <- round(stats::runif(1) * 1e9, 0) + 1
   }

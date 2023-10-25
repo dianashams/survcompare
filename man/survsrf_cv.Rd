@@ -45,6 +45,6 @@ output list: output$train, test, testaverage, traintaverage, time
 Cross-validates SRF model
 }
 \examples{
-df <- simsurv_nonlinear()
+df <- simulate_nonlinear()
 survsrf_cv(df, names(df)[1:4])
 }

@@ -24,7 +24,7 @@ Internal function to compute survival probability
 by time from a fitted survival random forest
 }
 \examples{
-df <- simsurv_nonlinear()
+df <- simulate_nonlinear()
 #params<- c("age", "hyp", "bmi")
 #s <- survsrf_train(df, params)
 #p <- survsrf_predict(s, df, 5)

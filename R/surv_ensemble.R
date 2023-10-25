@@ -20,7 +20,7 @@
 #' @param useCoxLasso FALSE/TRUE, FALSE by default
 #' @param var_importance_calc FALSE/TRUE, TRUE by default
 #' @examples
-#' df <- simsurv_nonlinear()
+#' df <- simulate_nonlinear()
 #' @return trained object of class survensemble
 #' @export
 survensemble_train <- function(df_train,
@@ -133,6 +133,7 @@ predict.survensemble <- function(object,
 
   if (!inherits(object, "survensemble")) {stop("Not a \"survensemble\" object")}
   if (is.null(newdata)) {stop("The data for predictions is not supplied")}
+  if (!inherits(newdata, "data.frame")) {stop("The data should be a data frame")}
 
   # use model_base with the base Cox model to find cox_predict
   newdata$cox_predict <- survcox_predict(object$model_base,
@@ -159,7 +160,7 @@ predict.survensemble <- function(object,
 #' @param srf_tuning list of mtry, nodedepth, nodesize to tune, default is NULL
 #' @param oob TRUE/FALSE use out-of-bag predictions while tuning instead of cross-validation, TRUE by default
 #' @examples
-#' df <- simsurv_nonlinear()
+#' df <- simulate_nonlinear()
 #' survensemble_cv(df, names(df)[1:4])
 #' @return output list: output$train, test, testaverage, traintaverage, time
 #' @export

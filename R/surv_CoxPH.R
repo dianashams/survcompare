@@ -14,10 +14,16 @@ survcox_train <- function(df_train,
                           fixed_time = NaN,
                           useCoxLasso = FALSE,
                           retrain_cox = FALSE) {
-  stopifnot(expr = {
-    is.data.frame(df_train)
-    predict.factors %in% colnames(df_train)
-  })
+
+  Call <- match.call()
+  indx <- pmatch(c("df_train","predict.factors"), names(Call), nomatch = 0)
+  if (indx[1]*indx[2]==0) {stop("Please supply data and predictors")}
+
+  stopifnot(
+    "The data is not a data frame" = inherits(df_train, "data.frame"),
+    "Predictors are not found" = inherits(predict.factors, "character"),
+    "Predictors are not in the data supplied" = predict_factors %in% colnames(df_train)
+  )
 
   # wrapper for coxph() function returning a trained Cox model
   if (useCoxLasso == FALSE) {
@@ -128,7 +134,7 @@ survcoxlasso_train <- function(df_train,
 #' @param newdata data to compute event probabilities for
 #' @param fixed_time  at which event probabilities are computed
 #' @examples
-#' df<- simsurv_nonlinear()
+#' df<- simulate_nonlinear()
 #' @return returns matrix(nrow = length(newdata), ncol = length(fixed_time))
 survcox_predict <- function(trained_model,
                             newdata,
@@ -245,7 +251,7 @@ survcox_predict <- function(trained_model,
 #' @param inner_cv k in the inner loop of k-fold CV, default 3
 #' @param useCoxLasso TRUE/FALSE, FALSE by default
 #' @examples
-#' df<- simsurv_nonlinear()
+#' df<- simulate_nonlinear()
 #' @return output list: output$train, test, testaverage, traintaverage, time,tuned_cv_models
 #' @export
 survcox_cv <- function(df,
