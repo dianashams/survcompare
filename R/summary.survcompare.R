@@ -1,4 +1,9 @@
-
+#' Summary of survcompare results
+#'
+#' @param object output object of the survcompare function
+#' @param ... additional arguments to be passed
+#' @return object
+#' @export
 summary.survcompare <-
   function(object, ...) {
 
@@ -49,9 +54,15 @@ summary.survcompare <-
         "\nAUCROC:\n  ",coxend,"  ", f(3),"\n  SRF_Ensemble ", f(4), sep=""
       )
     )
+    invisible(object)
   }
 
-
+#' Print survcompare object
+#'
+#' @param x output object of the survcompare function
+#' @param ... additional arguments to be passed
+#' @return x
+#' @export
 print.survcompare<- function(x, ...){
 
   #check
@@ -61,4 +72,5 @@ print.survcompare<- function(x, ...){
 
   cat("\n", "See other items as x$item. Items available:\n")
   cat(names(x), sep=", ")
+  invisible(x)
 }
