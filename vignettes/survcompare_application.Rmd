@@ -1,0 +1,112 @@
+---
+title: "survcompare_application"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{survcompare_application}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r, include = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>"
+)
+```
+
+# Survcompare Application Vignette
+
+## Background information
+
+The package checks whether there are considerable non-linear and interaction terms in the data, and quantifies their contributions to the models' performance. Using repeated nested cross-validation, the package:
+
+  * Validates Cox Proportionate Hazards model, or Cox Lasso depending on the user's input. Uses `survival::coxph()` or `glmnet::glmnet(..., family="cox")` functions.
+
+  * Validates Survival Random Forest ensembled with the baseline Cox model. Uses `randomForestSRC::rfsrc()` function.
+
+  * Performs statistical testing of whether the Survival Random Forest ensemble outperforms the Cox model.
+  
+Performance metrics include:
+
+ * Discrimination measures: Harrell's concordance index, time-dependent AUCROC.
+ 
+ * Calibration measures: calibration slope, calibration alpha.
+ 
+ * Overall fit: Brier score, Scaled Brier score. 
+
+_Why the ensemble and not just SRF?_
+
+The ensemble of Cox and SRF takes the predictions of the Cox model and adds to the list of predictors to train SRF. This way, we make sure that linearity is captured by SRF at least as good as in the Cox model, and hence the marginal outperformance of the ensemble over the Cox model can be fully attributed to the qualities of SRF that Cox does not have, that is, data complexity.
+
+_How do I use the results?_
+
+First, try to run sufficient number of repetitions (repeat_cv), at least 5, ideally 20-50 depending on the data heterogeneity and size.
+There are two possible outcomes: "Survival Random Forest ensemble has outperformed CoxPH by ... in C-index", or "Survival Random Forest ensemble has NOT outperformed CoxPH". 
+  * If there is _no outperformance_, this result can justify the employment of CoxPH model and indicate a negligible advantage of using a more flexible model such as Survival Random Forest.
+  * In the case of _outperformance_, a researcher can 1) decide to go for a more complex model, 2) look for the interaction and non-linear terms that could be added to the CoxPH and re-run the test again, or 3) consider still using the CoxPH model if the difference is not large in the context of the performed task, or not enough to sacrifice model interpretability.
+  
+## Installation
+
+``` {r setup}
+# install.packages("devtools")
+devtools::install_github("dianashams/survcompare")
+```
+
+## Examples using simulated data
+
+The first example takes simulated data that does not contain any complex terms, and Cox-PH is expected to perform as good as Survival Random Forest.
+
+```{r example_simulated_1}
+
+library(survcompare)
+mydata <- simulate_linear()
+
+mypredictors <- names(mydata)[1:4]
+
+compare_models <- survcompare(mydata, mypredictors)
+
+summary(compare_models)
+
+```
+
+We can also check if Cox-Lasso will perform better: 
+
+```{r example_simulated_1}
+
+library(survcompare)
+mydata <- simulate_linear()
+
+mypredictors <- names(mydata)[1:4]
+
+compare_models <- survcompare(mydata, mypredictors, useCoxLasso = TRUE)
+
+summary(compare_models)
+
+```
+
+compare_models <- survcompare(mydata, mypredictors)
+
+
+The second example takes simulated data that contains non-linear and cross-terms, and hence an outperformance of the tree model is expected. We will increase the default number of cross-validation repetitions to get a robust estimate.
+
+```{r example_simulated_2}
+
+library(survcompare)
+
+mydata2 <- simulate_crossterms()
+
+mypredictors2 <- names(mydata)[1:4]
+
+compare_models2 <- survcompare(mydata2, mypredictors2, repeat_cv = 5)
+
+summary(compare_models2)
+
+```
+
+Detailed results can be extracted from the output model. For example, test performance for each data split (across all cross-validations and repetitions) 
+
+```{r}
+compare_models2$test
+```
+
+
