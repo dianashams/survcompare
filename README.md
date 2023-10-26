@@ -3,6 +3,8 @@
 
 #### The package aims to help researchers to make an informed decision on whether the benefit of using a flexible but less transparent machine learning method is high enough, or the classical (or regularized) Cox model should be preferred.
 
+![image](survcompare_cartoon.png)
+
 ### Method: 
 The package checks whether there are considerable non-linear and interaction terms in the data, and quantifies their contributions to the models' performance. Using repeated nested cross-validation, the package:
   * Validates Cox Proportionate Hazards model, or Cox Lasso depending on the user's input. Uses 'survival::coxph()' or 'glmnet::glmnet(..., family="cox")' functions.
