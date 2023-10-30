@@ -16,15 +16,15 @@ knitr::opts_chunk$set(
 
 ## Survcompare package: background information.
 
-The package checks whether there are considerable non-linear and interaction terms in the data, and quantifies their contributions to the models' performance. Using repeated nested cross-validation (that is, randomly but smartly slicing the data into the training and testing parts), the package:
+The package checks whether there are considerable non-linear and interaction terms in the data, and quantifies their contributions to the models' performance. Using repeated nested cross-validation (that is, randomly splitting the data into the training and testing parts and evaluating test predictions), the package:
 
   * Validates Cox Proportionate Hazards model, or Cox Lasso depending on the user's input. This step employs `survival::coxph()` or `glmnet::glmnet(..., family="cox")` functions.
 
-  * Validates Survival Random Forest ensembled with the baseline Cox model. Here, `randomForestSRC::rfsrc()` is used.
+  * Validates Survival Random Forest ensembled with the baseline Cox model. To fit the ensemble, Cox-PH's out-of-sample predictions are added to the list of orignial predictors, which are then used to fit SRF, using `randomForestSRC::rfsrc()`.
 
   * Performs statistical testing of whether the Survival Random Forest ensemble outperforms the Cox model.
   
-During this procedure, an expected predictive performance is evaluated by computing:
+Predictive performance is evaluated by averaging different measures across all train-test splits. The following measures are computed:
 
  * Discrimination measures: Harrell's concordance index, time-dependent AUCROC.
  
@@ -34,26 +34,28 @@ During this procedure, an expected predictive performance is evaluated by comput
 
 Performance metrics' description and definitions can be found, for example, here: 
 
-_Steyerberg, E. W., & Vergouwe, Y. (2014). Towards better clinical prediction models: seven steps for development and an ABCD for validation. European heart journal, 35(29), 1925-1931._
+Steyerberg, E. W., & Vergouwe, Y. (2014). Towards better clinical prediction models: seven steps for development and an ABCD for validation. _European heart journal_, 35(29), 1925-1931.
+
+https://academic.oup.com/eurheartj/article/35/29/1925/2293109
+
+### How do I use the results?
+
+First, try to run sufficient number of repetitions (repeat_cv), at least 5, ideally 20-50 depending on the data heterogeneity and size. There are two possible outcomes: 1) "Survival Random Forest ensemble has NOT outperformed CoxPH", or 2) "Survival Random Forest ensemble has outperformed CoxPH by ... in C-index". 
+
+  1) If there is *no outperformance*, the test can justify the employment of CoxPH model and indicate a negligible advantage of using a more flexible model such as Survival Random Forest.
+  
+  2) In the case of the ensemble's *outperformance* of the Cox model, a researcher can:
+  
+    - Employ a more complex or flexible model.
+  
+    - Look for the interaction and non-linear terms that could be added to the CoxPH and re-run the test. 
+  
+    - Consider using the CoxPH model despite its underperformance if the difference is not large enough to sacrifice model's interpretability, or negligible in the context of a performed task.
 
 ### Why the ensemble and not just SRF?
 
 The ensemble of Cox and SRF takes the predictions of the Cox model and adds to the list of predictors to train SRF. This way, we make sure that linearity is captured by SRF at least as good as in the Cox model, and hence the marginal outperformance of the ensemble over the Cox model can be fully attributed to the qualities of SRF that Cox does not have, that is, data complexity.
 
-### How do I use the results?
-
-First, try to run sufficient number of repetitions (repeat_cv), at least 5, ideally 20-50 depending on the data heterogeneity and size. There are two possible outcomes: 1) "Survival Random Forest ensemble has outperformed CoxPH by ... in C-index", or 2) "Survival Random Forest ensemble has NOT outperformed CoxPH". 
-
-  * If there is _no outperformance_, the test can justify the employment of CoxPH model and indicate a negligible advantage of using a more flexible model such as Survival Random Forest.
-  
-  * In the case of _outperformance_, a researcher can:
-  
-  1. Employ a more complex or flexible model.
-  
-  2. Look for the interaction and non-linear terms that could be added to the CoxPH and re-run the test. 
-  
-  3. Consider using the CoxPH model despite its underperformance if the difference is not large enough to sacrifice model's interpretability, or negligible in the context of a performed task.
-  
 ## Package installation.
 
 ``` {r setup}
@@ -79,7 +81,6 @@ compare_models <- survcompare(mydata, mypredictors)
 summary(compare_models)
 
 ```
-
 
 ### Example 2. Non-linear data with interaction terms.
 
@@ -109,8 +110,7 @@ compare_models2$test
 
 Now, lets apply the package to a real life data. We will use GBSG data from the survival package (https://rdrr.io/cran/survival/man/gbsg.html).
 
-
-```{r}
+```{r example_3_gbsg}
 library(survival)
 mygbsg <- gbsg
 mygbsg$time<- gbsg$rfstime/365
@@ -124,13 +124,9 @@ survcompare(mygbsg, myfactors)
 
 ```
 
-Here, we got the results that _"Survival Random Forest ensemble has outperformed CoxPH by 0.0134 in C-index.
-The difference is statistically significant with the p-value 0.00074325***. The supplied data may contain non-linear or cross-term dependencies, 
-better captured by the Survival Random Forest."_
+We got the following results (depending on random seed, it may slightly differ): 
 
-C-score: 
-  CoxPH      0.6762(95CI=0.6327-0.7151;SD=0.0272)
-  SRF_Ensemble 0.6895(95CI=0.648-0.7293;SD=0.0254)
+"Survival Random Forest ensemble has outperformed CoxPH by 0.0134 in C-index. The difference is statistically significant with the p-value 0.00074325***. The supplied data may contain non-linear or cross-term dependencies, better captured by the Survival Random Forest. C-score: CoxPH 0.6762(95CI=0.6327-0.7151;SD=0.0272), SRF_Ensemble 0.6895(95CI=0.648-0.7293;SD=0.0254)."
   
-This is the example that the outperformance is statistically significant and stable over different random splits, but not large in absolute terms. Therefore, the ultimate choice of a predictive model may be either, depending on how large the 0.01 in C-index is perceived by the model stakeholders.
+This illustrates situation when outperformance of the non-linear model is statistically significant, but not large in absolute terms. The ultimate model choice will depend on how critical the 0.01 improvement in C-index is perceived by the model stakeholders.
 
