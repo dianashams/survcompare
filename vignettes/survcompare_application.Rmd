@@ -1,5 +1,5 @@
 ---
-title: "survcompare_application"
+title: "Survcompare examples"
 output: rmarkdown::html_vignette
 vignette: >
   %\VignetteIndexEntry{survcompare_application}
@@ -14,19 +14,17 @@ knitr::opts_chunk$set(
 )
 ```
 
-# Survcompare Application Vignette
+## Survcompare package: background information.
 
-## Background information
+The package checks whether there are considerable non-linear and interaction terms in the data, and quantifies their contributions to the models' performance. Using repeated nested cross-validation (that is, randomly but smartly slicing the data into the training and testing parts), the package:
 
-The package checks whether there are considerable non-linear and interaction terms in the data, and quantifies their contributions to the models' performance. Using repeated nested cross-validation, the package:
+  * Validates Cox Proportionate Hazards model, or Cox Lasso depending on the user's input. This step employs `survival::coxph()` or `glmnet::glmnet(..., family="cox")` functions.
 
-  * Validates Cox Proportionate Hazards model, or Cox Lasso depending on the user's input. Uses `survival::coxph()` or `glmnet::glmnet(..., family="cox")` functions.
-
-  * Validates Survival Random Forest ensembled with the baseline Cox model. Uses `randomForestSRC::rfsrc()` function.
+  * Validates Survival Random Forest ensembled with the baseline Cox model. Here, `randomForestSRC::rfsrc()` is used.
 
   * Performs statistical testing of whether the Survival Random Forest ensemble outperforms the Cox model.
   
-Performance metrics include:
+During this procedure, an expected predictive performance is evaluated by computing:
 
  * Discrimination measures: Harrell's concordance index, time-dependent AUCROC.
  
@@ -34,18 +32,29 @@ Performance metrics include:
  
  * Overall fit: Brier score, Scaled Brier score. 
 
-_Why the ensemble and not just SRF?_
+Performance metrics' description and definitions can be found, for example, here: 
+
+_Steyerberg, E. W., & Vergouwe, Y. (2014). Towards better clinical prediction models: seven steps for development and an ABCD for validation. European heart journal, 35(29), 1925-1931._
+
+### Why the ensemble and not just SRF?
 
 The ensemble of Cox and SRF takes the predictions of the Cox model and adds to the list of predictors to train SRF. This way, we make sure that linearity is captured by SRF at least as good as in the Cox model, and hence the marginal outperformance of the ensemble over the Cox model can be fully attributed to the qualities of SRF that Cox does not have, that is, data complexity.
 
-_How do I use the results?_
+### How do I use the results?
 
-First, try to run sufficient number of repetitions (repeat_cv), at least 5, ideally 20-50 depending on the data heterogeneity and size.
-There are two possible outcomes: "Survival Random Forest ensemble has outperformed CoxPH by ... in C-index", or "Survival Random Forest ensemble has NOT outperformed CoxPH". 
-  * If there is _no outperformance_, this result can justify the employment of CoxPH model and indicate a negligible advantage of using a more flexible model such as Survival Random Forest.
-  * In the case of _outperformance_, a researcher can 1) decide to go for a more complex model, 2) look for the interaction and non-linear terms that could be added to the CoxPH and re-run the test again, or 3) consider still using the CoxPH model if the difference is not large in the context of the performed task, or not enough to sacrifice model interpretability.
+First, try to run sufficient number of repetitions (repeat_cv), at least 5, ideally 20-50 depending on the data heterogeneity and size. There are two possible outcomes: 1) "Survival Random Forest ensemble has outperformed CoxPH by ... in C-index", or 2) "Survival Random Forest ensemble has NOT outperformed CoxPH". 
+
+  * If there is _no outperformance_, the test can justify the employment of CoxPH model and indicate a negligible advantage of using a more flexible model such as Survival Random Forest.
   
-## Installation
+  * In the case of _outperformance_, a researcher can:
+  
+  1. Employ a more complex or flexible model.
+  
+  2. Look for the interaction and non-linear terms that could be added to the CoxPH and re-run the test. 
+  
+  3. Consider using the CoxPH model despite its underperformance if the difference is not large enough to sacrifice model's interpretability, or negligible in the context of a performed task.
+  
+## Package installation.
 
 ``` {r setup}
 # install.packages("devtools")
@@ -53,6 +62,8 @@ devtools::install_github("dianashams/survcompare")
 ```
 
 ## Examples using simulated data
+
+### Example 1. Linear data.
 
 The first example takes simulated data that does not contain any complex terms, and Cox-PH is expected to perform as good as Survival Random Forest.
 
@@ -69,22 +80,10 @@ summary(compare_models)
 
 ```
 
-We can also check if Cox-Lasso will perform better: 
 
-```{r example_simulated_1Lasso}
+### Example 2. Non-linear data with interaction terms.
 
-library(survcompare)
-mydata <- simulate_linear()
-
-mypredictors <- names(mydata)[1:4]
-
-compare_models_lasso <- survcompare(mydata, mypredictors, useCoxLasso = TRUE)
-
-summary(compare_models_lasso)
-
-```
-
-The second example takes simulated data that contains non-linear and cross-terms, and hence an outperformance of the tree model is expected. We will increase the default number of cross-validation repetitions to get a robust estimate.
+The second example takes simulated data that contains non-linear and cross-terms, and an outperformance of the tree model is expected. We will increase the default number of cross-validation repetitions to get a robust estimate, and choose CoxLasso as our baseline linear model.
 
 ```{r example_simulated_2}
 
@@ -94,16 +93,44 @@ mydata2 <- simulate_crossterms()
 
 mypredictors2 <- names(mydata)[1:4]
 
-compare_models2 <- survcompare(mydata2, mypredictors2, repeat_cv = 5)
+compare_models2 <- survcompare(mydata2, mypredictors2, outer_cv = 3, inner_cv = 2, repeat_cv = 10, useCoxLasso = TRUE)
 
 summary(compare_models2)
 
 ```
 
-Detailed results can be extracted from the output model. For example, test performance for each data split (across all cross-validations and repetitions) 
+Detailed results can be extracted from the output model. For example, test performance for each data split (across all cross-validations and repetitions). 
 
 ```{r}
 compare_models2$test
 ```
 
+### Example 3. Applying survcompare to GBSG data.
+
+Now, lets apply the package to a real life data. We will use GBSG data from the survival package (https://rdrr.io/cran/survival/man/gbsg.html).
+
+
+```{r}
+library(survival)
+mygbsg <- gbsg
+mygbsg$time<- gbsg$rfstime/365
+mygbsg$event<- gbsg$status
+myfactors <- c("age", "meno", "size", "grade", "nodes", "pgr", "er", "hormon")
+mygbsg<- mygbsg[c("time", "event", myfactors)]
+
+sum(is.na(mygbsg[myfactors]))
+
+survcompare(mygbsg, myfactors)
+
+```
+
+Here, we got the results that _"Survival Random Forest ensemble has outperformed CoxPH by 0.0134 in C-index.
+The difference is statistically significant with the p-value 0.00074325***. The supplied data may contain non-linear or cross-term dependencies, 
+better captured by the Survival Random Forest."_
+
+C-score: 
+  CoxPH      0.6762(95CI=0.6327-0.7151;SD=0.0272)
+  SRF_Ensemble 0.6895(95CI=0.648-0.7293;SD=0.0254)
+  
+This is the example that the outperformance is statistically significant and stable over different random splits, but not large in absolute terms. Therefore, the ultimate choice of a predictive model may be either, depending on how large the 0.01 in C-index is perceived by the model stakeholders.
 
