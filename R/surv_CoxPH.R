@@ -22,7 +22,7 @@ survcox_train <- function(df_train,
   stopifnot(
     "The data is not a data frame" = inherits(df_train, "data.frame"),
     "Predictors are not found" = inherits(predict.factors, "character"),
-    "Predictors are not in the data supplied" = predict_factors %in% colnames(df_train)
+    "Predictors are not in the data supplied" = predict.factors %in% colnames(df_train)
   )
 
   # wrapper for coxph() function returning a trained Cox model
