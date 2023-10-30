@@ -71,21 +71,18 @@ summary(compare_models)
 
 We can also check if Cox-Lasso will perform better: 
 
-```{r example_simulated_1}
+```{r example_simulated_1Lasso}
 
 library(survcompare)
 mydata <- simulate_linear()
 
 mypredictors <- names(mydata)[1:4]
 
-compare_models <- survcompare(mydata, mypredictors, useCoxLasso = TRUE)
+compare_models_lasso <- survcompare(mydata, mypredictors, useCoxLasso = TRUE)
 
-summary(compare_models)
+summary(compare_models_lasso)
 
 ```
-
-compare_models <- survcompare(mydata, mypredictors)
-
 
 The second example takes simulated data that contains non-linear and cross-terms, and hence an outperformance of the tree model is expected. We will increase the default number of cross-validation repetitions to get a robust estimate.
 
