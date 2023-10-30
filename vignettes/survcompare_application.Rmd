@@ -103,7 +103,16 @@ summary(compare_models2)
 Detailed results can be extracted from the output model. For example, test performance for each data split (across all cross-validations and repetitions). 
 
 ```{r}
-compare_models2$test
+# Test performance of the ensemble:
+print(round(compare_models2$test$SRF_ensemble,4))
+
+# Mean test performance of the Cox-PH and SRF ensemble:
+print(round(compare_models2$results_mean,4))
+
+# Main stats 
+round(compare_models2$main_stats,4)
+
+
 ```
 
 ### Example 3. Applying survcompare to GBSG data.
@@ -128,5 +137,5 @@ We got the following results (depending on random seed, it may slightly differ):
 
 "Survival Random Forest ensemble has outperformed CoxPH by 0.0134 in C-index. The difference is statistically significant with the p-value 0.00074325***. The supplied data may contain non-linear or cross-term dependencies, better captured by the Survival Random Forest. C-score: CoxPH 0.6762(95CI=0.6327-0.7151;SD=0.0272), SRF_Ensemble 0.6895(95CI=0.648-0.7293;SD=0.0254)."
   
-This illustrates situation when outperformance of the non-linear model is statistically significant, but not large in absolute terms. The ultimate model choice will depend on how critical the 0.01 improvement in C-index is perceived by the model stakeholders.
+This example illustrates a situation when outperformance of the non-linear model is statistically significant, but not large in absolute terms. The ultimate model choice will depend on how critical such an improvement is for the model stakeholders.
 
