@@ -1,0 +1,68 @@
+---
+title: "Cross_Validation_using_survcompare"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{Cross_Validation_using_survcompare}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r, include = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>"
+)
+```
+
+## `survcompare` background
+
+The package checks whether there are considerable non-linear and interaction terms in the data, and quantifies their contributions to the models' performance. Using repeated nested cross-validation (that is, a system of random data splits into the training and testing sets to evaluate prediction accuracy), the package:
+
+-   Validates Cox Proportionate Hazards model, or Cox Lasso depending on the user's input. This step employs `survival::coxph()` or `glmnet::glmnet(..., family="cox")` functions.
+
+-   Validates Survival Random Forest ensembled with the baseline Cox model. To fit the ensemble, CoxPH's out-of-sample predictions are added to the list of orignial predictors, which are then used to fit SRF, using `randomForestSRC::rfsrc()`.
+
+-   Performs statistical testing of whether the Survival Random Forest ensemble outperforms the Cox model.
+
+-   It does NOT handle missing data at the moment.
+
+Predictive performance is evaluated by averaging different measures across all train-test splits. The following measures are computed:
+
+-   Discrimination measures: Harrell's concordance index, time-dependent AUCROC.
+
+-   Calibration measures: calibration slope, calibration alpha.
+
+-   Overall fit: Brier score, Scaled Brier score.
+
+Performance metrics' description and definitions can be found, for example, here: <https://academic.oup.com/eurheartj/article/35/29/1925/2293109>,
+
+Steyerberg, E. W., & Vergouwe, Y. (2014). Towards better clinical prediction models: seven steps for development and an ABCD for validation. *European heart journal, 35(29)*, 1925-1931.
+
+## Other use cases of `survcompare`
+
+### 1. Fitting, cross-validation and predicting survival probabilities using survcompare functionality for CoxPH and CoxLasso 
+
+
+```{r setup}
+library(survcompare)
+library(survival)
+mygbsg <- gbsg
+mygbsg$time<- gbsg$rfstime/365
+mygbsg$event<- gbsg$status
+myfactors <- c("age", "meno", "size", "grade", "nodes", "pgr", "er", "hormon")
+mygbsg<- mygbsg[c("time", "event", myfactors)]
+
+sum(is.na(mygbsg[myfactors])) #check if any missing data 
+
+survcompare(mygbsg, myfactors)
+
+
+
+```
+
+### 2. Fitting, cross-validation and predicting survival probabilities using survcompare functionality for Survival Random Forest. 
+
+```{r setup}
+library(survcompare)
+```
+

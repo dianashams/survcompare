@@ -1,5 +1,5 @@
 ---
-title: "Survcompare examples"
+title: "Survcompare application"
 output: rmarkdown::html_vignette
 vignette: >
   %\VignetteIndexEntry{survcompare_application}
@@ -14,7 +14,7 @@ knitr::opts_chunk$set(
 )
 ```
 
-## Survcompare package background
+## `survcompare` background
 
 The package checks whether there are considerable non-linear and interaction terms in the data, and quantifies their contributions to the models' performance. Using repeated nested cross-validation (that is, a system of random data splits into the training and testing sets to evaluate prediction accuracy), the package:
 
@@ -23,6 +23,8 @@ The package checks whether there are considerable non-linear and interaction ter
 -   Validates Survival Random Forest ensembled with the baseline Cox model. To fit the ensemble, CoxPH's out-of-sample predictions are added to the list of orignial predictors, which are then used to fit SRF, using `randomForestSRC::rfsrc()`.
 
 -   Performs statistical testing of whether the Survival Random Forest ensemble outperforms the Cox model.
+
+-   It does NOT handle missing data at the moment.
 
 Predictive performance is evaluated by averaging different measures across all train-test splits. The following measures are computed:
 
@@ -95,7 +97,15 @@ mydata2 <- simulate_crossterms()
 
 mypredictors2 <- names(mydata)[1:4]
 
-compare_models2 <- survcompare(mydata2, mypredictors2, outer_cv = 3, inner_cv = 2, repeat_cv = 10, useCoxLasso = TRUE)
+compare_models2 <-
+  survcompare(
+    mydata2,
+    mypredictors2,
+    outer_cv = 3,
+    inner_cv = 2,
+    repeat_cv = 10,
+    useCoxLasso = TRUE
+  )
 
 summary(compare_models2)
 ```
@@ -126,7 +136,7 @@ mygbsg$event<- gbsg$status
 myfactors <- c("age", "meno", "size", "grade", "nodes", "pgr", "er", "hormon")
 mygbsg<- mygbsg[c("time", "event", myfactors)]
 
-sum(is.na(mygbsg[myfactors]))
+sum(is.na(mygbsg[myfactors])) #check if any missing data 
 
 survcompare(mygbsg, myfactors)
 

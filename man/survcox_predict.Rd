@@ -4,7 +4,7 @@
 \alias{survcox_predict}
 \title{Computes event probabilities from a trained cox model}
 \usage{
-survcox_predict(trained_model, newdata, fixed_time)
+survcox_predict(trained_model, newdata, fixed_time, interpolation = "constant")
 }
 \arguments{
 \item{trained_model}{pre-trained cox model of coxph class}
@@ -12,6 +12,8 @@ survcox_predict(trained_model, newdata, fixed_time)
 \item{newdata}{data to compute event probabilities for}
 
 \item{fixed_time}{at which event probabilities are computed}
+
+\item{interpolation}{"constant" by default, can also be "linear", for between times interpolation for hazard rates}
 }
 \value{
 returns matrix(nrow = length(newdata), ncol = length(fixed_time))
