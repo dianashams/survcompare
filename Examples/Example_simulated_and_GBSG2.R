@@ -33,14 +33,14 @@
 
 # a) Application to the simulated data with simple linear dependencies
 
-# simulate data using simsurv_linear()
-mydata_1 <- simsurv_linear(200)
+# simulate data 
+mydata_1 <- simulate_linear(500)
 predictors <- names(mydata_1)[1:4]
-compare_models_1 <- survcompare(mydata_1, predictors, predict_t = 10,
+compare_models_1 <- survcompare(mydata_1, predictors, 10,
                               outer_cv = 3, inner_cv = 3, repeat_cv = 1, 
                               useCoxLasso = TRUE)
 
-summary.survcompare(compare_models_1, 1)
+summary(compare_models_1)
 # Internally validated test performance of CoxLasso   and Survival Random Forest ensemble:
 #                 T C_score  AUCROC     BS BS_scaled Calib_slope
 # CoxLasso      10  0.7684  0.7562 0.1133    0.3045      1.1366
@@ -74,9 +74,9 @@ compare_models_1$main_stats
 # b) Application to the simulated data with complex dependencies
 
 # simulate data using simsurv_crossterms()
-mydata_2 <- simsurv_crossterms(500)
+mydata_2 <- simulate_crossterms(500)
 mypredictors <- names(mydata_2)[1:4]
-compare_models_2 <- survcompare(mydata_2, mypredictors, predict_t = 10,
+compare_models_2 <- survcompare(mydata_2, mypredictors, 10,
                               outer_cv = 3, inner_cv = 3, repeat_cv = 5, 
                               useCoxLasso = FALSE)
 
