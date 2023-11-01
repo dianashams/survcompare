@@ -29,18 +29,18 @@ srf_survival_prob_for_time <-
     } else {
       predicted_matrix <- predict(rfmodel, newdata = df_to_predict)
     }
-
+    
     j_for_fixedtime <-
       match(1,
             round(predicted_matrix$time.interest, 1) == fixed_time,
             nomatch = -100)
-
+    
     if (j_for_fixedtime == -100) {
       # print("no fixed time match was found, using closest")
       j_for_fixedtime <-
         which.min(abs(predicted_matrix$time.interest - fixed_time))
     }
-
+    
     if (oob) {
       y_predicted <- predicted_matrix$survival.oob[, j_for_fixedtime]
     } else {
@@ -65,25 +65,27 @@ srf_survival_prob_for_time <-
 #' @param oob TRUE/FALSE use out-of-bag predictions while tuning instead of cross-validation
 #' @return  output=list(modelstats, bestbrier, bestauc, bestcindex)
 survsrf_tune <- function(df_tune,
-                     predict.factors,
-                     cv_number = 3,
-                     fixed_time = NaN,
-                     randomseed = NULL,
-                     mtry = c(3, 4, 5),
-                     nodesize = c(10, 20, 50),
-                     nodedepth = c(100),
-                     verbose = FALSE,
-                     oob = TRUE) {
+                         predict.factors,
+                         cv_number = 3,
+                         fixed_time = NaN,
+                         randomseed = NULL,
+                         mtry = c(3, 4, 5),
+                         nodesize = c(10, 20, 50),
+                         nodedepth = c(100),
+                         verbose = FALSE,
+                         oob = TRUE) {
   # function to tune survival random forest by mtry, nodesize and nodedepth grid
   # if oob = TRUE, there is no CV ! as OOB does the job already
-
+  
   # take out the factors which are not in df_tune or the ones which take 1 value
   predict.factors <- eligible_params(predict.factors, df_tune)
-
+  
   # set seed
-  if (is.null(randomseed)) {randomseed <- round(stats::runif(1)*1e9,0)}
+  if (is.null(randomseed)) {
+    randomseed <- round(stats::runif(1) * 1e9, 0)
+  }
   set.seed(randomseed)
-
+  
   nodesize <- nodesize[nodesize <= dim(df_tune)[1] / 6]
   # limit mtry with the number of predictors and nodesize by 1/6 of sample size
   if (sum(nodesize > dim(df_tune)[1] / 6) > 0) {
@@ -91,28 +93,26 @@ survsrf_tune <- function(df_tune,
       print("Warning - some min nodesize is > 1/6 of the sample size (1/2 of CV fold)")
     }
   }
-
+  
   # if all numbers higher than number of factors, only check this factor
   if (sum(mtry > length(predict.factors)) == length(mtry)) {
     mtry <- c(length(predict.factors))
   }
   mtry <- mtry[mtry <= length(predict.factors)]
-
+  
   # grid of values to tune
-  grid_of_values <- expand.grid(
-    "mtry" = mtry,
-    "nodesize" = nodesize,
-    "nodedepth" = nodedepth
-  )
+  grid_of_values <- expand.grid("mtry" = mtry,
+                                "nodesize" = nodesize,
+                                "nodedepth" = nodedepth)
   if (verbose) {
     print(paste("Grid size is", dim(grid_of_values)[1]))
   }
-
+  
   if (dim(grid_of_values)[1] == 0) {
     output <- list()
     return(output)
   }
-
+  
   # defining output for fixed_time
   if (sum(is.nan(fixed_time) > 0) |
       length(fixed_time) > 1) {
@@ -120,15 +120,15 @@ survsrf_tune <- function(df_tune,
     fixed_time <-
       round(quantile(df_tune[df_tune$event == 1, "time"], 0.9), 1)
   }
-
+  
   df_tune$time_f <-
     ifelse(df_tune$time <= fixed_time, df_tune$time, fixed_time)
   df_tune$event_f <-
     ifelse(df_tune$event == 1 & df_tune$time <= fixed_time, 1, 0)
-
+  
   # going through combinations
   modelstats <- list()
-
+  
   if (oob == FALSE) {
     # we do CV instead of using OOB predictions to tune SRF
     set.seed(randomseed)
@@ -136,18 +136,18 @@ survsrf_tune <- function(df_tune,
       caret::createFolds(df_tune$event, k = cv_number, list = FALSE)
     for (i in 1:dim(grid_of_values)[1]) {
       if (verbose) {
-        print(grid_of_values[i, ])
+        print(grid_of_values[i,])
       }
       mtry_i <- grid_of_values[i, "mtry"]
       nodesize_i <- grid_of_values[i, "nodesize"]
       nodedepth_i <- grid_of_values[i, "nodedepth"]
-
+      
       # train grid combination for each cv_iteration
       modelstats_cv <- list()
       for (cv_iteration in 1:cv_number) {
         print(paste("SRF tuning CV step", cv_iteration, "/out of", cv_number))
-        df_train_cv <- df_tune[cv_folds != cv_iteration, ]
-        df_test_cv <- df_tune[cv_folds == cv_iteration, ]
+        df_train_cv <- df_tune[cv_folds != cv_iteration,]
+        df_test_cv <- df_tune[cv_folds == cv_iteration,]
         # train SRF
         rf.dt <- randomForestSRC::rfsrc(
           as.formula(paste(
@@ -173,11 +173,10 @@ survsrf_tune <- function(df_tune,
           1 - srf_survival_prob_for_time(rf.dt, df_test_cv, fixed_time, oob = FALSE)
         validation_stats <-
           surv_validate(y_predicted,
-                              fixed_time,
-                              df_train_cv,
-                              df_test_cv,
-                              weighted = TRUE
-          )
+                        fixed_time,
+                        df_train_cv,
+                        df_test_cv,
+                        weighted = TRUE)
         modelstats_cv[[cv_iteration]] <- c(
           "mtry" = mtry_i,
           "nodesize" = nodesize_i,
@@ -191,7 +190,7 @@ survsrf_tune <- function(df_tune,
           "Calib_slope" = validation_stats$Calib_slope
         )
       } # end k-fold CV for one grid combination
-
+      
       # averaging over cv-steps, firs transform to data.frame to use mean()
       modelstats_cv_df <- data.frame(t(modelstats_cv[[1]]))
       for (j in 2:cv_number) {
@@ -221,12 +220,12 @@ survsrf_tune <- function(df_tune,
     }
     for (i in 1:dim(grid_of_values)[1]) {
       if (verbose) {
-        print(grid_of_values[i, ])
+        print(grid_of_values[i,])
       }
       mtry_i <- grid_of_values[i, "mtry"]
       nodesize_i <- grid_of_values[i, "nodesize"]
       nodedepth_i <- grid_of_values[i, "nodedepth"]
-
+      
       rf.dt <- randomForestSRC::rfsrc(
         as.formula(paste(
           "Surv(time, event) ~",
@@ -246,7 +245,7 @@ survsrf_tune <- function(df_tune,
         # to speed up by switching off VIMP calculations
         seed = randomseed
       )
-
+      
       # compute predicted event probability for all people
       y_predicted <-
         1 - srf_survival_prob_for_time(rf.dt, df_tune, fixed_time, oob = TRUE)
@@ -266,7 +265,7 @@ survsrf_tune <- function(df_tune,
       )
     } # end for (i in grid)
   } # end else
-
+  
   # reshaping into data frame
   df_modelstats <- data.frame("V1" = modelstats[[1]])
   # check if there was more than 1 grid search
@@ -276,14 +275,14 @@ survsrf_tune <- function(df_tune,
     }
   }
   df_modelstats <- data.frame(t(df_modelstats))
-
+  
   if (verbose == TRUE) {
-
-    print(paste("Concordance index (C-score) varies from", round(min(
-      df_modelstats$C_score
-    ), 4), "to", round(max(
-      df_modelstats$C_score
-    ), 4)))
+    print(paste(
+      "Concordance index (C-score) varies from",
+      round(min(df_modelstats$C_score), 4),
+      "to",
+      round(max(df_modelstats$C_score), 4)
+    ))
     print(paste(
       "Brier score varies from",
       round(min(df_modelstats$BS), 4),
@@ -291,22 +290,18 @@ survsrf_tune <- function(df_tune,
       round(max(df_modelstats$BS), 4)
     ))
     print("Combination with highest C_score")
-    print(df_modelstats[
-      which.max(df_modelstats$C_score),
-      c("mtry", "nodesize", "nodedepth")
-    ])
+    print(df_modelstats[which.max(df_modelstats$C_score),
+                        c("mtry", "nodesize", "nodedepth")])
     print("Combination with lowest Brier Score")
-    print(df_modelstats[
-      which.min(df_modelstats$BS),
-      c("mtry", "nodesize", "nodedepth")
-    ])
+    print(df_modelstats[which.min(df_modelstats$BS),
+                        c("mtry", "nodesize", "nodedepth")])
   }
   output <- list()
   output$modelstats <- df_modelstats
-  output$bestbrier <- df_modelstats[which.min(df_modelstats$BS), ]
-  output$bestauc <- df_modelstats[which.max(df_modelstats$AUCROC), ]
+  output$bestbrier <- df_modelstats[which.min(df_modelstats$BS),]
+  output$bestauc <- df_modelstats[which.max(df_modelstats$AUCROC),]
   output$bestcindex <-
-    df_modelstats[which.max(df_modelstats$C_score), ]
+    df_modelstats[which.max(df_modelstats$C_score),]
   return(output)
 }
 
@@ -329,48 +324,50 @@ survsrf_tune <- function(df_tune,
 #' @return output = list(beststats, allstats, model)
 #' @export
 survsrf_train <- function(df_train,
-                         predict.factors,
-                         fixed_time = NaN,
-                         inner_cv = 3,
-                         randomseed = NULL,
-                         srf_tuning = NULL,
-                         fast_version = TRUE,
-                         oob = TRUE,
-                         verbose = FALSE) {
+                          predict.factors,
+                          fixed_time = NaN,
+                          inner_cv = 3,
+                          randomseed = NULL,
+                          srf_tuning = NULL,
+                          fast_version = TRUE,
+                          oob = TRUE,
+                          verbose = FALSE) {
   # take out predictors not in df_train or constant
   predict.factors <- eligible_params(predict.factors, df_train)
-
+  
   if (is.null(randomseed)) {
     randomseed <- round(stats::runif(1) * 1e9, 0)
   }
-
+  
   stopifnot(expr = {
     is.data.frame(df_train)
     predict.factors %in% colnames(df_train)
   })
-
+  
   # setting fixed_time if not given
   if (sum(is.nan(fixed_time)) > 0 | (length(fixed_time) > 1)) {
     fixed_time <-
       round(quantile(df_train[df_train$event == 1, "time"], 0.9), 1)
   }
-
+  
   # for now only for best AUC but can be amended for brier score or cindex
   # defining the tuning grid for SRF
   p <- length(predict.factors) # number of predictors
   n <- dim(df_train)[1]
   mtry_default <- round(sqrt(p), 0)
-
+  
   #set default mtry, nodesize and nodedepth
   mtry <-
-    ifelse(p <= 10, c(2, 3, 4, 5), 
-           ifelse(p <= 25, c(3, 5, 7, 10, 15), 
-                  round(c(p/10, p/5, p/3, p/2, mtry_default), 0)))
-  mtry <- mtry[mtry<=length(predict.factors)]
+    ifelse(p <= 10, c(2, 3, 4, 5),
+           ifelse(p <= 25, c(3, 5, 7, 10, 15),
+                  round(c(
+                    p / 10, p / 5, p / 3, p / 2, mtry_default
+                  ), 0)))
+  mtry <- mtry[mtry <= length(predict.factors)]
   nodesize <-
     seq(min(15, round(n / 6 - 1, 0)), max(min(n / 10, 50), 30), 5)
   nodedepth <- c(5, 25)
-
+  
   # update them if given in srf_tuning
   if (is.list(srf_tuning)) {
     if (!is.null(srf_tuning$nodesize)) {
@@ -390,7 +387,7 @@ survsrf_train <- function(df_train,
     print(nodesize)
     print(nodedepth)
   }
-
+  
   if (fast_version == TRUE) {
     # fast version:
     # first, takes recommended mtry and optimizes by depth and node size,
@@ -427,7 +424,7 @@ survsrf_train <- function(df_train,
     # slower version:
     # goes through all the grid combinations mtry, nodesize, nodedepth
     tuneall <- survsrf_tune(
-      df_tune= df_train,
+      df_tune = df_train,
       cv_number = inner_cv,
       eligible_params(predict.factors, df_train),
       fixed_time = fixed_time,
@@ -443,7 +440,7 @@ survsrf_train <- function(df_train,
     best_combo_stat <- tuneall$bestauc
     modelstatsall <- tuneall$modelstats
   }
-
+  
   final.rfs <- randomForestSRC::rfsrc(
     as.formula(paste(
       "Surv(time, event) ~",
@@ -467,8 +464,10 @@ survsrf_train <- function(df_train,
   output$beststats <- best_combo_stat
   output$allstats <- modelstatsall
   output$model <- final.rfs
-  output$tuning <- 
-    list("mtry" = mtry,"nodesize" = nodesize,"nodedepth" = nodedepth)
+  output$tuning <-
+    list("mtry" = mtry,
+         "nodesize" = nodesize,
+         "nodedepth" = nodedepth)
   # calibrate SRF with the best parameters
   return(output)
 }
@@ -487,16 +486,16 @@ survsrf_predict <- function(trained_model,
                             newdata,
                             fixed_time,
                             oob = FALSE) {
-  if (inherits(trained_model,"list")) {
+  if (inherits(trained_model, "list")) {
     srf <- trained_model$model
   } else {
     srf <- trained_model
   }
-
+  
   if (length(fixed_time) == 1) {
     return(1 - srf_survival_prob_for_time(srf, newdata, fixed_time, oob = oob))
   }
-
+  
   predicted_event_prob <-
     matrix(nrow = dim(newdata)[1], ncol = length(fixed_time))
   for (t in 1:length(fixed_time)) {
@@ -525,31 +524,29 @@ survsrf_predict <- function(trained_model,
 #' @return output list: output$train, test, testaverage, traintaverage, time
 #' @export
 survsrf_cv <- function(df,
-                      predict.factors,
-                      fixed_time = NaN,
-                      cv_number = 3,
-                      repeat_cv = 2,
-                      randomseed = NULL,
-                      return_models = FALSE,
-                      inner_cv = 3,
-                      srf_tuning = NULL,
-                      oob = TRUE
-                      ) {
-
+                       predict.factors,
+                       fixed_time = NaN,
+                       cv_number = 3,
+                       repeat_cv = 2,
+                       randomseed = NULL,
+                       return_models = FALSE,
+                       inner_cv = 3,
+                       srf_tuning = NULL,
+                       oob = TRUE) {
   Call <- match.call()
-  output<-surv_CV(df=df,
-          predict.factors=predict.factors,
-          fixed_time=fixed_time,
-          cv_number=cv_number,
-          inner_cv=inner_cv,
-          repeat_cv=repeat_cv,
-          randomseed=randomseed,
-          return_models=return_models,
-          train_function = survsrf_train,
-          predict_function = survsrf_predict,
-          model_args = list("srf_tuning" = srf_tuning, "oob" = oob)
-          )
-  output$call<- Call
+  output <- surv_CV(
+    df = df,
+    predict.factors = predict.factors,
+    fixed_time = fixed_time,
+    cv_number = cv_number,
+    inner_cv = inner_cv,
+    repeat_cv = repeat_cv,
+    randomseed = randomseed,
+    return_models = return_models,
+    train_function = survsrf_train,
+    predict_function = survsrf_predict,
+    model_args = list("srf_tuning" = srf_tuning, "oob" = oob)
+  )
+  output$call <- Call
   return(output)
 }
-

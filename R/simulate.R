@@ -1,4 +1,5 @@
 
+
 # These functions return simulated data with exponential or weibull distributions
 # 0.5 / 0.75 / 0.9 - by time = 10 (scaled) expected number of events
 # distr = "Exp" or "Weibull"
@@ -24,14 +25,18 @@
 #' head(mydata)
 #' @return data frame; "time" and "event" columns describe survival outcome; predictors are "age", "sex", "hyp", "bmi"
 #' @export
-simulate_linear <- function(N = 300, observe_time = 10,
-                                percentcensored = 0.75,
-                                randomseed = NULL, lambda = 0.1,
-                                distr = "Exp", rho_w = 1,
-                                drop_out = 0.3) {
-
-  if (is.null(randomseed)) {randomseed <- round(stats::runif(1)*1e9,0)}
-
+simulate_linear <- function(N = 300,
+                            observe_time = 10,
+                            percentcensored = 0.75,
+                            randomseed = NULL,
+                            lambda = 0.1,
+                            distr = "Exp",
+                            rho_w = 1,
+                            drop_out = 0.3) {
+  if (is.null(randomseed)) {
+    randomseed <- round(stats::runif(1) * 1e9, 0)
+  }
+  
   # simulate the data
   df <- simulate_population(N, randomseed)
   # calculate betas
@@ -39,9 +44,16 @@ simulate_linear <- function(N = 300, observe_time = 10,
   df["exp_beta"] <- exp_beta
   # simulate censored and event times
   df <- df_event_times(
-    exp_beta = exp_beta, df = df, N = N, observe_time = observe_time,
-    percentcensored = percentcensored, randomseed = randomseed + 1,
-    lambda = lambda, distr = distr, rho_w = rho_w, drop_out = drop_out
+    exp_beta = exp_beta,
+    df = df,
+    N = N,
+    observe_time = observe_time,
+    percentcensored = percentcensored,
+    randomseed = randomseed + 1,
+    lambda = lambda,
+    distr = distr,
+    rho_w = rho_w,
+    drop_out = drop_out
   )
   return(df)
 }
@@ -63,21 +75,33 @@ simulate_linear <- function(N = 300, observe_time = 10,
 #' head(mydata)
 #' @return data frame; "time" and "event" columns describe survival outcome; predictors are "age", "sex", "hyp", "bmi"
 #' @export
-simulate_nonlinear <- function(N = 300, observe_time = 10,
-                                   percentcensored = 0.75,
-                                   randomseed = NULL, lambda = 0.1,
-                                   distr = "Exp", rho_w = 1,
-                                   drop_out = 0.3) {
-  if (is.null(randomseed)) {randomseed <- round(stats::runif(1)*1e9,0)}
+simulate_nonlinear <- function(N = 300,
+                               observe_time = 10,
+                               percentcensored = 0.75,
+                               randomseed = NULL,
+                               lambda = 0.1,
+                               distr = "Exp",
+                               rho_w = 1,
+                               drop_out = 0.3) {
+  if (is.null(randomseed)) {
+    randomseed <- round(stats::runif(1) * 1e9, 0)
+  }
   # simulate the data
   df <- simulate_population(N, randomseed)
   # calculate betas
   exp_beta <- nonlinear_beta(df)
   # simulate censored and event times
   df <- df_event_times(
-    exp_beta = exp_beta, df = df, N = N, observe_time = observe_time,
-    percentcensored = percentcensored, randomseed = randomseed + 1,
-    lambda = lambda, distr = distr, rho_w = rho_w, drop_out = drop_out
+    exp_beta = exp_beta,
+    df = df,
+    N = N,
+    observe_time = observe_time,
+    percentcensored = percentcensored,
+    randomseed = randomseed + 1,
+    lambda = lambda,
+    distr = distr,
+    rho_w = rho_w,
+    drop_out = drop_out
   )
   return(df)
 }
@@ -99,21 +123,33 @@ simulate_nonlinear <- function(N = 300, observe_time = 10,
 #' head(mydata)
 #' @return data frame; "time" and "event" columns describe survival outcome; predictors are "age", "sex", "hyp", "bmi"
 #' @export
-simulate_crossterms <- function(N = 300, observe_time = 10,
-                                    percentcensored = 0.75,
-                                    randomseed = NULL, lambda = 0.1,
-                                    distr = "Exp", rho_w = 1,
-                                    drop_out = 0.3) {
-  if (is.null(randomseed)) {randomseed <- round(stats::runif(1)*1e9,0)}
+simulate_crossterms <- function(N = 300,
+                                observe_time = 10,
+                                percentcensored = 0.75,
+                                randomseed = NULL,
+                                lambda = 0.1,
+                                distr = "Exp",
+                                rho_w = 1,
+                                drop_out = 0.3) {
+  if (is.null(randomseed)) {
+    randomseed <- round(stats::runif(1) * 1e9, 0)
+  }
   # simulate the data
   df <- simulate_population(N, randomseed)
   # calculate betas
   exp_beta <- xt_beta(df)
   # simulate censored and event times
   df <- df_event_times(
-    exp_beta = exp_beta, df = df, N = N, observe_time = observe_time,
-    percentcensored = percentcensored, randomseed = randomseed + 1,
-    lambda = lambda, distr = distr, rho_w = rho_w, drop_out = drop_out
+    exp_beta = exp_beta,
+    df = df,
+    N = N,
+    observe_time = observe_time,
+    percentcensored = percentcensored,
+    randomseed = randomseed + 1,
+    lambda = lambda,
+    distr = distr,
+    rho_w = rho_w,
+    drop_out = drop_out
   )
   return(df)
 }
@@ -195,7 +231,8 @@ nonlinear_beta <- function(df) {
   # 1 for high/ low level, 0 for normal range
   bmi_beta <-
     ifelse((df$bmi < -1.5) |
-             (df$bmi > 1.5), 2, ifelse((df$bmi < -1) | (df$bmi > 1), 1, 0))
+             (df$bmi > 1.5), 2, ifelse((df$bmi < -1) |
+                                         (df$bmi > 1), 1, 0))
   # Age impact is 1 for age>=55; linear age impact is also present,
   # but is smaller than in linear simulation
   age_beta <- ifelse((df$age >= 1), 1, 0)
@@ -206,13 +243,11 @@ xt_beta <- function(df) {
   # BMI impact is 2 for very low and high levels,
   # 1 for high/ low level, 0 for normal range
   bmi_beta <- ifelse((df$bmi < -1.5) | (df$bmi > 1.5), 2,
-                     ifelse((df$bmi < -1) | (df$bmi > 1), 1, 0)
-  )
-
+                     ifelse((df$bmi < -1) | (df$bmi > 1), 1, 0))
+  
   # hypertension x age interaction
   hyp_beta <- ifelse((df$age >= 1 & df$hyp == 1), 2,
-                     ifelse((df$age < 1 & df$hyp == 1), 1, 0)
-  )
+                     ifelse((df$age < 1 & df$hyp == 1), 1, 0))
   # simulating event time
   return(exp(bmi_beta + hyp_beta + df$age * 0.2))
 }
@@ -226,7 +261,7 @@ simulate_population <- function(N = 300, randomseed = 42) {
   # return data frame
   set.seed(randomseed)
   df <- data.frame(
-    age = round(stats::runif(N, -1.73, 1.73), 1),
+    age = round(stats::runif(N,-1.73, 1.73), 1),
     bmi = round(stats::rnorm(N, 0, 1), 1),
     hyp = stats::rbinom(N, 1, 0.20),
     sex = stats::rbinom(N, 1, 0.5)
@@ -246,12 +281,20 @@ simulate_population <- function(N = 300, randomseed = 42) {
 # param rho_w Rho parameter for Weibull distribution
 # param drop_out drop out rate of those censored before observe_time
 # return data frame with added columns "time", "event", "event_time"
-df_event_times <- function(exp_beta, df, N, observe_time,
-                           percentcensored, randomseed,
-                           lambda, distr, rho_w, drop_out) {
-
-  if (is.null(randomseed)) {randomseed <- round(stats::runif(1)*1e9,0)}
-
+df_event_times <- function(exp_beta,
+                           df,
+                           N,
+                           observe_time,
+                           percentcensored,
+                           randomseed,
+                           lambda,
+                           distr,
+                           rho_w,
+                           drop_out) {
+  if (is.null(randomseed)) {
+    randomseed <- round(stats::runif(1) * 1e9, 0)
+  }
+  
   # simulate event times
   if (distr == "Exp") {
     # Exponential time distribution, h0(t)=??=0.1  with shape ??>0 and scale ??>0
@@ -269,30 +312,31 @@ df_event_times <- function(exp_beta, df, N, observe_time,
       v <- stats::runif(n = N)
     }
     # Weibull density
-    event_time <- (-log(v) / (lambda * exp_beta))^(1 / rho_w)
+    event_time <- (-log(v) / (lambda * exp_beta)) ^ (1 / rho_w)
   }
-
+  
   # re-scale the time to have 1-percentcensored of events=1
   # by the observe_time
   final_time <- quantile(event_time, 1 - percentcensored)
   # scale to observe_time
-  df$event_time <- 0.001 + pmin(round(event_time / final_time * observe_time, 3), observe_time)
+  df$event_time <-
+    0.001 + pmin(round(event_time / final_time * observe_time, 3), observe_time)
   # generate drop-out times for random drop_out % observations
   if (drop_out > 0) {
     set.seed(randomseed + 1)
-    randcentime <- stats::runif(round(N * drop_out, 0), 0, observe_time)
+    randcentime <-
+      stats::runif(round(N * drop_out, 0), 0, observe_time)
     cens_obs <- sample.int(nrow(df), round(N * drop_out, 0))
     df[cens_obs, "cens_time"] <- randcentime
     df[-cens_obs, "cens_time"] <- observe_time
   } else {
     df[, "cens_time"] <- observe_time
   }
-
+  
   # final time and event definition
   # event =1 if event time < cens_time and observe_time
   df$time <- pmin(df$event_time, df$cens_time, observe_time)
   df$event <- ifelse(df$event_time == df$time, 1, 0)
-
+  
   return(df)
 }
-

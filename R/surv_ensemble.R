@@ -1,4 +1,4 @@
- ######################### Ensemble 1 ########################
+######################### Ensemble 1 ########################
 
 #' Fits an ensemble of Cox-PH and Survival Random Forest (SRF)
 #' with internal CV to tune SRF hyperparameters.
@@ -39,22 +39,24 @@ survensemble_train <- function(df_train,
   # we train Cox model on 0.9 of the data and predict
   # on the rest 0.1 for each 1/10s fold
   # so we pass out-of-the-bag prediction to SRF
-
+  
   Call <- match.call()
-
+  
   predict.factors <- eligible_params(predict.factors, df_train)
   if (length(predict.factors) == 0) {
     print("No eliible params")
     return(NULL)
   }
-
+  
   # defining output for fixed_time
   if (sum(is.nan(fixed_time)) > 0) {
     fixed_time <-
       round(quantile(df_train[df_train$event == 1, "time"], 0.9), 1)
   }
   #setting random seed
-  if (is.null(randomseed)){randomseed <- round(stats::runif(1) * 1e9, 0)}
+  if (is.null(randomseed)) {
+    randomseed <- round(stats::runif(1) * 1e9, 0)
+  }
   set.seed(randomseed)
   #creating folds
   cv_folds <-
@@ -62,8 +64,8 @@ survensemble_train <- function(df_train,
   cindex_train <- vector(length = 10)
   cindex_test <- vector(length = 10)
   for (cv_iteration in 1:10) {
-    cox_train <- df_train[cv_folds != cv_iteration,]
-    cox_oob <- df_train[cv_folds == cv_iteration,]
+    cox_train <- df_train[cv_folds != cv_iteration, ]
+    cox_oob <- df_train[cv_folds == cv_iteration, ]
     # train cox model on cox_train
     cox_m_cv <-
       survcox_train(cox_train,
@@ -76,7 +78,7 @@ survensemble_train <- function(df_train,
     df_train[cv_folds == cv_iteration, "cox_predict"] <-
       cox_predict_oob
   }
-
+  
   # adding Cox predictions as a new factor to tune SRF
   predict.factors.1A <- c(predict.factors, "cox_predict")
   ensemble1_model <-
@@ -90,7 +92,7 @@ survensemble_train <- function(df_train,
       fast_version = fast_version,
       oob = oob
     )
-
+  
   if (var_importance_calc) {
     v <- randomForestSRC::vimp(ensemble1_model$model,
                                importance = "permute",
@@ -100,17 +102,17 @@ survensemble_train <- function(df_train,
   } else {
     vimp10 <- c(NaN)
   }
-
+  
   #base cox model
   cox_base_model <-
-    survcox_train(df_train,predict.factors,useCoxLasso = useCoxLasso)
-
+    survcox_train(df_train, predict.factors, useCoxLasso = useCoxLasso)
+  
   #output
   ensemble1_model$vimp10 <- vimp10
   ensemble1_model$model_base <- cox_base_model
   ensemble1_model$randomseed <- randomseed
   ensemble1_model$call <- Call
-  class(ensemble1_model)<- "survensemble"
+  class(ensemble1_model) <- "survensemble"
   return(ensemble1_model)
 }
 
@@ -130,11 +132,16 @@ predict.survensemble <- function(object,
                                  fixed_time,
                                  oob = FALSE,
                                  ...) {
-
-  if (!inherits(object, "survensemble")) {stop("Not a \"survensemble\" object")}
-  if (is.null(newdata)) {stop("The data for predictions is not supplied")}
-  if (!inherits(newdata, "data.frame")) {stop("The data should be a data frame")}
-
+  if (!inherits(object, "survensemble")) {
+    stop("Not a \"survensemble\" object")
+  }
+  if (is.null(newdata)) {
+    stop("The data for predictions is not supplied")
+  }
+  if (!inherits(newdata, "data.frame")) {
+    stop("The data should be a data frame")
+  }
+  
   # use model_base with the base Cox model to find cox_predict
   newdata$cox_predict <- survcox_predict(object$model_base,
                                          newdata, fixed_time)
@@ -165,33 +172,34 @@ predict.survensemble <- function(object,
 #' @return output list: output$train, test, testaverage, traintaverage, time
 #' @export
 survensemble_cv <- function(df,
-                           predict.factors,
-                           fixed_time = NaN,
-                           cv_number = 3,
-                           inner_cv = 3,
-                           repeat_cv = 2,
-                           randomseed = NULL,
-                           return_models = FALSE,
-                           useCoxLasso = FALSE,
-                           srf_tuning = NULL,
-                           oob=TRUE
-                           ){
-
+                            predict.factors,
+                            fixed_time = NaN,
+                            cv_number = 3,
+                            inner_cv = 3,
+                            repeat_cv = 2,
+                            randomseed = NULL,
+                            return_models = FALSE,
+                            useCoxLasso = FALSE,
+                            srf_tuning = NULL,
+                            oob = TRUE) {
   Call <- match.call()
-  output<-surv_CV(df=df,
-          predict.factors=predict.factors,
-          fixed_time=fixed_time,
-          cv_number=cv_number,
-          inner_cv=inner_cv,
-          repeat_cv=repeat_cv,
-          randomseed=randomseed,
-          return_models = return_models,
-          train_function = survensemble_train,
-          predict_function = predict.survensemble,
-          model_args = list("useCoxLasso" = useCoxLasso,
-                            "srf_tuning" = srf_tuning,
-                            "oob" = oob)
-          )
+  output <- surv_CV(
+    df = df,
+    predict.factors = predict.factors,
+    fixed_time = fixed_time,
+    cv_number = cv_number,
+    inner_cv = inner_cv,
+    repeat_cv = repeat_cv,
+    randomseed = randomseed,
+    return_models = return_models,
+    train_function = survensemble_train,
+    predict_function = predict.survensemble,
+    model_args = list(
+      "useCoxLasso" = useCoxLasso,
+      "srf_tuning" = srf_tuning,
+      "oob" = oob
+    )
+  )
   output$call <- Call
   return(output)
 }
@@ -204,8 +212,10 @@ survensemble_cv <- function(df,
 #'@param ... additional arguments to be passed
 #'@return x
 #'@export
-print.survensemble<- function(x, ...){
-  if (!inherits(x, "survensemble")) {stop("Not a \"survensemble\" object")}
+print.survensemble <- function(x, ...) {
+  if (!inherits(x, "survensemble")) {
+    stop("Not a \"survensemble\" object")
+  }
   summary.survensemble(x)
 }
 
@@ -215,11 +225,12 @@ print.survensemble<- function(x, ...){
 #'@param ... additional arguments to be passed
 #'@return object
 #'@export
-summary.survensemble<- function(object, ...){
-
-  if (!inherits(object, "survensemble")) {stop("Not a \"survensemble\" object")}
+summary.survensemble <- function(object, ...) {
+  if (!inherits(object, "survensemble")) {
+    stop("Not a \"survensemble\" object")
+  }
   cat("Survival ensemble of Cox PH and Survival Random Forest.\n")
-  if(!is.null(cl<- object$call)) {
+  if (!is.null(cl <- object$call)) {
     cat("Call:\n")
     dput(cl)
   }
@@ -228,9 +239,9 @@ summary.survensemble<- function(object, ...){
   cat("\n=> Underlying CoxPH:\n")
   print(object$model_base)
   cat("\n=> Items available as object$item are: ")
-  cat(names(object), sep=", ")
-
-  }
+  cat(names(object), sep = ", ")
+  
+}
 
 ##################################################################
 #' Prints survensemble_cv object
@@ -239,10 +250,10 @@ summary.survensemble<- function(object, ...){
 #'@param ... additional arguments to be passed
 #'@return x
 #'@export
-print.survensemble_cv<- function(x, ...){
+print.survensemble_cv <- function(x, ...) {
   if (!inherits(x, "survensemble_cv")) {
     stop("\nNot a \"survensemble_cv\" object")
-    }
+  }
   summary.survensemble_cv(x)
 }
 
@@ -253,16 +264,18 @@ print.survensemble_cv<- function(x, ...){
 #'@param ... additional arguments to be passed
 #'@return object
 #'@export
-summary.survensemble_cv<- function(object, ...){
+summary.survensemble_cv <- function(object, ...) {
   if (!inherits(object, "survensemble_cv")) {
     stop("Not a \"survensemble_cv\" object")
-    }
+  }
   cat("Cross-validation results\n")
-
-  if(!is.null(cl<- object$call)) {
+  
+  if (!is.null(cl <- object$call)) {
     cat("Call:\n")
     dput(cl)
   }
-  cat("\nThe stats are computed from the ", dim(object$test)[1]," data splits.\n")
+  cat("\nThe stats are computed from the ",
+      dim(object$test)[1],
+      " data splits.\n")
   print(object$summarydf)
 }

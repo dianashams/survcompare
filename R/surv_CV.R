@@ -1,5 +1,6 @@
 
 
+
 surv_CV <-
   function(df,
            predict.factors,
@@ -71,14 +72,14 @@ surv_CV <-
     for (rep_cv in 1:repeat_cv) {
       set.seed(randomseed + rep_cv)
       if (rep_cv != 1) {
-        df <- df[sample(1:nrow(df)),]
+        df <- df[sample(1:nrow(df)), ]
       }
       cv_folds <-
         caret::createFolds(df$event, k = cv_number, list = FALSE)
       
       for (cv_iteration in 1:cv_number) {
-        df_train_cv <- df[cv_folds != cv_iteration, ]
-        df_test_cv <- df[cv_folds == cv_iteration, ]
+        df_train_cv <- df[cv_folds != cv_iteration,]
+        df_test_cv <- df[cv_folds == cv_iteration,]
         # tune the model using train_function
         trained_model <-
           do.call(train_function,
@@ -120,8 +121,8 @@ surv_CV <-
     df_modelstats_train <- data.frame(modelstats_train[[1]])
     
     for (i in 2:(cv_number * repeat_cv)) {
-      df_modelstats_test[i,] <- modelstats_test[[i]]
-      df_modelstats_train[i,] <- modelstats_train[[i]]
+      df_modelstats_test[i, ] <- modelstats_test[[i]]
+      df_modelstats_train[i, ] <- modelstats_train[[i]]
     }
     row.names(df_modelstats_train) <- 1:(cv_number * repeat_cv)
     row.names(df_modelstats_test) <- 1:(cv_number * repeat_cv)

@@ -131,14 +131,14 @@ survcoxlasso_train <- function(df_train,
 #' @param trained_model  pre-trained cox model of coxph class
 #' @param newdata data to compute event probabilities for
 #' @param fixed_time  at which event probabilities are computed
-#' @param interpolation "constant" by default, can also be "linear", for between times interpolation for hazard rates 
+#' @param interpolation "constant" by default, can also be "linear", for between times interpolation for hazard rates
 #' @examples
 #' df<- simulate_nonlinear()
 #' @return returns matrix(nrow = length(newdata), ncol = length(fixed_time))
 #' @export
 survcox_predict <- function(trained_model,
                             newdata,
-                            fixed_time, 
+                            fixed_time,
                             interpolation = "constant") {
   # returns event probability from trained cox model trained_model
   
@@ -162,7 +162,8 @@ survcox_predict <- function(trained_model,
   # if baseline hazard can't be calibrated, # return mean(y) for all fixed_time
   # we take baseline hazard from K-M estimate and lp from Cox !!!! :((
   temp <- try(survival::basehaz(trained_model), silent = TRUE)
-  explp <- predict(trained_model,newdata, type = "risk") #exp(beta x X)
+  explp <-
+    predict(trained_model, newdata, type = "risk") #exp(beta x X)
   
   if (inherits(temp, "try-error")) {
     bh <-
@@ -185,8 +186,8 @@ survcox_predict <- function(trained_model,
     stats::approxfun(bh[, "time"], bh[, "hazard"], method = interpolation)
   
   # define bh_extrap how to extrapolate outside of training data times
-  # although this is not recommended, it is necessary to make code work when 
-  # training data is by chance (durgin cross-validation train-test split) 
+  # although this is not recommended, it is necessary to make code work when
+  # training data is by chance (durgin cross-validation train-test split)
   # has limited time range
   temp <-
     try(stats::lm(hazard ~ poly(time, 3, raw = TRUE), data = bh), silent = TRUE)
