@@ -139,8 +139,8 @@ surv_CV <-
         cbind(
           "mean" = apply(x, 2, mean, na.rm = 1),
           "sd" = apply(x, 2, sd, na.rm = 1),
-          "95CIHigh" = apply(x, 2, quantile, 0.0975, na.rm = 1),
-          "95CILow" = apply(x, 2, quantile, 0.025, na.rm = 1)
+          "95CILow" = apply(x, 2, quantile, 0.025, na.rm = 1),
+          "95CIHigh" = apply(x, 2, quantile, 0.975, na.rm = 1)
         ),
         4
       ))

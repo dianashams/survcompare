@@ -362,20 +362,13 @@ survsrf_train <- function(df_train,
   mtry_default <- round(sqrt(p), 0)
 
   #set default mtry, nodesize and nodedepth
-  if (p <= 10) {
-    mtry <- c(2, 3, 4, 5)
-  } else {
-    if (p <= 25) {
-      mtry <- c(3, 5, 7, 10, 15)
-    } else {
-      mtry <- round(c(p / 10, p / 5, p / 3, p / 2, mtry_default), 0)
-    }
-  }
+  mtry <-
+    ifelse(p <= 10, c(2, 3, 4, 5), 
+           ifelse(p <= 25, c(3, 5, 7, 10, 15), 
+                  round(c(p/10, p/5, p/3, p/2, mtry_default), 0)))
   mtry <- mtry[mtry<=length(predict.factors)]
-
   nodesize <-
     seq(min(15, round(n / 6 - 1, 0)), max(min(n / 10, 50), 30), 5)
-
   nodedepth <- c(5, 25)
 
   # update them if given in srf_tuning
@@ -384,26 +377,24 @@ survsrf_train <- function(df_train,
       nodesize = srf_tuning$nodesize
     }
     if (!is.null(srf_tuning$mtry)) {
-      mtry = c(srf_tuning$mtry, mtry_default)
+      mtry = c(srf_tuning$mtry)
     }
     if (!is.null(srf_tuning$nodedepth)) {
       nodedepth = srf_tuning$nodedepth
     }
   }
-
+  
   if (verbose) {
-    print(expand.grid(
-      "mtry" = mtry,
-      "nodesize" = nodesize,
-      "nodedepth" = nodedepth
-    ))
+    print("Tuning the following mtry, nodesize, and nodedepth:")
+    print(mtry)
+    print(nodesize)
+    print(nodedepth)
   }
 
   if (fast_version == TRUE) {
     # fast version:
     # first, takes recommended mtry and optimizes by depth and node size,
     # second, optimizes by mtry
-
     tune1 <- survsrf_tune(
       df_tune = df_train,
       cv_number = inner_cv,
@@ -415,11 +406,9 @@ survsrf_train <- function(df_train,
       nodedepth = nodedepth,
       oob = oob
     )
-
     nodesize_best <- as.integer(tune1$bestauc["nodesize"])
     nodedepth_best <- as.integer(tune1$bestauc["nodedepth"])
     # using the depth and size check the best mtry
-
     tune2 <- survsrf_tune(
       df_tune = df_train,
       cv_number = inner_cv,
@@ -437,7 +426,6 @@ survsrf_train <- function(df_train,
   } else {
     # slower version:
     # goes through all the grid combinations mtry, nodesize, nodedepth
-
     tuneall <- survsrf_tune(
       df_tune= df_train,
       cv_number = inner_cv,
@@ -479,6 +467,8 @@ survsrf_train <- function(df_train,
   output$beststats <- best_combo_stat
   output$allstats <- modelstatsall
   output$model <- final.rfs
+  output$tuning <- 
+    list("mtry" = mtry,"nodesize" = nodesize,"nodedepth" = nodedepth)
   # calibrate SRF with the best parameters
   return(output)
 }

@@ -20,9 +20,9 @@ The package checks whether there are considerable non-linear and interaction ter
 
 -   Validates Cox Proportionate Hazards model, or Cox Lasso depending on the user's input. This step employs `survival::coxph()` or `glmnet::glmnet(..., family="cox")` functions.
 
--   Validates Survival Random Forest ensembled with the baseline Cox model. To fit the ensemble, CoxPH's out-of-sample predictions are added to the list of orignial predictors, which are then used to fit SRF, using `randomForestSRC::rfsrc()`.
+-   Validates Survival Random Forest ensembled with the baseline Cox model. To fit the ensemble, CoxPH's out-of-sample predictions are added to the list of orignial predictors, which are then used to fit SRF, using `randomForestSRC::rfsrc()`, <https://www.randomforestsrc.org/reference/index.html>.
 
--   Performs statistical testing of whether the Survival Random Forest ensemble outperforms the Cox model.
+-   Performs statistical testing of whether the ensemble outperforms the Cox model.
 
 -   It does NOT handle missing data at the moment.
 
@@ -40,29 +40,140 @@ Steyerberg, E. W., & Vergouwe, Y. (2014). Towards better clinical prediction mod
 
 ## Other use cases of `survcompare`
 
-### 1. Fitting, cross-validation and predicting survival probabilities using survcompare functionality for CoxPH and CoxLasso 
+### 1. Fitting, cross-validating, and predicting event probabilities using `survcompare` functionality for CoxPH and CoxLasso
 
-
-```{r setup}
+```{r coxph_cv}
 library(survcompare)
 library(survival)
+
+#Let's take GBSG data from survival package. 
+# We need to define "time" and "event" columns, and check missing values 
 mygbsg <- gbsg
 mygbsg$time<- gbsg$rfstime/365
 mygbsg$event<- gbsg$status
 myfactors <- c("age", "meno", "size", "grade", "nodes", "pgr", "er", "hormon")
 mygbsg<- mygbsg[c("time", "event", myfactors)]
+sum(is.na(mygbsg[myfactors])) # 0 -> no missing data,can use survcompare
 
-sum(is.na(mygbsg[myfactors])) #check if any missing data 
+# Make a random split into train (400) and test (286 observations)
+train_index<- sample(seq(nrow(mygbsg)), 400, replace = FALSE)
+traindf<- mygbsg[train_index, ]
+testdf <- mygbsg[-train_index, ]
+predict_time <- 6
 
-survcompare(mygbsg, myfactors)
+# fit CoxPH or CoxLasso
+cox1<- survcox_train(traindf, myfactors, useCoxLasso = FALSE)
 
+# predict event probability at predict_time
+cox_p6_test<- survcox_predict(cox1, testdf, predict_time)
+cox_p6_train <- survcox_predict(cox1, traindf, predict_time)
 
+# compute performance stats 
+cox_performance_test <- 
+  surv_validate(cox_p6_test, predict_time, traindf, testdf)
+cox_performance_train <- 
+  surv_validate(cox_p6_train, predict_time, traindf, traindf)
+print(
+  rbind("CoxTest" = cox_performance_test,
+        "CoxTrain"= cox_performance_train))
 
+# Further validation: repeated cross-validation 
+coxcv <- 
+  survcox_cv(
+    mygbsg, myfactors, predict_time, cv_number = 5, repeat_cv = 10)
+
+summary(coxcv)
+
+# Observation: 
+# wide confidence intervals show that the data is rather heterogenious, 
+# that is, quality of predictions based on a random subsample differs 
+# substantially, e.g. AUCROC can be anywhere from 0.62 to 0.92.
+# 
+# This illustrates that one should perform a repeated CV and acknowledge
+# model variance rather than relying on a single train-test, where the
+# results may be poor or excellent by chance and mask model's
+# instability. 
 ```
 
-### 2. Fitting, cross-validation and predicting survival probabilities using survcompare functionality for Survival Random Forest. 
+### 2. Fitting, cross-validating, and predicting survival probabilities using `survcompare` functionality for Survival Random Forest.
 
-```{r setup}
+Here, we perform the same for Survival Random Forest:
+
+```{r srf_cv}
 library(survcompare)
+
+# fit SRF
+srfmodel1 <- 
+  survsrf_train(traindf, myfactors, predict_time, inner_cv = 3,randomseed = 42)
+
+#The function uses a default grid of hyperparameters to tune SRF (https://cran.r-project.org/web/packages/randomForestSRC/randomForestSRC.pdf):
+# mtry - number of variables randomly selected as candidates for splitting a node
+# nodedepth - Maximum depth to which a tree is grown. 
+# nodesize - Minumum size of terminal node. 
+
+print(srfmodel1$tuning)
+# $mtry [1] 2 3 4 5
+# $nodesize [1] 15 20 25 30 35 40 45 50
+# $nodedepth [1]  5 25
+
+#we can see which hyperparameters were selected:
+print("Selected hyperparameters and their performance metrics (measured on out-of-sample observations):")
+print(srfmodel1$beststats)  
+
+# predict event probability at predict_time
+srf_p6_test<- survsrf_predict(srfmodel1, testdf, predict_time)
+srf_p6_train <- survsrf_predict(srfmodel1, traindf, predict_time)
+
+# compute performance stats 
+srf_performance_test <- 
+  surv_validate(srf_p6_test, predict_time, traindf, testdf)
+srf_performance_train <- 
+  surv_validate(srf_p6_train, predict_time, traindf, traindf)
+print(
+  rbind("SRFTest" = srf_performance_test,
+        "SRFTrain"= srf_performance_train))
+
+# Further validation: repeated cross-validation. We keep low repeat_cv number for quick compilation, but even 3 repetitions of the 3-fold CVs show large variance of the SRF predictions, similar to that of CoxPH.
+srfcv <- 
+  survsrf_cv(
+    mygbsg, myfactors, predict_time, cv_number = 3, repeat_cv = 3)
+
+summary(srfcv)
+
 ```
 
+##### Custom tuning SRF
+
+The final bit of the tutorial shows how SRF can be custom-tuned using survsrf_train() function with a supplied list of mtry, nodesize, and nodedepth values. There are more parameters in the `randomForestSRC::rfsrc()` function, however, these are the ones that are most often make difference in prediction accuracy. See also <https://cran.r-project.org/web/packages/randomForestSRC/randomForestSRC.pdf>.
+
+To remind,
+
+-   mtry - number of variables randomly selected as candidates for splitting a node
+
+-   nodedepth - maximum depth to which a tree is grown.
+
+-   nodesize - minumum size of terminal node.
+
+```{r tuning_srf}
+# we can custom-tune SRF :
+my_srf_tuning <-
+  list(
+    "mtry" = c(2, 3),
+    "nodesize" = c(15, 25),
+    "nodedepth" = c(10, 15, 20, 25, 30)
+  )
+srfmodel2 <-
+  survsrf_train(
+    traindf,
+    myfactors,
+    predict_time,
+    srf_tuning = my_srf_tuning,
+    inner_cv = 3,
+    randomseed = 42
+  )
+
+# Compare the fits (in our run, there was some marginal improvement)
+rbind(default_tune = srfmodel1$beststats,
+      custom_tune = srfmodel2$beststats)
+
+```

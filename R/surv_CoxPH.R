@@ -64,6 +64,7 @@ survcox_train <- function(df_train,
 #' @param retrain_cox whether to re-train coxph on non-zero predictors; FALSE by default
 #' @param verbose TRUE/FALSE prints warnings if no predictors in Lasso
 #' @return fitted CoxPH object with coefficient of CoxLasso or re-trained CoxPH with non-zero CoxLasso if retrain_cox = FALSE or TRUE
+#' @export
 survcoxlasso_train <- function(df_train,
                                predict.factors,
                                fixed_time = NaN,
@@ -125,7 +126,6 @@ survcoxlasso_train <- function(df_train,
   return(cox.m)
 }
 
-
 #' Computes event probabilities from a trained cox model
 #'
 #' @param trained_model  pre-trained cox model of coxph class
@@ -135,6 +135,7 @@ survcoxlasso_train <- function(df_train,
 #' @examples
 #' df<- simulate_nonlinear()
 #' @return returns matrix(nrow = length(newdata), ncol = length(fixed_time))
+#' @export
 survcox_predict <- function(trained_model,
                             newdata,
                             fixed_time, 
