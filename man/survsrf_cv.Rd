@@ -36,7 +36,7 @@ survsrf_cv(
 
 \item{srf_tuning}{list of candidate mtry, nodedepth and nodesize, default is NULL}
 
-\item{oob}{TRUE/FALSE use out-of-bag predictions while tuning instead of cross-validation, TRUE by default}
+\item{oob}{TRUE/FALSE use out-of-bag prediction accuracy while tuning instead of cross-validation, TRUE by defaul}
 }
 \value{
 output list: output$train, test, testaverage, traintaverage, time

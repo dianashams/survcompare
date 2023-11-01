@@ -62,7 +62,7 @@ srf_survival_prob_for_time <-
 #' @param verbose  FALSE
 #' @param oob  TRUE
 #' @param nodesize  at which event probabilities are computed
-#' @param oob TRUE/FALSE use out-of-bag predictions while tuning instead of cross-validation
+#' @param oob TRUE/FALSE use out-of-bag predictions while tuning instead of cross-validation, default is TRUE and is faster
 #' @return  output=list(modelstats, bestbrier, bestauc, bestcindex)
 survsrf_tune <- function(df_tune,
                          predict.factors,
@@ -319,7 +319,7 @@ survsrf_tune <- function(df_tune,
 #' @param randomseed random seed
 #' @param srf_tuning list of mtry, nodedepth and nodesize, default is NULL
 #' @param fast_version  TRUE/FALSE, TRUE by default
-#' @param oob FALSE/TRUE, TRUE by default
+#' @param oob TRUE/FALSE use out-of-bag predictions while tuning SRF instead of cross-validation, default is TRUE and is faster
 #' @param verbose TRUE/FALSE, FALSE by default
 #' @return output = list(beststats, allstats, model)
 #' @export
@@ -480,8 +480,9 @@ survsrf_train <- function(df_train,
 #' @param trained_model trained model
 #' @param newdata test data
 #' @param fixed_time  time for which probabilities are computed
-#' @param oob TRUE/FALSE for out-of-bag predictions, default is FALSE
+#' @param oob TRUE/FALSE use out-of-bag predictions while tuning instead of cross-validation, default is TRUE and is faster
 #' @return returns vector of predictions (or matrix if fixed_time is a vector of times)
+#' @export
 survsrf_predict <- function(trained_model,
                             newdata,
                             fixed_time,
@@ -517,7 +518,7 @@ survsrf_predict <- function(trained_model,
 #' @param return_models TRUE/FALSE, if TRUE returns all CV objects
 #' @param inner_cv k in the inner loop of k-fold CV, default 3
 #' @param srf_tuning list of candidate mtry, nodedepth and nodesize, default is NULL
-#' @param oob TRUE/FALSE use out-of-bag predictions while tuning instead of cross-validation, TRUE by default
+#' @param oob TRUE/FALSE use out-of-bag prediction accuracy while tuning instead of cross-validation, TRUE by defaul
 #' @examples
 #' df <- simulate_nonlinear()
 #' survsrf_cv(df, names(df)[1:4])

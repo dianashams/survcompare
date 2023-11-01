@@ -36,7 +36,7 @@ survsrf_tune(
 
 \item{verbose}{FALSE}
 
-\item{oob}{TRUE/FALSE use out-of-bag predictions while tuning instead of cross-validation}
+\item{oob}{TRUE/FALSE use out-of-bag predictions while tuning instead of cross-validation, default is TRUE and is faster}
 }
 \value{
 output=list(modelstats, bestbrier, bestauc, bestcindex)

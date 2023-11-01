@@ -131,12 +131,13 @@ Now, lets apply the package to a real life data. We will use GBSG data from the 
 ```{r example_3_gbsg}
 library(survival)
 mygbsg <- gbsg
-mygbsg$time<- gbsg$rfstime/365
-mygbsg$event<- gbsg$status
-myfactors <- c("age", "meno", "size", "grade", "nodes", "pgr", "er", "hormon")
-mygbsg<- mygbsg[c("time", "event", myfactors)]
+mygbsg$time <- gbsg$rfstime / 365
+mygbsg$event <- gbsg$status
+myfactors <-
+  c("age", "meno", "size", "grade", "nodes", "pgr", "er", "hormon")
+mygbsg <- mygbsg[c("time", "event", myfactors)]
 
-sum(is.na(mygbsg[myfactors])) #check if any missing data 
+sum(is.na(mygbsg[myfactors])) #check if any missing data
 
 survcompare(mygbsg, myfactors)
 

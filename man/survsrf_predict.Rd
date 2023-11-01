@@ -13,7 +13,7 @@ survsrf_predict(trained_model, newdata, fixed_time, oob = FALSE)
 
 \item{fixed_time}{time for which probabilities are computed}
 
-\item{oob}{TRUE/FALSE for out-of-bag predictions, default is FALSE}
+\item{oob}{TRUE/FALSE use out-of-bag predictions while tuning instead of cross-validation, default is TRUE and is faster}
 }
 \value{
 returns vector of predictions (or matrix if fixed_time is a vector of times)

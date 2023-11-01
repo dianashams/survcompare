@@ -35,7 +35,7 @@ survsrf_train(
 
 \item{fast_version}{TRUE/FALSE, TRUE by default}
 
-\item{oob}{FALSE/TRUE, TRUE by default}
+\item{oob}{TRUE/FALSE use out-of-bag predictions while tuning SRF instead of cross-validation, default is TRUE and is faster}
 
 \item{verbose}{TRUE/FALSE, FALSE by default}
 }
