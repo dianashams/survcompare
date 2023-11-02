@@ -48,6 +48,6 @@ output list: output$train, test, testaverage, traintaverage, time
 Cross-validates predictive performance for Ensemble 1
 }
 \examples{
-df <- simulate_nonlinear()
+df <- simulate_nonlinear(100)
 survensemble_cv(df, names(df)[1:4])
 }

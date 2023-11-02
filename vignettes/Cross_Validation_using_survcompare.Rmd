@@ -119,7 +119,7 @@ Note, that the function `survsrf_train()` does not just fit a default SRF versio
 -   nodedepth - maximum depth to which a tree is grown.
 -   nodesize - minumum size of terminal node.
 
-There are more hyperparameters in the underlying `randomForestSRC::rfsrc()` function, however, these are the ones that tend to affect prediction accuracy the most. See also <https://cran.r-project.org/web/packages/randomForestSRC/randomForestSRC.pdf>.
+There are more hyperparameters in the underlying `randomForestSRC::rfsrc()` function, however, these are the ones that tend to affect prediction accuracy the most. See also <https://CRAN.R-project.org/package=randomForestSRC>.
 
 The tuning values for mtry, nodesize and nodedepth depend on the data size and total number of predictors. One can check the tuning grid and the final optimised parameters by running: 
 ```{r, srf_tuning_params}

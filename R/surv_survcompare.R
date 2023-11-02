@@ -44,7 +44,7 @@
 #' @param train_srf TRUE/FALSE for whether to train SRF on its own, apart from the CoxPH->SRF ensemble. Default is FALSE as there is not much information in SRF itself compared to the ensembled version.
 #' @return outcome = list(data frame with performance results, fitted Cox models, fitted SRF)
 #' @examples
-#' df <-simulate_nonlinear()
+#' df <-simulate_nonlinear(100)
 #' survcompare(df, names(df)[1:4])
 #'
 #' @export

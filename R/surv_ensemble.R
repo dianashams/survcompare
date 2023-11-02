@@ -165,7 +165,7 @@ predict.survensemble <- function(object,
 #' @param srf_tuning list of mtry, nodedepth, nodesize to tune, default is NULL
 #' @param oob TRUE/FALSE use out-of-bag predictions while tuning instead of cross-validation, TRUE by default
 #' @examples
-#' df <- simulate_nonlinear()
+#' df <- simulate_nonlinear(100)
 #' survensemble_cv(df, names(df)[1:4])
 #' @return output list: output$train, test, testaverage, traintaverage, time
 #' @export
