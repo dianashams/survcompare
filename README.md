@@ -1,4 +1,5 @@
 # R package "survcompare": 
+
 ### Internal validation and comparison of the Cox Proportionate Hazards model (CoxPH) and Survival Random Forest (SRF) performances using repeated cross-validation.
 
 #### The package aims to help researchers to make an informed decision on whether the benefit of using a flexible but less transparent machine learning method is high enough, or the classical (or regularized) Cox model should be preferred.
@@ -7,11 +8,11 @@
 
 ### Method: 
 The package checks whether there are considerable non-linear and interaction terms in the data, and quantifies their contributions to the models' performance. Using repeated nested cross-validation, the package:
-  * Validates Cox Proportionate Hazards model, or Cox Lasso depending on the user's input. Uses 'survival::coxph()' or 'glmnet::glmnet(..., family="cox")' functions.
-  * Validates Survival Random Forest ensembled with the baseline Cox model. Uses 'randomForestSRC::rfsrc()' function.
+  * Validates Cox Proportionate Hazards model, or Cox Lasso depending on the user's input. Uses 'survival::coxph()' [1,2] or 'glmnet::glmnet(..., family="cox")'[3] functions.
+  * Validates Survival Random Forest ensembled with the baseline Cox model. Uses 'randomForestSRC::rfsrc()' [4] function.
   * Performs statistical testing of whether the Survival Random Forest ensemble outperforms the Cox model.
 
-The performance metrics include:
+The performance metrics include [5]:
  * Discrimination measures: Harrell's concordance index, time-dependent AUCROC.
  * Calibration measures: calibration slope, calibration alpha.
  * Overall fit: Brier score, Scaled Brier score. 
@@ -83,12 +84,16 @@ Shamsutdinova, D., Stamate, D., Roberts, A., & Stahl, D. (2022). Combining Cox M
 diana.shamsutdinova@kcl.ac.uk
 
 ### Links and references: 
-[1] Therneau, T. M., & Lumley, T. (2015). Package ‘survival’. R Top Doc, 128(10), 28-33.
+##### References:
 
-[2] Ishwaran, H., Lauer, M.S., Blackstone, E.H., Lu, M.: randomForestSRC: Random Survival Forests Vignette (2021)
+[1] Cox, D. R. (1972). Regression models and life‐tables. Journal of the Royal Statistical Society: Series B (Methodological), 34(2), 187-202.
 
-[3] Cox, D. R. (1972). Regression models and life‐tables. Journal of the Royal Statistical Society: Series B (Methodological), 34(2), 187-202.
+[2] Therneau T (2023). *A Package for Survival Analysis in R*. R package version 3.5-7, <https://CRAN.R-project.org/package=survival>.
 
-[4] Steyerberg, E. W., & Vergouwe, Y. (2014). Towards better clinical prediction models: seven steps for development and an ABCD for validation. European heart journal, 35(29), 1925-1931.
+[3] Simon N, Friedman J, Tibshirani R, Hastie T (2011). "Regularization Paths for Cox's Proportional Hazards Model via Coordinate Descent." *Journal of Statistical Software, 39(5)*, 1--13. <doi:10.18637/jss.v039.i05>.
 
-[5] Shamsutdinova, D., Stamate, D., Roberts, A., & Stahl, D. (2022). Combining Cox Model and Tree-Based Algorithms to Boost Performance and Preserve Interpretability for Health Outcomes. In IFIP International Conference on Artificial Intelligence Applications and Innovations (pp. 170-181). Springer, Cham.
+[4] Ishwaran H, Kogalur U (2023). *Fast Unified Random Forests for Survival, Regression, and Classification (RF-SRC).* R package version 3.2.2, <https://cran.r-project.org/package=randomForestSRC>
+
+[5] Steyerberg EW, Vergouwe Y. (2014). Towards better clinical prediction models: seven steps for development and an ABCD for validation. *European heart journal, 35(29)*, 1925-1931 <https://doi.org/10.1093/eurheartj/ehu207>
+
+[6] Shamsutdinova, D., Stamate, D., Roberts, A., & Stahl, D. (2022). Combining Cox Model and Tree-Based Algorithms to Boost Performance and Preserve Interpretability for Health Outcomes. In IFIP International Conference on Artificial Intelligence Applications and Innovations (pp. 170-181). Springer, Cham.
