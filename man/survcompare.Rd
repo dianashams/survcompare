@@ -11,11 +11,11 @@ survcompare(
   predict_time = NULL,
   randomseed = NULL,
   useCoxLasso = FALSE,
-  outer_cv = 5,
+  outer_cv = 3,
   inner_cv = 3,
   srf_tuning = NaN,
   return_models = FALSE,
-  repeat_cv = 5,
+  repeat_cv = 2,
   train_srf = FALSE
 )
 }

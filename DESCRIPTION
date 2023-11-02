@@ -1,6 +1,6 @@
 Package: survcompare
-Title: Compares predictive performance of the Cox Proportionate Hazards and Survival Random Forest models to quantify interpretability-accuracy trade off
-Version: 0.0.9
+Title: Comparing linear (Cox-PH) and non-linear (Survival Random Forest) survival models to quantify predictive value of non-linear and interaction terms in the data
+Version: 0.1.0
 Date: 2023-10-19
 Authors@R: c(
       person("Diana", "Shamsutdinova", , "diana.shamsutdinova@kcl.ac.uk", role = c("aut", "cre"), 
@@ -21,7 +21,6 @@ Imports:
   caret,
   glmnet,
   randomForestSRC,
-  pec,
   foreach
 Roxygen: list(markdown = TRUE)
 RoxygenNote: 7.2.3
