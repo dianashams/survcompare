@@ -43,4 +43,6 @@ Cross-validates Cox or CoxLasso model
 }
 \examples{
 df<- simulate_nonlinear()
+survcox_cv(df, names(df)[1:4])
+
 }

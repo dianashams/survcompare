@@ -18,9 +18,14 @@ knitr::opts_chunk$set(
 
 The package checks whether there are considerable non-linear and interaction terms in the data, and quantifies their contributions to the models' performance. Using repeated nested cross-validation (that is, a system of random data splits into the training and testing sets to evaluate prediction accuracy), the package:
 
--   Validates Cox Proportionate Hazards model, or Cox Lasso depending on the user's input. This step employs `survival::coxph()` or `glmnet::glmnet(..., family="cox")` functions.
+-   Validates Cox Proportionate Hazards model, or Cox Lasso depending on the user's input. This step employs
 
--   Validates Survival Random Forest ensembled with the baseline Cox model. To fit the ensemble, CoxPH's out-of-sample predictions are added to the list of orignial predictors, which are then used to fit SRF, using `randomForestSRC::rfsrc()`.
+    -   `survival::coxph()` (Therneau, 2023);
+    -   `glmnet::glmnet(..., family="cox")` (Simon, Friedman, Hastie & Tibshirani , 2011).
+
+-   Validates Survival Random Forest ensembled with the baseline Cox model. To fit the ensemble, CoxPH's out-of-sample predictions are added to the list of orignial predictors, which are then used to fit SRF, using
+
+    -   `randomForestSRC::rfsrc()`(Ishwaran & Kogalur, 2023).
 
 -   Performs statistical testing of whether the Survival Random Forest ensemble outperforms the Cox model.
 
@@ -34,9 +39,17 @@ Predictive performance is evaluated by averaging different measures across all t
 
 -   Overall fit: Brier score, Scaled Brier score.
 
-Performance metrics' description and definitions can be found, for example, here: <https://academic.oup.com/eurheartj/article/35/29/1925/2293109>,
+Performance metrics' description and definitions can be found, for example, in Steyerberg & Vergouwe (2014).
 
-Steyerberg, E. W., & Vergouwe, Y. (2014). Towards better clinical prediction models: seven steps for development and an ABCD for validation. *European heart journal, 35(29)*, 1925-1931.
+##### References:
+
+Therneau T (2023). *A Package for Survival Analysis in R*. R package version 3.5-7, <https://CRAN.R-project.org/package=survival>.
+
+Simon N, Friedman J, Tibshirani R, Hastie T (2011). "Regularization Paths for Cox's Proportional Hazards Model via Coordinate Descent." *Journal of Statistical Software, 39(5)*, 1--13. <doi:10.18637/jss.v039.i05>.
+
+Ishwaran H, Kogalur U (2023). *Fast Unified Random Forests for Survival, Regression, and Classification (RF-SRC).* R package version 3.2.2, <https://cran.r-project.org/package=randomForestSRC>
+
+Steyerberg EW, Vergouwe Y. (2014). Towards better clinical prediction models: seven steps for development and an ABCD for validation. *European heart journal, 35(29)*, 1925-1931 <https://doi.org/10.1093/eurheartj/ehu207>
 
 ### What can be inferred from the `survcompare` results?
 
@@ -74,16 +87,13 @@ The first example takes simulated data that does not contain any complex terms, 
 ```{r example_simulated_1}
 
 mydata <- simulate_linear()
-
 mypredictors <- names(mydata)[1:4]
 
 compare_models <- survcompare(mydata, mypredictors)
-
 summary(compare_models)
 
 # Other objects in the output object
 names(compare_models)
-
 ```
 
 ### Example 2. Non-linear data with interaction terms
@@ -92,21 +102,10 @@ The second example takes simulated data that contains non-linear and cross-terms
 
 ```{r example_simulated_2}
 
-library(survcompare)
-
 mydata2 <- simulate_crossterms()
-
 mypredictors2 <- names(mydata)[1:4]
 
-compare_models2 <-
-  survcompare(
-    mydata2,
-    mypredictors2,
-    outer_cv = 2,
-    inner_cv = 2,
-    useCoxLasso = TRUE
-  )
-
+compare_models2 <- survcompare(mydata2,mypredictors2)
 summary(compare_models2)
 ```
 

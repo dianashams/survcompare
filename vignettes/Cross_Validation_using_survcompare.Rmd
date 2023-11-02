@@ -16,35 +16,9 @@ knitr::opts_chunk$set(
 
 ## Package background
 
-The package checks whether there are considerable non-linear and interaction terms in the data, and quantifies their contributions to the models' performance. Using repeated nested cross-validation (that is, a system of random data splits into the training and testing sets to evaluate prediction accuracy), the package:
+The main application of the survcompare package it to check whether there are considerable non-linear and interaction terms in the data, and to quantify their contributions to the models' performance. Please refer to https://github.com/dianashams/survcompare/blob/main/README.md.
 
--   Validates Cox Proportionate Hazards model, or Cox Lasso depending on the user's input. This step employs `survival::coxph()` or `glmnet::glmnet(..., family="cox")` functions.
-
--   Validates Survival Random Forest ensembled with the baseline Cox model. To fit the ensemble, CoxPH's out-of-sample predictions are added to the list of orignial predictors, which are then used to fit SRF, using `randomForestSRC::rfsrc()`, <https://www.randomforestsrc.org/reference/index.html>.
-
--   Performs statistical testing of whether the ensemble outperforms the Cox model.
-
--   It does NOT handle missing data at the moment.
-
-Predictive performance is evaluated by averaging different measures across all train-test splits. The following measures are computed:
-
--   Discrimination measures: Harrell's concordance index, time-dependent AUCROC.
-
--   Calibration measures: calibration slope, calibration alpha.
-
--   Overall fit: Brier score, Scaled Brier score.
-
-Performance metrics' description and definitions can be found, for example, here: <https://academic.oup.com/eurheartj/article/35/29/1925/2293109>,
-
-Steyerberg, E. W., & Vergouwe, Y. (2014). Towards better clinical prediction models: seven steps for development and an ABCD for validation. *European heart journal, 35(29)*, 1925-1931.
-
-Package installation: 
-```{r setup2}
-# install.packages("devtools")
-# devtools::install_github("dianashams/survcompare")
-library(survcompare)
-
-```
+However, as the package uses Cox Proportionate Hazards and Survival Random Forest models, some of the developed functions may be helpful on its own, in particular, to perform a repeated nested cross-validation of these two underlying models.
 
 ## Other use cases of `survcompare`
 
@@ -102,31 +76,17 @@ summary(coxcv)
 
 ### 2. Fitting, cross-validating, and predicting survival probabilities using `survcompare` functionality for Survival Random Forest.
 
-Here, we perform the same for Survival Random Forest:
+Here, we perform the same for Survival Random Forest. First, let's train SRF on the train data:
 
 ```{r srf_cv}
 library(survcompare)
-# fit SRF
+# fit and tune SRF:
 srfmodel1 <-
   survsrf_train(traindf,
                 myfactors,
                 predict_time,
                 inner_cv = 2,
                 randomseed = 42)
-
-#The function uses a default grid of hyperparameters to tune SRF (https://cran.r-project.org/web/packages/randomForestSRC/randomForestSRC.pdf):
-# mtry - number of variables randomly selected as candidates for splitting a node
-# nodedepth - Maximum depth to which a tree is grown. 
-# nodesize - Minumum size of terminal node. 
-
-print(srfmodel1$tuning)
-# $mtry [1] 2 3 4 5
-# $nodesize [1] 15 20 25 30 35 40 45 50
-# $nodedepth [1]  5 25
-
-#we can see which hyperparameters were selected:
-print("Selected hyperparameters and their performance metrics (measured on out-of-sample observations):")
-print(srfmodel1$beststats)  
 
 # predict event probability at predict_time
 srf_p6_test<- survsrf_predict(srfmodel1, testdf, predict_time)
@@ -142,38 +102,43 @@ print(
         "SRFTrain"= srf_performance_train))
 
 # Further validation: repeated cross-validation. We keep low repeat_cv number for quick compilation, but even 2 repetitions of the 3-fold CVs show large variance of the SRF predictions, similar to that of CoxPH.
-srfcv <- survsrf_cv(
-  mygbsg,
-  myfactors,
-  predict_time,
-  inner_cv = 2,
-  cv_number = 3,
-  repeat_cv = 2
-)
+srfcv <- survsrf_cv(mygbsg,
+                    myfactors,
+                    predict_time,
+                    inner_cv = 2)
 
 summary(srfcv)
 
 ```
 
-##### Custom tuning SRF
+##### Notes on the SRF tuning
 
-The final bit of the tutorial shows how SRF can be custom-tuned using survsrf_train() function with a supplied list of mtry, nodesize, and nodedepth values. There are more hyperparameters in the underlying `randomForestSRC::rfsrc()` function, however, these are the ones that tend to affect prediction accuracy the most. See also <https://cran.r-project.org/web/packages/randomForestSRC/randomForestSRC.pdf>.
-
-To remind,
+Note, that the function `survsrf_train()` does not just fit a default SRF version, but uses a k-fold CV (k is controlled by `inner_cv`) to tune its hyperparameters mtry, nodesize, and nodedepth. To remind,
 
 -   mtry - number of variables randomly selected as candidates for splitting a node
-
 -   nodedepth - maximum depth to which a tree is grown.
-
 -   nodesize - minumum size of terminal node.
 
-```{r tuning_srf}
+There are more hyperparameters in the underlying `randomForestSRC::rfsrc()` function, however, these are the ones that tend to affect prediction accuracy the most. See also <https://cran.r-project.org/web/packages/randomForestSRC/randomForestSRC.pdf>.
+
+The tuning values for mtry, nodesize and nodedepth depend on the data size and total number of predictors. One can check the tuning grid and the final optimised parameters by running: 
+```{r, srf_tuning_params}
+# Tuning grid:
+print(srfmodel1$tuning)
+
+# Selected hyperparameters and their performance metrics (measured on out-of-sample observations):
+print(srfmodel1$beststats)  
+```
+
+It is possible to use a custom grid to tune SRF. First, create a list containing three numerical vectors, named as "mtry", "nodesize", and "nodedepth", containing their candidate values. Then, supply the list as an argument to `survsrf_train()`. We suggest running default option, and then adjusting the grid to include higher or lower values, if the highest or lowest value was chosen in the default run. 
+
+```{r srf_custom_tuning, eval=FALSE}
 # creating list for the customised tuning of SRF:
 my_srf_tuning <-
   list(
-    "mtry" = c(2, 3),
-    "nodesize" = c(15, 25),
-    "nodedepth" = c(10, 15, 20, 25, 30)
+    "mtry" = c(2),
+    "nodesize" = c(10, 20, 30),
+    "nodedepth" = c(15, 25, 35)
   )
 srfmodel2 <-
   survsrf_train(
@@ -185,8 +150,15 @@ srfmodel2 <-
     randomseed = 42
   )
 
-# Compare the fits (in our run, there was some marginal improvement)
-rbind(default_tune = srfmodel1$beststats,
-      custom_tune = srfmodel2$beststats)
+# Compare the fits (we see some marginal improvement)
+round(rbind(
+  default_tune = srfmodel1$beststats,
+  custom_tune = srfmodel2$beststats ),3)
+
+#          mtry nodesize nodedepth time AUCROC  BS   BS_scaled C_score
+#default_tune	 2	 20	    25	     6	   0.730	0.179	0.273	    0.673	
+#custom_tune	 2	 10	    25	     6	   0.769	0.173	0.300   	0.668
 
 ```
+
+

@@ -49,6 +49,3 @@ to mimic stacking procedure used in Machine Learning and reduce over-fitting.
 #' Cox model is fitted to .9 data to predict the rest .1 for each 1/10s fold;
 these out-of-the-bag predictions are passed on to SRF
 }
-\examples{
-df <- simulate_nonlinear()
-}

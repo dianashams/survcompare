@@ -21,6 +21,3 @@ returns matrix(nrow = length(newdata), ncol = length(fixed_time))
 \description{
 Computes event probabilities from a trained cox model
 }
-\examples{
-df<- simulate_nonlinear()
-}

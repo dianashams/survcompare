@@ -19,8 +19,6 @@
 #' @param oob FALSE/TRUE, TRUE by default
 #' @param useCoxLasso FALSE/TRUE, FALSE by default
 #' @param var_importance_calc FALSE/TRUE, TRUE by default
-#' @examples
-#' df <- simulate_nonlinear()
 #' @return trained object of class survensemble
 #' @export
 survensemble_train <- function(df_train,

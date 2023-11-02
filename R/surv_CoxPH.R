@@ -132,8 +132,6 @@ survcoxlasso_train <- function(df_train,
 #' @param newdata data to compute event probabilities for
 #' @param fixed_time  at which event probabilities are computed
 #' @param interpolation "constant" by default, can also be "linear", for between times interpolation for hazard rates
-#' @examples
-#' df<- simulate_nonlinear()
 #' @return returns matrix(nrow = length(newdata), ncol = length(fixed_time))
 #' @export
 survcox_predict <- function(trained_model,
@@ -255,6 +253,8 @@ survcox_predict <- function(trained_model,
 #' @param useCoxLasso TRUE/FALSE, FALSE by default
 #' @examples
 #' df<- simulate_nonlinear()
+#' survcox_cv(df, names(df)[1:4])
+#' 
 #' @return output list: output$train, test, testaverage, traintaverage, time,tuned_cv_models
 #' @export
 survcox_cv <- function(df,
