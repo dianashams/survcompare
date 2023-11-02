@@ -14,7 +14,7 @@ knitr::opts_chunk$set(
 )
 ```
 
-## `survcompare` background
+## Package background
 
 The package checks whether there are considerable non-linear and interaction terms in the data, and quantifies their contributions to the models' performance. Using repeated nested cross-validation (that is, a system of random data splits into the training and testing sets to evaluate prediction accuracy), the package:
 
@@ -102,9 +102,8 @@ compare_models2 <-
   survcompare(
     mydata2,
     mypredictors2,
-    outer_cv = 3,
+    outer_cv = 2,
     inner_cv = 2,
-    repeat_cv = 10,
     useCoxLasso = TRUE
   )
 
@@ -131,15 +130,17 @@ Now, lets apply the package to a real life data. We will use GBSG data from the 
 
 ```{r example_3_gbsg}
 library(survival)
+
+#prepare the data
 mygbsg <- gbsg
 mygbsg$time <- gbsg$rfstime / 365
 mygbsg$event <- gbsg$status
 myfactors <-
   c("age", "meno", "size", "grade", "nodes", "pgr", "er", "hormon")
 mygbsg <- mygbsg[c("time", "event", myfactors)]
-
 sum(is.na(mygbsg[myfactors])) #check if any missing data
 
+# run survcompare function
 survcompare(mygbsg, myfactors)
 
 ```

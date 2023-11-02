@@ -1,5 +1,5 @@
 ---
-title: "Cross_Validation_using_survcompare"
+title: "CoxPH, CoxLasso and Survival Random Forest CrossValidation with survcompare"
 output: rmarkdown::html_vignette
 vignette: >
   %\VignetteIndexEntry{Cross_Validation_using_survcompare}
@@ -12,10 +12,9 @@ knitr::opts_chunk$set(
   collapse = TRUE,
   comment = "#>"
 )
-#devtools::install_github("dianashams/survcompare")
 ```
 
-## `survcompare` background
+## Package background
 
 The package checks whether there are considerable non-linear and interaction terms in the data, and quantifies their contributions to the models' performance. Using repeated nested cross-validation (that is, a system of random data splits into the training and testing sets to evaluate prediction accuracy), the package:
 
@@ -53,8 +52,8 @@ library(survcompare)
 
 ```{r coxph_cv}
 library(survcompare)
-#Let's take GBSG data from survival package. 
-# We need to define "time" and "event" columns, and check missing values 
+# We will use the GBSG data from survival package. 
+# Prepare the data for 'survcompare':
 mygbsg <- gbsg
 mygbsg$time<- gbsg$rfstime/365
 mygbsg$event<- gbsg$status
@@ -62,13 +61,15 @@ myfactors <- c("age", "meno", "size", "grade", "nodes", "pgr", "er", "hormon")
 mygbsg<- mygbsg[c("time", "event", myfactors)]
 sum(is.na(mygbsg[myfactors])) # 0 -> no missing data,can use survcompare
 
-# Make a random split into train (400) and test (286 observations)
+# Make a random split into train (400) and test (the rest 286 observations)
 train_index<- sample(seq(nrow(mygbsg)), 400, replace = FALSE)
 traindf<- mygbsg[train_index, ]
 testdf <- mygbsg[-train_index, ]
+
+# define the time at which time-dependent AUC-ROC and Brier scores are to be evaluated
 predict_time <- 6
 
-# fit CoxPH or CoxLasso
+# fit CoxPH 
 cox1<- survcox_train(traindf, myfactors, useCoxLasso = FALSE)
 
 # predict event probability at predict_time
@@ -85,13 +86,10 @@ print(
         "CoxTrain"= cox_performance_train))
 
 # Further validation: repeated cross-validation 
-coxcv <- 
-  survcox_cv(
-    mygbsg, myfactors, predict_time, cv_number = 5, repeat_cv = 10)
-
+coxcv <- survcox_cv(mygbsg, myfactors, predict_time)
 summary(coxcv)
 
-# Observation: 
+# Comments on the results: 
 # wide confidence intervals show that the data is rather heterogenious, 
 # that is, quality of predictions based on a random subsample differs 
 # substantially, e.g. AUCROC can be anywhere from 0.62 to 0.92.
@@ -108,10 +106,13 @@ Here, we perform the same for Survival Random Forest:
 
 ```{r srf_cv}
 library(survcompare)
-
 # fit SRF
-srfmodel1 <- 
-  survsrf_train(traindf, myfactors, predict_time, inner_cv = 3,randomseed = 42)
+srfmodel1 <-
+  survsrf_train(traindf,
+                myfactors,
+                predict_time,
+                inner_cv = 2,
+                randomseed = 42)
 
 #The function uses a default grid of hyperparameters to tune SRF (https://cran.r-project.org/web/packages/randomForestSRC/randomForestSRC.pdf):
 # mtry - number of variables randomly selected as candidates for splitting a node
@@ -140,10 +141,15 @@ print(
   rbind("SRFTest" = srf_performance_test,
         "SRFTrain"= srf_performance_train))
 
-# Further validation: repeated cross-validation. We keep low repeat_cv number for quick compilation, but even 3 repetitions of the 3-fold CVs show large variance of the SRF predictions, similar to that of CoxPH.
-srfcv <- 
-  survsrf_cv(
-    mygbsg, myfactors, predict_time, cv_number = 3, repeat_cv = 3)
+# Further validation: repeated cross-validation. We keep low repeat_cv number for quick compilation, but even 2 repetitions of the 3-fold CVs show large variance of the SRF predictions, similar to that of CoxPH.
+srfcv <- survsrf_cv(
+  mygbsg,
+  myfactors,
+  predict_time,
+  inner_cv = 2,
+  cv_number = 3,
+  repeat_cv = 2
+)
 
 summary(srfcv)
 
@@ -175,7 +181,7 @@ srfmodel2 <-
     myfactors,
     predict_time,
     srf_tuning = my_srf_tuning,
-    inner_cv = 3,
+    inner_cv = 2,
     randomseed = 42
   )
 

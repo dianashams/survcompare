@@ -1,6 +1,3 @@
-
-
-
 surv_CV <-
   function(df,
            predict.factors,
