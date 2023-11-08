@@ -43,11 +43,10 @@
 #' @param repeat_cv if NULL, runs once, otherwise repeats several times with different random split for CV, reports average of all
 #' @param train_srf TRUE/FALSE for whether to train SRF on its own, apart from the CoxPH->SRF ensemble. Default is FALSE as there is not much information in SRF itself compared to the ensembled version.
 #' @return outcome = list(data frame with performance results, fitted Cox models, fitted SRF)
-#' @examples \donttest{
-#' df <-simulate_nonlinear()
-#' mysurvcomp <- survcompare(df, names(df)[1:4], srf_tuning = FALSE)
+#' @examples
+#' df <-simulate_nonlinear(100)
+#' mysurvcomp <- survcompare(df, names(df)[1:4], srf_tuning = list("mtry" = c(2), "nodedepth"=c(25), "nodesize" =c(15)))
 #' summary(mysurvcomp)
-#' }
 #' @export
 survcompare <- function(df_train,
                         predict_factors,

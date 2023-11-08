@@ -28,11 +28,11 @@ survsrf_tune(
 
 \item{randomseed}{random seed}
 
-\item{mtry}{c(3,4,5) tuning parameter}
+\item{mtry}{tuning parameter}
 
 \item{nodesize}{at which event probabilities are computed}
 
-\item{nodedepth}{100 tuning paramreter}
+\item{nodedepth}{tuning parameter}
 
 \item{verbose}{FALSE}
 

@@ -56,9 +56,9 @@ srf_survival_prob_for_time <-
 #' @param inner_cv k in k-fold CV, applied if oob=FALSE
 #' @param fixed_time  NaN
 #' @param randomseed  random seed
-#' @param mtry  c(3,4,5) tuning parameter
-#' @param nodesize  c(10,20,50) tuning parameter
-#' @param nodedepth  100 tuning paramreter
+#' @param mtry  tuning parameter
+#' @param nodesize  tuning parameter
+#' @param nodedepth  tuning parameter
 #' @param verbose  FALSE
 #' @param oob  TRUE
 #' @param nodesize  at which event probabilities are computed
@@ -86,17 +86,20 @@ survsrf_tune <- function(df_tune,
   }
   set.seed(randomseed)
 
-  nodesize <- nodesize[nodesize <= dim(df_tune)[1] / 6]
-  # limit mtry with the number of predictors and nodesize by 1/6 of sample size
-  if (sum(nodesize > dim(df_tune)[1] / 6) > 0) {
+  # limit nodesize by 1/5 of sample size
+  if (sum(nodesize > dim(df_tune)[1] / 5) > 0) {
     if (verbose) {
-      print("Warning - some min nodesize is > 1/6 of the sample size (1/2 of CV fold)")
+      print("Warning - some nodesize parameters are > 1/5 of the sample size and may prevent effective tree building.")
     }
   }
 
+  # limit mtry by the number of predictors
   # if all numbers higher than number of factors, only check this factor
   if (sum(mtry > length(predict.factors)) == length(mtry)) {
     mtry <- c(length(predict.factors))
+    if (verbose) {
+      print("Warning - some mtry are > number of params and will be ignored.")
+    }
   }
   mtry <- mtry[mtry <= length(predict.factors)]
 
@@ -193,7 +196,7 @@ survsrf_tune <- function(df_tune,
 
       # averaging over cv-steps, firs transform to data.frame to use mean()
       modelstats_cv_df <- data.frame(t(modelstats_cv[[1]]))
-      for (j in 2:outer_cv) {
+      for (j in 2:inner_cv) {
         modelstats_cv_df <- rbind(modelstats_cv_df, t(modelstats_cv[[j]]))
       }
       modelstats[[i]] <-
