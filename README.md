@@ -1,6 +1,6 @@
 # R package "survcompare": 
 
-**Comparing Linear (Cox Proportionate Hazards model) and Non-Linear (Survival Random Forest) Survival Models to Quantify Predictive Value of Non-Linear and Interaction Terms in the Data**
+**Comparing linear (Cox Proportionate Hazards model) and non-linear (Survival Random Forest) survival models to quantify predictive value of non-linear and interaction terms in the data.**
 
 ![image](https://github.com/dianashams/ensemble-methods-for-survival-analysis/blob/gh-pages/survcompare_cartoon.png)
 ### Method: 
@@ -29,7 +29,7 @@ Given these qualities, SRF vs CoxPH's comparison is indicative of compex data de
 #### FAQ2: Why the ensemble and not just SRF? 
 The ensemble of Cox and SRF takes the predictions of the Cox model and adds to the list of predictors to train SRF. This way, we make sure that linearity is captured by SRF at least as good as in the Cox model, and hence the marginal outperformance of the ensemble over the Cox model can be fully attributed to the qualities of SRF that Cox does not have, that is, data complexity.
 
-#### FAQ3: How do I use the results? 
+#### FAQ3: How do I interpret and use the results? 
 First, try to run sufficient number of repetitions (repeat_cv), at least 5, ideally 20-50 depending on the data heterogeneity and size.
 There are two possible outcomes: "Survival Random Forest ensemble has outperformed CoxPH by ... in C-index", or "Survival Random Forest ensemble has NOT outperformed CoxPH". 
   * If there is **no outperformance**, this result can justify the employment of CoxPH model and indicate a negligible advantage of using a more flexible model such as Survival Random Forest.
