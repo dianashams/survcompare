@@ -1,21 +1,20 @@
 # R package "survcompare": 
 
-### Internal validation and comparison of the Cox Proportionate Hazards model (CoxPH) and Survival Random Forest (SRF) performances using repeated cross-validation.
-
-#### The package aims to help researchers to make an informed decision on whether the benefit of using a flexible but less transparent machine learning method is high enough, or the classical (or regularized) Cox model should be preferred.
+**Comparing Linear (Cox Proportionate Hazards model) and Non-Linear (Survival Random Forest) Survival Models to Quantify Predictive Value of Non-Linear and Interaction Terms in the Data**
 
 ![image](https://github.com/dianashams/ensemble-methods-for-survival-analysis/blob/gh-pages/survcompare_cartoon.png)
-
 ### Method: 
-The package checks whether there are considerable non-linear and interaction terms in the data, and quantifies their contributions to the models' performance. Using repeated nested cross-validation, the package:
-  * Validates Cox Proportionate Hazards model, or Cox Lasso depending on the user's input. Uses 'survival::coxph()' [1,2] or 'glmnet::glmnet(..., family="cox")'[3] functions.
-  * Validates Survival Random Forest ensembled with the baseline Cox model. Uses 'randomForestSRC::rfsrc()' [4] function.
-  * Performs statistical testing of whether the Survival Random Forest ensemble outperforms the Cox model.
+The primary goal is to assist researchers in making informed decisions regarding whether they should choose a flexible yet less transparent machine learning approach or a traditional linear method. This is achieved by examining the presence of non-linear and interaction terms within the data and quantifying their impact on the models' performance. Using repeated nested cross-validation, the package:
+  * Validates Cox Proportionate Hazards model, or Cox Lasso depending on the user's input. The underlying models are 'survival::coxph()' [1,2] or 'glmnet::glmnet(..., family="cox")'[3].
+  * Validates Survival Random Forest ensembled with the baseline Cox model. The underlying Survival Random Forest model is 'randomForestSRC::rfsrc()' [4].
+  * Performs statistical testing of whether the ensemble has outperformed the Cox model.
 
 The performance metrics include [5]:
  * Discrimination measures: Harrell's concordance index, time-dependent AUCROC.
  * Calibration measures: calibration slope, calibration alpha.
  * Overall fit: Brier score, Scaled Brier score. 
+
+NB: Survcompare is the first ensemble method described in https://dianashams.github.io/ensemble-methods-for-survival-analysis/ as published in [Shamsutdinova, D., Stamate, D., Roberts, A., & Stahl, D. (2022, June). Combining Cox Model and Tree-Based Algorithms to Boost Performance and Preserve Interpretability for Health Outcomes. In IFIP International Conference on Artificial Intelligence Applications and Innovations (pp. 170-181). Cham: Springer International Publishing.]
 
 ### Getting started 
 You can install the package from its github directory by running the `devtools::install_github("dianashams/survcompare")` command. The main function to use is `survcompare(data, predictors)`. The data should be in a form of a data frame, with "time" and "event" columns defining the survival outcome. A list of column names corresponding to the predictors to be used should also be supplied.
@@ -75,11 +74,9 @@ compare_models$main_stats
 # C_score_SRF_Ensemble 0.7361651 0.06201633 0.6460198 0.8730571
 # AUCROC_CoxPH         0.6042905 0.11296335 0.4113758 0.8046243
 # AUCROC_SRF_Ensemble  0.7547585 0.06677083 0.6431052 0.8716964
-
 ```
 
 ### If you use the package or its code, please cite:
-
 Shamsutdinova, D., Stamate, D., Roberts, A., & Stahl, D. (2022). Combining Cox Model and Tree-Based Algorithms to Boost Performance and Preserve Interpretability for Health Outcomes. In IFIP International Conference on Artificial Intelligence Applications and Innovations (pp. 170-181). Springer, Cham.
 
 ### Support or Contact
