@@ -39,41 +39,43 @@ There are two possible outcomes: "Survival Random Forest ensemble has outperform
 ### Example:
 The files in the "Example/" folder illustrate `survcompare`'s  application to the simulated and GBSG2  (https://rdrr.io/cran/pec/man/GBSG2.html) datasets. The outputs contain  internally-validated performance metrics along with the results of the statistical testing of whether Survival Random Forest outperforms the Cox Proportionate Hazard model (or Cox Lasso).  
 ```R
-mydata <- simsurv_crossterms(500)
+mydata <- simulate_crossterms()
 mypredictors <- names(mydata)[1:4]
-compare_models <- survcompare(mydata, mypredictors, predict_t = 10, inner_cv = 3, repeat_cv = 5)
+compare_models <- survcompare(mydata, mypredictors, predict_t = 10)
 
-# [1] "Cross-validating Cox-PH ( 5 repeat(s), 3 loops)"
-# |===============================================================| 100%
-# [1] "Cross-validating Survival Random Forest - Cox model ensemble ( 5 repeat(s), 3 outer, 3 inner loops)"
-# |===============================================================| 100%
-# Time difference of 22.68073 secs
+# [1] "Cross-validating Survival Random Forest - Cox model ensemble ( 5 repeat(s), 5 outer, 3 inner loops)"
+# |========================================================================================| 100%
+# Time difference of 1.574276 secs
+# [1] "Cross-validating Survival Random Forest - Cox model ensemble ( 5 repeat(s), 5 outer, 3 inner loops)"
+# |========================================================================================| 100%
+# Time difference of 27.41951 secs
 # 
 # Internally validated test performance of CoxPH     and Survival Random Forest ensemble:
 #                T C_score AUCROC      BS BS_scaled Calib_slope Calib_alpha   sec
-# CoxPH         10  0.6484 0.6502  0.1306    0.1714      0.7985      0.2242  1.18
-# SRF_Ensemble  10  0.7479 0.7601  0.1061    0.3282      0.7336      0.2361 22.68
-# Diff           0  0.0995 0.1098 -0.0245    0.1568     -0.0648      0.0119 21.50
-# pvalue       NaN  0.0000 0.0000  0.0104    0.0000      0.7684      0.3294   NaN
+# CoxPH         10  0.5937 0.6043  0.1341    0.1529      0.8507      0.1528  1.57
+# SRF_Ensemble  10  0.7362 0.7548  0.1143    0.2773      0.9432      0.2123 27.42
+# Diff           0  0.1425 0.1505 -0.0198    0.1244      0.0925      0.0595 25.85
+# pvalue       NaN  0.0000 0.0000  0.0848    0.0000      0.2785      0.0958   NaN
 # 
-# Survival Random Forest ensemble has outperformed CoxPH    by 0.0995 in C-index.
-# The difference is statistically significant with the p-value = 0***.
+# Survival Random Forest ensemble has outperformed CoxPH    by 0.1425 in C-index.
+# The difference is statistically significant with the p-value 0***.
 # The supplied data may contain non-linear or cross-term dependencies, 
 # better captured by the Survival Random Forest.
 # C-score: 
-#   CoxPH      0.6484(95CI=0.5491-0.7104;SD=0.0476)
-# SRF_Ensemble 0.7479(95CI=0.6933-0.8316;SD=0.0433)
+#   CoxPH      0.5937(95CI=0.4171-0.7671;SD=0.1026)
+# SRF_Ensemble 0.7362(95CI=0.646-0.8731;SD=0.062)
 # AUCROC:
-#   CoxPH      0.6502(95CI=0.5428-0.7078;SD=0.0484)
-# SRF_Ensemble 0.7601(95CI=0.6986-0.8381;SD=0.045)
+#   CoxPH      0.6043(95CI=0.4114-0.8046;SD=0.113)
+# SRF_Ensemble 0.7548(95CI=0.6431-0.8717;SD=0.0668)
 
 compare_models$main_stats
 
 #                           mean         sd   95CILow  95CIHigh
-# C_score_CoxPH        0.6483860 0.04764071 0.5491227 0.7103612
-# C_score_SRF_Ensemble 0.7478547 0.04332483 0.6933300 0.8315516
-# AUCROC_CoxPH         0.6502224 0.04842263 0.5428135 0.7077804
-# AUCROC_SRF_Ensemble  0.7600702 0.04495999 0.6985573 0.8381287
+# C_score_CoxPH        0.5936962 0.10258552 0.4171451 0.7671053
+# C_score_SRF_Ensemble 0.7361651 0.06201633 0.6460198 0.8730571
+# AUCROC_CoxPH         0.6042905 0.11296335 0.4113758 0.8046243
+# AUCROC_SRF_Ensemble  0.7547585 0.06677083 0.6431052 0.8716964
+
 ```
 
 ### If you use the package or its code, please cite:
@@ -81,7 +83,13 @@ compare_models$main_stats
 Shamsutdinova, D., Stamate, D., Roberts, A., & Stahl, D. (2022). Combining Cox Model and Tree-Based Algorithms to Boost Performance and Preserve Interpretability for Health Outcomes. In IFIP International Conference on Artificial Intelligence Applications and Innovations (pp. 170-181). Springer, Cham.
 
 ### Support or Contact
-diana.shamsutdinova@kcl.ac.uk
+If you have any comments, suggestions, corrections or enchancements, kindly submit an issue on the
+<https://github.com/dianashams/survcompare/issues> or email to diana.shamsutdinova.github@gmail.com.
+
+### Disclaimer
+This R package is offered free and without warranty of any kind, either expressed or implied. The package authors will not be held liable to you for any damage arising out of the use, modification or inability to use this program. This R package can be used, redistributed and/or modified freely for non-commercial purposes subject to the original source being properly cited. Licensed under GPL-3.
+
+The authors received financial support by the National Institute for Health Research (NIHR) Biomedical Research Centre at South London and Maudsley NHS Foundation Trust and King’s College London. The views expressed are those of the author(s) and not necessarily those of the NHS, the NIHR or the Department of Health.
 
 ### Links and references: 
 ##### References:
