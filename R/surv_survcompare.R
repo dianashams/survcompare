@@ -25,7 +25,6 @@
 #' @importFrom stats coef
 #' @importFrom stats binomial
 #' @importFrom stats poisson
-#' @importFrom foreach foreach
 #' @importFrom stats predict
 #' @importFrom stats sd
 #' @importFrom randomForestSRC rfsrc
@@ -45,7 +44,8 @@
 #' @return outcome = list(data frame with performance results, fitted Cox models, fitted SRF)
 #' @examples
 #' df <-simulate_nonlinear(100)
-#' mysurvcomp <- survcompare(df, names(df)[1:4], srf_tuning = list("mtry" = c(2), "nodedepth"=c(25), "nodesize" =c(15)))
+#' srf_params <- list("mtry" = c(2), "nodedepth"=c(25), "nodesize" =c(15))
+#' mysurvcomp <- survcompare(df, names(df)[1:4], srf_tuning = srf_params)
 #' summary(mysurvcomp)
 #' @export
 survcompare <- function(df_train,

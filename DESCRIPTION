@@ -21,8 +21,7 @@ Imports:
   caret,
   glmnet,
   randomForestSRC,
-  pec,
-  foreach
+  pec
 Roxygen: list(markdown = TRUE)
 RoxygenNote: 7.2.3
 Suggests: 

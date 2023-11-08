@@ -4,7 +4,7 @@
 #'
 #' @docType package
 #'
-#' @author Diana Shamsutdinova \email{diana.shamsutdinova@kcl.ac.uk}
+#' @author Diana Shamsutdinova \email{diana.shamsutdinova.github@gmail.com}
 #'
 #' @name survcompare
 NULL
