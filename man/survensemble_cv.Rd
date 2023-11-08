@@ -8,7 +8,7 @@ survensemble_cv(
   df,
   predict.factors,
   fixed_time = NaN,
-  cv_number = 3,
+  outer_cv = 3,
   inner_cv = 3,
   repeat_cv = 2,
   randomseed = NULL,
@@ -25,7 +25,7 @@ survensemble_cv(
 
 \item{fixed_time}{at which performance metrics are computed}
 
-\item{cv_number}{k in k-fold CV, default 3}
+\item{outer_cv}{k in k-fold CV, default 3}
 
 \item{inner_cv}{kk in the inner look of kk-fold CV, default 3}
 
@@ -37,17 +37,20 @@ survensemble_cv(
 
 \item{useCoxLasso}{TRUE/FALSE, default is FALSE}
 
-\item{srf_tuning}{list of mtry, nodedepth, nodesize to tune, default is NULL}
+\item{srf_tuning}{list of tuning parameters for random forest: 1) NULL for using a default tuning grid, or 2) a list("mtry"=c(...), "nodedepth" = c(...), "nodesize" = c(...))}
 
 \item{oob}{TRUE/FALSE use out-of-bag predictions while tuning instead of cross-validation, TRUE by default}
 }
 \value{
-output list: output$train, test, testaverage, traintaverage, time
+list of outputs
 }
 \description{
 Cross-validates predictive performance for Ensemble 1
 }
 \examples{
-df <- simulate_nonlinear(100)
-survensemble_cv(df, names(df)[1:4])
+\donttest{
+df <- simulate_nonlinear()
+ens_cv <- survensemble_cv(df, names(df)[1:4])
+summary(ens_cv)
+}
 }

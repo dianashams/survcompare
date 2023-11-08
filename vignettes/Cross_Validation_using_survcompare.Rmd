@@ -65,8 +65,9 @@ summary(coxcv)
 
 # Comments on the results: 
 # wide confidence intervals show that the data is rather heterogenious, 
-# that is, quality of predictions based on a random subsample differs 
-# substantially, e.g. AUCROC can be anywhere from 0.62 to 0.92.
+# that is, quality of predictions differs substantially depending on 
+# which random subsample was chosen as the training data
+# e.g. AUCROC can be anywhere from 0.62 to 0.92.
 # 
 # This illustrates that one should perform a repeated CV and acknowledge
 # model variance rather than relying on a single train-test, where the

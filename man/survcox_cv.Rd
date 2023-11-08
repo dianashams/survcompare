@@ -8,7 +8,7 @@ survcox_cv(
   df,
   predict.factors,
   fixed_time = NaN,
-  cv_number = 3,
+  outer_cv = 3,
   repeat_cv = 2,
   randomseed = NULL,
   return_models = FALSE,
@@ -23,7 +23,7 @@ survcox_cv(
 
 \item{fixed_time}{at which performance metrics are computed}
 
-\item{cv_number}{k in k-fold CV, default 3}
+\item{outer_cv}{k in k-fold CV, default 3}
 
 \item{repeat_cv}{if NULL, runs once, otherwise repeats CV}
 
@@ -31,18 +31,20 @@ survcox_cv(
 
 \item{return_models}{TRUE/FALSE, if TRUE returns all CV objects}
 
-\item{inner_cv}{k in the inner loop of k-fold CV, default 3}
+\item{inner_cv}{k in the inner loop of k-fold CV, default is 3; only used if CoxLasso is TRUE}
 
 \item{useCoxLasso}{TRUE/FALSE, FALSE by default}
 }
 \value{
-output list: output$train, test, testaverage, traintaverage, time,tuned_cv_models
+list of outputs
 }
 \description{
 Cross-validates Cox or CoxLasso model
 }
 \examples{
-df<- simulate_nonlinear()
-survcox_cv(df, names(df)[1:4])
-
+\donttest{
+df <- simulate_nonlinear()
+coxph_cv <- survcox_cv(df, names(df)[1:4])
+summary(coxph_cv)
+}
 }

@@ -7,6 +7,7 @@
 survcoxlasso_train(
   df_train,
   predict.factors,
+  inner_cv = 5,
   fixed_time = NaN,
   retrain_cox = FALSE,
   verbose = FALSE
@@ -17,7 +18,9 @@ survcoxlasso_train(
 
 \item{predict.factors}{list of the column names to be used as predictors}
 
-\item{fixed_time}{not used here, to re-align with other methods}
+\item{inner_cv}{k in k-fold CV for lambda tuning}
+
+\item{fixed_time}{not used here, for internal use}
 
 \item{retrain_cox}{whether to re-train coxph on non-zero predictors; FALSE by default}
 

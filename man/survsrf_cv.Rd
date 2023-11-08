@@ -8,7 +8,7 @@ survsrf_cv(
   df,
   predict.factors,
   fixed_time = NaN,
-  cv_number = 3,
+  outer_cv = 3,
   repeat_cv = 2,
   randomseed = NULL,
   return_models = FALSE,
@@ -24,7 +24,7 @@ survsrf_cv(
 
 \item{fixed_time}{at which performance metrics are computed}
 
-\item{cv_number}{k in k-fold CV, default 3}
+\item{outer_cv}{k in k-fold CV, default 3}
 
 \item{repeat_cv}{if NULL, runs once, otherwise repeats CV}
 
@@ -32,19 +32,22 @@ survsrf_cv(
 
 \item{return_models}{TRUE/FALSE, if TRUE returns all CV objects}
 
-\item{inner_cv}{k in the inner loop of k-fold CV, default 3}
+\item{inner_cv}{k in the inner loop of k-fold CV for SRF hyperparameters tuning, default is 3}
 
-\item{srf_tuning}{list of candidate mtry, nodedepth and nodesize, default is NULL}
+\item{srf_tuning}{list of tuning parameters for random forest: 1) NULL for using a default tuning grid, or 2) a list("mtry"=c(...), "nodedepth" = c(...), "nodesize" = c(...))}
 
 \item{oob}{TRUE/FALSE use out-of-bag prediction accuracy while tuning instead of cross-validation, TRUE by defaul}
 }
 \value{
-output list: output$train, test, testaverage, traintaverage, time
+list of outputs
 }
 \description{
 Cross-validates SRF model
 }
 \examples{
-df <- simulate_nonlinear(100)
-survsrf_cv(df, names(df)[1:4])
+\donttest{
+df <- simulate_nonlinear()
+srf_cv <- survsrf_cv(df, names(df)[1:4])
+summary(srf_cv)
+}
 }

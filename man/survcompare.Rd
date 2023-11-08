@@ -34,7 +34,7 @@ survcompare(
 
 \item{inner_cv}{k in k-fold CV for internal CV to tune survival random forest hyper-parameters}
 
-\item{srf_tuning}{list of tuning parameters for random forest, NULL for default list, or a list, e.g. list("mtry"=c(3,6,16), "ndepth" = c(3,6,19))}
+\item{srf_tuning}{list of tuning parameters for random forest: 1) NULL for using a default tuning grid, or 2) a list("mtry"=c(...), "nodedepth" = c(...), "nodesize" = c(...))}
 
 \item{return_models}{TRUE/FALSE to return the trained models; default is FALSE, only performance is returned}
 
@@ -68,9 +68,11 @@ the predictive power of the supplied predictors.
 Cross-validates and compares Cox Proportionate Hazards and Survival Random Forest models
 }
 \examples{
-df <-simulate_nonlinear(100)
-survcompare(df, names(df)[1:4])
-
+\donttest{
+df <-simulate_nonlinear()
+mysurvcomp <- survcompare(df, names(df)[1:4], srf_tuning = FALSE)
+summary(mysurvcomp)
+}
 }
 \author{
 Diana Shamsutdinova \email{diana.shamsutdinova@kcl.ac.uk}

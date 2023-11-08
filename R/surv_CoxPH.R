@@ -7,26 +7,28 @@
 #' @param fixed_time  target time, NaN by default; needed here only to re-align with other methods
 #' @param useCoxLasso  TRUE or FALSE
 #' @param retrain_cox if useCoxLasso is TRUE, whether to re-train coxph on non-zero predictors, FALSE by default
+#' @param inner_cv k in k-fold CV for training lambda for Cox Lasso, only used for useCoxLasso = TRUE
 #' @return fitted CoxPH or CoxLasso model
 #' @export
 survcox_train <- function(df_train,
                           predict.factors,
                           fixed_time = NaN,
                           useCoxLasso = FALSE,
-                          retrain_cox = FALSE) {
+                          retrain_cox = FALSE,
+                          inner_cv = 5) {
   Call <- match.call()
   indx <-
     pmatch(c("df_train", "predict.factors"), names(Call), nomatch = 0)
   if (indx[1] * indx[2] == 0) {
     stop("Please supply data and predictors")
   }
-  
+
   stopifnot(
     "The data is not a data frame" = inherits(df_train, "data.frame"),
     "Predictors are not found" = inherits(predict.factors, "character"),
     "Predictors are not in the data supplied" = predict.factors %in% colnames(df_train)
   )
-  
+
   # wrapper for coxph() function returning a trained Cox model
   if (useCoxLasso == FALSE) {
     cox.m <- NULL
@@ -51,7 +53,7 @@ survcox_train <- function(df_train,
     }
     return(cox.m)
   } else {
-    return(survcoxlasso_train(df_train, predict.factors))
+    return(survcoxlasso_train(df_train, predict.factors, inner_cv))
   }
 }
 
@@ -60,13 +62,15 @@ survcox_train <- function(df_train,
 #'
 #' @param df_train  data frame with the data, "time" and "event" should describe survival outcome
 #' @param predict.factors list of the column names to be used as predictors
-#' @param fixed_time  not used here, to re-align with other methods
+#' @param inner_cv k in k-fold CV for lambda tuning
+#' @param fixed_time  not used here, for internal use
 #' @param retrain_cox whether to re-train coxph on non-zero predictors; FALSE by default
 #' @param verbose TRUE/FALSE prints warnings if no predictors in Lasso
 #' @return fitted CoxPH object with coefficient of CoxLasso or re-trained CoxPH with non-zero CoxLasso if retrain_cox = FALSE or TRUE
 #' @export
 survcoxlasso_train <- function(df_train,
                                predict.factors,
+                               inner_cv = 5,
                                fixed_time = NaN,
                                retrain_cox = FALSE,
                                verbose = FALSE) {
@@ -74,19 +78,19 @@ survcoxlasso_train <- function(df_train,
     is.data.frame(df_train)
     predict.factors %in% colnames(df_train)
   })
-  
+
   cox.m <- NULL
   try({
     cv10 <- glmnet::cv.glmnet(
       as.matrix(df_train[predict.factors]),
       survival::Surv(df_train$time, df_train$event),
       family = "cox",
-      nfold = 5,
+      nfold = inner_cv,
       alpha = 1
     )
     new.predictors <-
       rownames(coef(cv10, s = "lambda.min"))[as.matrix(coef(cv10, s = "lambda.min")) != 0]
-    
+
     if (length(new.predictors) == 0) {
       if (verbose) {
         print("0 predictors in lasso!")
@@ -139,7 +143,7 @@ survcox_predict <- function(trained_model,
                             fixed_time,
                             interpolation = "constant") {
   # returns event probability from trained cox model trained_model
-  
+
   #checks
   if (!inherits(trained_model, "coxph")) {
     stop("Supply coxph model.")
@@ -155,14 +159,14 @@ survcox_predict <- function(trained_model,
       dim(newdata)[1] == 0 |
       dim(newdata)[2] == 0)
     stop("Empty or NULL data is supplied.")
-  
+
   # define bh - baseline hazard as dataframe with "time" and "hazard"
   # if baseline hazard can't be calibrated, # return mean(y) for all fixed_time
   # we take baseline hazard from K-M estimate and lp from Cox !!!! :((
   temp <- try(survival::basehaz(trained_model), silent = TRUE)
   explp <-
     predict(trained_model, newdata, type = "risk") #exp(beta x X)
-  
+
   if (inherits(temp, "try-error")) {
     bh <-
       summary(survival::survfit(trained_model$y ~ 1), fixed_time)$cumhaz
@@ -178,18 +182,18 @@ survcox_predict <- function(trained_model,
     bh <- temp
   }
   remove(temp)
-  
+
   # define bh as function to compute bh for any time
   bh_approx <-
     stats::approxfun(bh[, "time"], bh[, "hazard"], method = interpolation)
-  
+
   # define bh_extrap how to extrapolate outside of training data times
   # although this is not recommended, it is necessary to make code work when
   # training data is by chance (durgin cross-validation train-test split)
   # has limited time range
   temp <-
     try(stats::lm(hazard ~ poly(time, 3, raw = TRUE), data = bh), silent = TRUE)
-  
+
   if (!inherits(temp, "try-error")) {
     extrap <- temp
     bh_extrap <- function(x) {
@@ -245,22 +249,23 @@ survcox_predict <- function(trained_model,
 #' @param df data frame with the data, "time" and "event" for survival outcome
 #' @param predict.factors list of predictor names
 #' @param fixed_time  at which performance metrics are computed
-#' @param cv_number k in k-fold CV, default 3
+#' @param outer_cv k in k-fold CV, default 3
 #' @param repeat_cv if NULL, runs once, otherwise repeats CV
 #' @param randomseed random seed
 #' @param return_models TRUE/FALSE, if TRUE returns all CV objects
-#' @param inner_cv k in the inner loop of k-fold CV, default 3
+#' @param inner_cv k in the inner loop of k-fold CV, default is 3; only used if CoxLasso is TRUE
 #' @param useCoxLasso TRUE/FALSE, FALSE by default
-#' @examples
-#' df<- simulate_nonlinear()
-#' survcox_cv(df, names(df)[1:4])
-#' 
-#' @return output list: output$train, test, testaverage, traintaverage, time,tuned_cv_models
+#' @examples \donttest{
+#' df <- simulate_nonlinear()
+#' coxph_cv <- survcox_cv(df, names(df)[1:4])
+#' summary(coxph_cv)
+#' }
+#' @return list of outputs
 #' @export
 survcox_cv <- function(df,
                        predict.factors,
                        fixed_time = NaN,
-                       cv_number = 3,
+                       outer_cv = 3,
                        repeat_cv = 2,
                        randomseed = NULL,
                        return_models = FALSE,
@@ -271,14 +276,15 @@ survcox_cv <- function(df,
     df = df,
     predict.factors = predict.factors,
     fixed_time = fixed_time,
-    cv_number = cv_number,
+    outer_cv = outer_cv,
     inner_cv = inner_cv,
     repeat_cv = repeat_cv,
     randomseed = randomseed,
     return_models = return_models,
     train_function = survcox_train,
     predict_function = survcox_predict,
-    model_args = list("useCoxLasso" = useCoxLasso)
+    model_args = list("useCoxLasso" = useCoxLasso),
+    model_name = "Cox PH model"
   )
   output$call <- Call
   return(output)

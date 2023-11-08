@@ -38,15 +38,16 @@
 #' @param useCoxLasso TRUE / FALSE, for whether to use regularized version of the Cox model, FALSE is default
 #' @param outer_cv k in k-fold CV
 #' @param inner_cv k in k-fold CV for internal CV to tune survival random forest hyper-parameters
-#' @param srf_tuning list of tuning parameters for random forest, NULL for default list, or a list, e.g. list("mtry"=c(3,6,16), "ndepth" = c(3,6,19))
+#' @param srf_tuning list of tuning parameters for random forest: 1) NULL for using a default tuning grid, or 2) a list("mtry"=c(...), "nodedepth" = c(...), "nodesize" = c(...))
 #' @param return_models TRUE/FALSE to return the trained models; default is FALSE, only performance is returned
 #' @param repeat_cv if NULL, runs once, otherwise repeats several times with different random split for CV, reports average of all
 #' @param train_srf TRUE/FALSE for whether to train SRF on its own, apart from the CoxPH->SRF ensemble. Default is FALSE as there is not much information in SRF itself compared to the ensembled version.
 #' @return outcome = list(data frame with performance results, fitted Cox models, fitted SRF)
-#' @examples
-#' df <-simulate_nonlinear(100)
-#' survcompare(df, names(df)[1:4])
-#'
+#' @examples \donttest{
+#' df <-simulate_nonlinear()
+#' mysurvcomp <- survcompare(df, names(df)[1:4], srf_tuning = FALSE)
+#' summary(mysurvcomp)
+#' }
 #' @export
 survcompare <- function(df_train,
                         predict_factors,
@@ -76,7 +77,7 @@ survcompare <- function(df_train,
     df = df_train,
     predict.factors = predict_factors,
     fixed_time = predict_time ,
-    cv_number = outer_cv,
+    outer_cv = outer_cv,
     randomseed = randomseed,
     useCoxLasso = useCoxLasso,
     return_models = return_models,
@@ -87,7 +88,7 @@ survcompare <- function(df_train,
       df = df_train,
       predict.factors = predict_factors,
       fixed_time = predict_time,
-      cv_number = outer_cv,
+      outer_cv = outer_cv,
       inner_cv = inner_cv,
       randomseed = randomseed,
       return_models = return_models,
@@ -99,7 +100,7 @@ survcompare <- function(df_train,
     df = df_train,
     predict.factors = predict_factors,
     fixed_time = predict_time,
-    cv_number = outer_cv,
+    outer_cv = outer_cv,
     inner_cv = inner_cv,
     randomseed = randomseed,
     return_models = return_models,

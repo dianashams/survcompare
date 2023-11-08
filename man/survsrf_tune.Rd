@@ -7,7 +7,7 @@
 survsrf_tune(
   df_tune,
   predict.factors,
-  cv_number = 3,
+  inner_cv = 3,
   fixed_time = NaN,
   randomseed = NULL,
   mtry = c(3, 4, 5),
@@ -22,7 +22,7 @@ survsrf_tune(
 
 \item{predict.factors}{predictor names}
 
-\item{cv_number}{k in k-fold CV, applied if oob=FALSE}
+\item{inner_cv}{k in k-fold CV, applied if oob=FALSE}
 
 \item{fixed_time}{NaN}
 

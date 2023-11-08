@@ -10,7 +10,8 @@ survcox_train(
   predict.factors,
   fixed_time = NaN,
   useCoxLasso = FALSE,
-  retrain_cox = FALSE
+  retrain_cox = FALSE,
+  inner_cv = 5
 )
 }
 \arguments{
@@ -23,6 +24,8 @@ survcox_train(
 \item{useCoxLasso}{TRUE or FALSE}
 
 \item{retrain_cox}{if useCoxLasso is TRUE, whether to re-train coxph on non-zero predictors, FALSE by default}
+
+\item{inner_cv}{k in k-fold CV for training lambda for Cox Lasso, only used for useCoxLasso = TRUE}
 }
 \value{
 fitted CoxPH or CoxLasso model

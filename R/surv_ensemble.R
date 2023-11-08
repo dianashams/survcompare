@@ -37,15 +37,15 @@ survensemble_train <- function(df_train,
   # we train Cox model on 0.9 of the data and predict
   # on the rest 0.1 for each 1/10s fold
   # so we pass out-of-the-bag prediction to SRF
-  
+
   Call <- match.call()
-  
+
   predict.factors <- eligible_params(predict.factors, df_train)
   if (length(predict.factors) == 0) {
     print("No eliible params")
     return(NULL)
   }
-  
+
   # defining output for fixed_time
   if (sum(is.nan(fixed_time)) > 0) {
     fixed_time <-
@@ -76,7 +76,7 @@ survensemble_train <- function(df_train,
     df_train[cv_folds == cv_iteration, "cox_predict"] <-
       cox_predict_oob
   }
-  
+
   # adding Cox predictions as a new factor to tune SRF
   predict.factors.1A <- c(predict.factors, "cox_predict")
   ensemble1_model <-
@@ -90,7 +90,7 @@ survensemble_train <- function(df_train,
       fast_version = fast_version,
       oob = oob
     )
-  
+
   if (var_importance_calc) {
     v <- randomForestSRC::vimp(ensemble1_model$model,
                                importance = "permute",
@@ -100,11 +100,11 @@ survensemble_train <- function(df_train,
   } else {
     vimp10 <- c(NaN)
   }
-  
+
   #base cox model
   cox_base_model <-
     survcox_train(df_train, predict.factors, useCoxLasso = useCoxLasso)
-  
+
   #output
   ensemble1_model$vimp10 <- vimp10
   ensemble1_model$model_base <- cox_base_model
@@ -139,7 +139,7 @@ predict.survensemble <- function(object,
   if (!inherits(newdata, "data.frame")) {
     stop("The data should be a data frame")
   }
-  
+
   # use model_base with the base Cox model to find cox_predict
   newdata$cox_predict <- survcox_predict(object$model_base,
                                          newdata, fixed_time)
@@ -156,23 +156,25 @@ predict.survensemble <- function(object,
 #' @param df data frame with the data, "time" and "event" for survival outcome
 #' @param predict.factors list of predictor names
 #' @param fixed_time  at which performance metrics are computed
-#' @param cv_number k in k-fold CV, default 3
+#' @param outer_cv k in k-fold CV, default 3
 #' @param inner_cv kk in the inner look of kk-fold CV, default 3
 #' @param repeat_cv if NULL, runs once (or 1), otherwise repeats CV
 #' @param randomseed random seed
 #' @param return_models TRUE/FALSE, if TRUE returns all CV objects
 #' @param useCoxLasso TRUE/FALSE, default is FALSE
-#' @param srf_tuning list of mtry, nodedepth, nodesize to tune, default is NULL
+#' @param srf_tuning list of tuning parameters for random forest: 1) NULL for using a default tuning grid, or 2) a list("mtry"=c(...), "nodedepth" = c(...), "nodesize" = c(...))
 #' @param oob TRUE/FALSE use out-of-bag predictions while tuning instead of cross-validation, TRUE by default
-#' @examples
-#' df <- simulate_nonlinear(100)
-#' survensemble_cv(df, names(df)[1:4])
-#' @return output list: output$train, test, testaverage, traintaverage, time
+#' @examples \donttest{
+#' df <- simulate_nonlinear()
+#' ens_cv <- survensemble_cv(df, names(df)[1:4])
+#' summary(ens_cv)
+#' }
+#' @return list of outputs
 #' @export
 survensemble_cv <- function(df,
                             predict.factors,
                             fixed_time = NaN,
-                            cv_number = 3,
+                            outer_cv = 3,
                             inner_cv = 3,
                             repeat_cv = 2,
                             randomseed = NULL,
@@ -185,7 +187,7 @@ survensemble_cv <- function(df,
     df = df,
     predict.factors = predict.factors,
     fixed_time = fixed_time,
-    cv_number = cv_number,
+    outer_cv = outer_cv,
     inner_cv = inner_cv,
     repeat_cv = repeat_cv,
     randomseed = randomseed,
@@ -196,7 +198,8 @@ survensemble_cv <- function(df,
       "useCoxLasso" = useCoxLasso,
       "srf_tuning" = srf_tuning,
       "oob" = oob
-    )
+    ),
+    model_name = "CoxPH and SRF Ensemble"
   )
   output$call <- Call
   return(output)
@@ -238,7 +241,7 @@ summary.survensemble <- function(object, ...) {
   print(object$model_base)
   cat("\n=> Items available as object$item are: ")
   cat(names(object), sep = ", ")
-  
+
 }
 
 ##################################################################
@@ -267,7 +270,7 @@ summary.survensemble_cv <- function(object, ...) {
     stop("Not a \"survensemble_cv\" object")
   }
   cat("Cross-validation results\n")
-  
+
   if (!is.null(cl <- object$call)) {
     cat("Call:\n")
     dput(cl)

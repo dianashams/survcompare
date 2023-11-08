@@ -2,7 +2,7 @@ surv_CV <-
   function(df,
            predict.factors,
            fixed_time = NaN,
-           cv_number = 3,
+           outer_cv = 3,
            inner_cv = 3,
            repeat_cv = 2,
            randomseed = NULL,
@@ -10,12 +10,13 @@ surv_CV <-
            train_function,
            predict_function,
            model_args = list(),
-           predict_args = list()) {
+           predict_args = list(),
+           model_name = "a model") {
     time_0 <- Sys.time()
     if (is.null(randomseed)) {
       randomseed <- round(stats::runif(1) * 1e9, 0)
     }
-    
+
     if (!any(
       is.data.frame(df),
       predict.factors %in% colnames(df),
@@ -23,18 +24,18 @@ surv_CV <-
     )) {
       stop("Data should be a data frame, predictors should correspond to the columns.")
     }
-    
+
     if (sum(is.nan(fixed_time)) > 0) {
       fixed_time <- round(quantile(df[df$event == 1, "time"], 0.9), 1)
     }
     predict.factors <- eligible_params(predict.factors, df)
-    
+
     if (length(predict.factors) == 0) {
       print("No eligible params")
       return(NULL)
     }
     Call <- match.call()
-    
+
     #defining number of repeated cv
     if (is.null(repeat_cv)) {
       repeat_cv = 1
@@ -44,27 +45,29 @@ surv_CV <-
     } else{
       repeat_cv = 1
     }
-    
+
     print(
       paste(
-        "Cross-validating Survival Random Forest - Cox model ensemble ( ",
+        "Cross-validating ",
+        model_name,
+        " using ",
         repeat_cv,
         " repeat(s), ",
-        cv_number,
+        outer_cv,
         " outer, ",
         inner_cv,
         " inner loops)",
         sep = ""
       )
     )
-    
+
     modelstats_train <- list()
     modelstats_test <- list()
     models_for_each_cv <- list()
     #progress bar
-    pb <- utils::txtProgressBar(0, cv_number * repeat_cv, style = 3)
-    utils::setTxtProgressBar(pb, cv_number * repeat_cv / 50)
-    
+    pb <- utils::txtProgressBar(0, outer_cv * repeat_cv, style = 3)
+    utils::setTxtProgressBar(pb, outer_cv * repeat_cv / 50)
+
     # cross-validation loop
     for (rep_cv in 1:repeat_cv) {
       set.seed(randomseed + rep_cv)
@@ -72,9 +75,9 @@ surv_CV <-
         df <- df[sample(1:nrow(df)), ]
       }
       cv_folds <-
-        caret::createFolds(df$event, k = cv_number, list = FALSE)
-      
-      for (cv_iteration in 1:cv_number) {
+        caret::createFolds(df$event, k = outer_cv, list = FALSE)
+
+      for (cv_iteration in 1:outer_cv) {
         df_train_cv <- df[cv_folds != cv_iteration,]
         df_test_cv <- df[cv_folds == cv_iteration,]
         # tune the model using train_function
@@ -94,41 +97,41 @@ surv_CV <-
                     list(trained_model, df_train_cv, fixed_time),
                     predict_args
                   ))
-        modelstats_test[[cv_iteration + (rep_cv - 1) * cv_number]] <-
+        modelstats_test[[cv_iteration + (rep_cv - 1) * outer_cv]] <-
           surv_validate(y_predict_test,
                         fixed_time,
                         df_train_cv,
                         df_test_cv,
                         weighted = 1)
-        modelstats_train[[cv_iteration + (rep_cv - 1) * cv_number]] <-
+        modelstats_train[[cv_iteration + (rep_cv - 1) * outer_cv]] <-
           surv_validate(y_predict_train,
                         fixed_time,
                         df_train_cv,
                         df_train_cv,
                         weighted = 1)
         if (return_models) {
-          models_for_each_cv[[cv_iteration + (rep_cv - 1) * cv_number]] <-
+          models_for_each_cv[[cv_iteration + (rep_cv - 1) * outer_cv]] <-
             trained_model
         }
-        utils::setTxtProgressBar(pb, cv_iteration + (rep_cv - 1) * cv_number)
+        utils::setTxtProgressBar(pb, cv_iteration + (rep_cv - 1) * outer_cv)
       }
     }
-    
+
     df_modelstats_test <- data.frame(modelstats_test[[1]])
     df_modelstats_train <- data.frame(modelstats_train[[1]])
-    
-    for (i in 2:(cv_number * repeat_cv)) {
+
+    for (i in 2:(outer_cv * repeat_cv)) {
       df_modelstats_test[i, ] <- modelstats_test[[i]]
       df_modelstats_train[i, ] <- modelstats_train[[i]]
     }
-    row.names(df_modelstats_train) <- 1:(cv_number * repeat_cv)
-    row.names(df_modelstats_test) <- 1:(cv_number * repeat_cv)
-    
-    utils::setTxtProgressBar(pb, cv_number * repeat_cv)
+    row.names(df_modelstats_train) <- 1:(outer_cv * repeat_cv)
+    row.names(df_modelstats_test) <- 1:(outer_cv * repeat_cv)
+
+    utils::setTxtProgressBar(pb, outer_cv * repeat_cv)
     close(pb)
     df_modelstats_test$test <- 1
     df_modelstats_train$test <- 0
-    
+
     #summary for printing and summary(obj)
     stats_summary <- function(x) {
       #remove the last column ("test" 1 or 0)
@@ -148,7 +151,7 @@ surv_CV <-
       "test" = stats_summary(df_modelstats_test),
       "train" = stats_summary(df_modelstats_train)
     ))
-    
+
     output <- list()
     output$test <- df_modelstats_test
     output$train <- df_modelstats_train
@@ -159,7 +162,7 @@ surv_CV <-
     output$tuned_cv_models <- models_for_each_cv
     output$randomseed <- randomseed
     output$call <- Call
-    output$cv <- c(cv_number, inner_cv, repeat_cv)
+    output$cv <- c(outer_cv, inner_cv, repeat_cv)
     output$summarydf <- summarydf
     class(output) <- "survensemble_cv"
     time_1 <- Sys.time()
