@@ -63,14 +63,14 @@ survcompare <- function(df_train,
     "The data is not a data frame" = is.data.frame(df_train),
     "Predictors are not in the data supplied" = predict_factors %in% colnames(df_train)
   )
-  
+
   if (is.null(randomseed)) {
     randomseed <- round(stats::runif(1) * 1e9, 0) + 1
   }
   if (is.null(predict_time)) {
     predict_time <- quantile(df_train[df_train$event == 1, "time"], 0.9)
   }
-  
+
   # cross-validation
   cox_cv <- survcox_cv(
     df = df_train,
@@ -107,9 +107,9 @@ survcompare <- function(df_train,
     useCoxLasso = useCoxLasso,
     repeat_cv = repeat_cv
   )
-  
+
   # gathering the output: test&train performance
-  
+
   stats_ci <- function(x, col = "C_score") {
     temp <- x[, col]
     c(
@@ -119,7 +119,7 @@ survcompare <- function(df_train,
       "95CIHigh" = unname(quantile(temp, 0.975))
     )
   }
-  
+
   if (train_srf) {
     modelnames <-
       c(ifelse(useCoxLasso, "CoxLasso", "CoxPH"),
@@ -167,7 +167,7 @@ survcompare <- function(df_train,
       stats_ci(ens1_cv$test, "AUCROC")
     ))
   }
-  
+
   col_order <- c("T",
                  "C_score",
                  "AUCROC",
@@ -183,7 +183,7 @@ survcompare <- function(df_train,
       paste("AUCROC", modelnames, sep = "_"))
   results_mean <- results_mean[col_order]
   results_mean_train <- results_mean_train[col_order]
-  
+
   # testing outperformance of the SRF ensemble over the Cox model
   t_coxph <-
     difftest(ens1_cv$test,
@@ -195,14 +195,14 @@ survcompare <- function(df_train,
              cox_cv$train,
              dim(df_train)[1],
              length(predict_factors))
-  
+
   # adding results line for the differences with Cox-PH
-  results_mean["Diff", ] = results_mean[2, ] - results_mean[1,]
-  results_mean_train["Diff", ] = results_mean[2, ] - results_mean[1,]
-  results_mean["pvalue", ] = c(t_coxph[3,], NaN) #NaN for "sec" column
-  results_mean_train["pvalue", ] = c(t_coxph_train[3,], NaN)
+  results_mean["Diff",] = results_mean[2,] - results_mean[1, ]
+  results_mean_train["Diff",] = results_mean[2,] - results_mean[1, ]
+  results_mean["pvalue",] = c(t_coxph[3, ], NaN) #NaN for "sec" column
+  results_mean_train["pvalue",] = c(t_coxph_train[3, ], NaN)
   # __________________________________________________
-  
+
   # output
   output <- list()
   output$results_mean <- results_mean
