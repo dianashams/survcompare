@@ -540,6 +540,17 @@ survsrf_cv <- function(df,
                        srf_tuning = NULL,
                        oob = TRUE) {
   Call <- match.call()
+  inputs <- list(df , predict.factors, fixed_time,
+                 outer_cv,inner_cv, repeat_cv,
+                 randomseed, return_models,
+                 srf_tuning)
+  inputclass<- list(df = "data.frame", predict.factors = "character", fixed_time = "numeric",
+                    outer_cv = "numeric",inner_cv = "numeric", repeat_cv = "numeric",
+                    randomseed = "numeric",return_models = "logical",
+                    srf_tuning = "list")
+  cp<- check_call(inputs, inputclass, Call)
+  if (cp$anyerror) stop (paste(cp$msg[cp$msg!=""], sep=""))
+
   output <- surv_CV(
     df = df,
     predict.factors = predict.factors,

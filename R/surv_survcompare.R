@@ -59,10 +59,18 @@ survcompare <- function(df_train,
                         return_models = FALSE,
                         repeat_cv = 2,
                         train_srf = FALSE) {
-  stopifnot(
-    "The data is not a data frame" = is.data.frame(df_train),
-    "Predictors are not in the data supplied" = predict_factors %in% colnames(df_train)
-  )
+
+  Call <- match.call()
+  inputs <- list(df_train, predict_factors, predict_time,
+                 outer_cv,inner_cv, repeat_cv,
+                 randomseed, return_models,
+                 srf_tuning, useCoxLasso)
+  inputclass<- list(df_train = "data.frame", predict_factors = "character", predict_time = "numeric",
+                    outer_cv = "numeric",inner_cv = "numeric", repeat_cv = "numeric",
+                    randomseed = "numeric",return_models = "logical",
+                    srf_tuning = "list", useCoxLasso = "logical")
+  cp<- check_call(inputs, inputclass, Call)
+  if (cp$anyerror) stop (paste(cp$msg[cp$msg!=""], sep=""))
 
   if (is.null(randomseed)) {
     randomseed <- round(stats::runif(1) * 1e9, 0) + 1

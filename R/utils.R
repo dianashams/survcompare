@@ -23,16 +23,16 @@ surv_brierscore <-
       survival_prob_km(df_brier_train, df_newdata$time, estimate_censoring = TRUE)
     df_newdata$p_km_obs <-
       pmax(pmin(df_newdata$p_km_obs, 0.9999), 0.0001)
-    
+
     # ! impute with mean observations if can't estimate !
     df_newdata[is.na(df_newdata$p_km_obs), "p_km_obs"] <-
       mean(df_newdata$p_km_obs, na.rm = 1)
-    
+
     p_km_t <-
       survival_prob_km(df_brier_train, time_points, estimate_censoring = TRUE)
     p_km_t <- pmax(pmin(p_km_t, 0.9999), 0.0001)
     p_km_t
-    
+
     bs <- c()
     for (j in 1:length(time_points)) {
       # assign t_point and predicted  probabilities
@@ -50,7 +50,7 @@ surv_brierscore <-
       id_case <-
         ((df_newdata$time <= t_point) & (df_newdata$event == 1))
       id_control <- (df_newdata$time > t_point)
-      
+
       # compute BS with weights which are 1/G(t) for controls and 1/G(obs_i) for cases
       # if weights == false, use w=1 for all
       if (weighted == TRUE) {
@@ -133,7 +133,7 @@ surv_validate <- function(y_predict,
   c_score <- c()
   calibration_slope <- c()
   calibration_alpha <- c()
-  
+
   for (i in 1:length(predict_time)) {
     t_i <- predict_time[i]
     if (length(predict_time) > 1) {
@@ -141,7 +141,7 @@ surv_validate <- function(y_predict,
     } else {
       y_hat <- unlist(y_predict)
     }
-    
+
     temp <-
       try(timeROC::timeROC(
         T = df_test$time,
@@ -155,14 +155,14 @@ surv_validate <- function(y_predict,
     # time dependent AUC
     auc_score[i] <-
       ifelse(inherits(temp, "try-error"), NaN, temp$AUC[2])
-    
+
     # compute time-dependent Brier score:
     temp <-
       try(surv_brierscore(y_hat, df_train, df_test, t_i, weighted = weighted),
           silent = TRUE)
     brier_score_scaled[i] <- NaN
     brier_score[i] <- NaN
-    
+
     if (!inherits(temp, "try-error")) {
       brier_score[i] <- temp
       bs_base <-
@@ -171,44 +171,44 @@ surv_validate <- function(y_predict,
         df_train, df_test, t_i, weighted = weighted)
       brier_score_scaled[i] <- 1 - brier_score[i] / bs_base
     }
-    
+
     remove(temp)
-    
+
     # compute concordance - time-dependent in a sense that a predictor is
     # event probability at t_i. For Cox model it is the same for each time
     # (probabilities are always ordered according to linear predictors for any t)
-    temp <- 
+    temp <-
       try(survival::concordancefit(survival::Surv(df_test$time, df_test$event),-1 * y_hat),
           silent = TRUE)
-    
+
     c_score[i] <-
       ifelse((inherits(temp, "try-error")) |
                is.null(temp$concordance),
              NaN,
              temp$concordance)
-    
+
     # compute calibration slope and alpha:
     # 1/0 by t_i:
     df_test$event_ti <-
       ifelse(df_test$time <= t_i & df_test$event == 1, 1, 0)
-    
+
     # cut 0 and 1 predicted probabilities for the logit to work:
     df_test$predict_ti <- pmax(pmin(y_hat, 0.99999), 0.00001)
-    
+
     # Excluding censored observations before t_i, leave those with known state
     df_test_in_scope <-
       df_test[(df_test$time >= t_i) |
                 (df_test$time < t_i & df_test$event == 1),]
-    
+
     # Calibration slope and alpha.
     y_hat_hat <-
       log(df_test_in_scope$predict_ti / (1 - df_test_in_scope$predict_ti))
     y_actual_i <- df_test_in_scope$event_ti
-    
+
     temp <-
       try(stats::glm(y_actual_i ~ y_hat_hat, family = binomial(link = "logit")),
           silent = TRUE)
-    
+
     if (inherits(temp, "try-error")) {
       calibration_slope[i] <- NaN
       calibration_alpha[i] <- NaN
@@ -226,7 +226,7 @@ surv_validate <- function(y_predict,
       }
     } # end "else"
   } # end "for"
-  
+
   output <- data.frame(
     "T" = predict_time,
     "AUCROC" = auc_score,
@@ -262,19 +262,19 @@ cox_calibration_stats <-  function(cox_model, test_data) {
   if (!inherits(test_data, "data.frame")) {
     stop("The test data should be a dataframe.")
   }
-  
+
   temp <-
     try(predict(cox_model, newdata = test_data, type = "lp"), silent = TRUE)
-  
+
   if (inherits(temp, "try-error")) {
     stop ("Predictions can not be made for test data using the model provided.")
   }
-  
+
   p <-
     log(predict(cox_model, newdata = test_data, type = "expected"))
   lp <- predict(cox_model, newdata = test_data, type = "lp")
   logbase <- p - lp
-  
+
   fit1 <-
     try(stats::glm(event ~ offset(p), family = poisson, data = test_data),
         silent = TRUE)
@@ -283,18 +283,18 @@ cox_calibration_stats <-  function(cox_model, test_data) {
                    family = poisson,
                    data = test_data),
         silent = TRUE)
-  
+
   if (inherits(fit1, "try-error") |
       (inherits(fit2, "try-error"))) {
     stop("Stats computations failed.")
   }
-  
+
   #group <- cut(lp, c(-Inf, quantile(lp, (1:9) / 10), Inf))
   #fit3 <- stats::glm(event ~ -1 + group + offset(p),family = poisson,data = test_data)
-  
+
   calib_alpha <- as.numeric(fit1$coefficients[1])
   calib_slope <- as.numeric(fit2$coefficients[2])
-  
+
   return(c("calib_alpha" = calib_alpha, "calib_slope" = calib_slope))
 }
 
@@ -322,4 +322,37 @@ eligible_params <- function(params, df) {
     }
   }
   return(params_eligible)
+}
+
+
+check_call <- function(inputs, inputclass, call_to_check) {
+  #checks if inputs correspond to the right class
+  indx <-
+    match(names(call_to_check), names(inputclass), nomatch = 0)
+  indx <- indx[indx != 0]
+  classok <- rep(0, length(inputs))
+  names(classok) = names(inputclass)
+  classok[-indx] <- 1 #defaults are ok
+  msg <- vector("character", length(inputs))
+  for (i in indx) {
+    obj <- inputs[[i]]
+    class_required <- inputclass[[i]]
+    if (class(obj) == class_required) {
+      classok[i] = 1
+    } else{
+      classok[i] = 0
+      msg[i] <-
+        paste(
+          names(inputclass)[i],
+          " should be of class ",
+          class_required,
+          " (",
+          class(obj),
+          " is supplied).",
+          sep = ""
+        )
+    }
+  }
+  anyerror <- any(classok==0)
+  return(list("anyerror"=anyerror, "classok" = classok, "msg"= msg))
 }

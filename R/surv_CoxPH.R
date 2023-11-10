@@ -272,6 +272,18 @@ survcox_cv <- function(df,
                        inner_cv = 3,
                        useCoxLasso = FALSE) {
   Call <- match.call()
+  inputs <- list(df , predict.factors, fixed_time,
+                 outer_cv,inner_cv, repeat_cv,
+                 randomseed, return_models,
+                 useCoxLasso)
+  inputclass<- list(df = "data.frame", predict.factors = "character", fixed_time = "numeric",
+                    outer_cv = "numeric",inner_cv = "numeric", repeat_cv = "numeric",
+                    randomseed = "numeric",return_models = "logical",
+                    useCoxLasso = "logical")
+  cp<- check_call(inputs, inputclass, Call)
+  if (cp$anyerror) stop (paste(cp$msg[cp$msg!=""], sep=""))
+
+
   output <- surv_CV(
     df = df,
     predict.factors = predict.factors,
