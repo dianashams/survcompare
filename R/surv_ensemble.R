@@ -14,7 +14,7 @@
 #' @param fixed_time  for which the performance is maximized
 #' @param inner_cv  number of inner cycles for model tuning
 #' @param randomseed  random seed
-#' @param srf_tuning list of mtry, nodedepth and nodesize, default is NULL
+#' @param srf_tuning list of mtry, nodedepth and nodesize, to use default supply empty list()
 #' @param fast_version  TRUE/FALSE, TRUE by default
 #' @param oob FALSE/TRUE, TRUE by default
 #' @param useCoxLasso FALSE/TRUE, FALSE by default
@@ -26,7 +26,7 @@ survensemble_train <- function(df_train,
                                fixed_time = NaN,
                                inner_cv = 3,
                                randomseed = NULL,
-                               srf_tuning = NULL,
+                               srf_tuning = list(),
                                fast_version = TRUE,
                                oob = TRUE,
                                useCoxLasso = FALSE,
@@ -180,9 +180,21 @@ survensemble_cv <- function(df,
                             randomseed = NULL,
                             return_models = FALSE,
                             useCoxLasso = FALSE,
-                            srf_tuning = NULL,
+                            srf_tuning = list(),
                             oob = TRUE) {
   Call <- match.call()
+  inputs <- list(df , predict.factors, fixed_time,
+                 outer_cv,inner_cv, repeat_cv,
+                 randomseed, return_models,
+                 useCoxLasso,srf_tuning, oob)
+  inputclass<- list(df = "data.frame", predict.factors = "character", fixed_time = "numeric",
+                    outer_cv = "numeric",inner_cv = "numeric", repeat_cv = "numeric",
+                    randomseed = "numeric",return_models = "logical",
+                    useCoxLasso="logical", srf_tuning = "list", oob = "logical")
+
+  cp<- check_call(inputs, inputclass, Call)
+  if (cp$anyerror) stop (paste(cp$msg[cp$msg!=""], sep=""))
+
   output <- surv_CV(
     df = df,
     predict.factors = predict.factors,

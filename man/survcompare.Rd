@@ -13,7 +13,7 @@ survcompare(
   useCoxLasso = FALSE,
   outer_cv = 3,
   inner_cv = 3,
-  srf_tuning = NaN,
+  srf_tuning = list(),
   return_models = FALSE,
   repeat_cv = 2,
   train_srf = FALSE

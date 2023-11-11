@@ -1,5 +1,5 @@
 ---
-title: "Survcompare application"
+title: "Survcompare_application"
 output: rmarkdown::html_vignette
 vignette: >
   %\VignetteIndexEntry{survcompare_application}

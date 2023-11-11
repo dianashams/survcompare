@@ -14,7 +14,7 @@ survsrf_train(
   fixed_time = NaN,
   inner_cv = 3,
   randomseed = NULL,
-  srf_tuning = NULL,
+  srf_tuning = list(),
   fast_version = TRUE,
   oob = TRUE,
   verbose = FALSE

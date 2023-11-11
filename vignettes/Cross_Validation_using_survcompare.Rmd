@@ -1,5 +1,5 @@
 ---
-title: "CoxPH, CoxLasso and Survival Random Forest CrossValidation with survcompare"
+title: "Cross_Validation_using_survcompare"
 output: rmarkdown::html_vignette
 vignette: >
   %\VignetteIndexEntry{Cross_Validation_using_survcompare}

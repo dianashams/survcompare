@@ -14,7 +14,7 @@ survensemble_cv(
   randomseed = NULL,
   return_models = FALSE,
   useCoxLasso = FALSE,
-  srf_tuning = NULL,
+  srf_tuning = list(),
   oob = TRUE
 )
 }

@@ -29,7 +29,6 @@
 #' @importFrom stats sd
 #' @importFrom randomForestSRC rfsrc
 #' @importFrom survival coxph
-#' @importFrom pec ipcw
 #' @param df_train training data, a data frame with "time" and "event" columns to define the survival outcome
 #' @param predict_factors list of column names to be used as predictors
 #' @param predict_time prediction time of interest. If NULL, 0.90th quantile of event times is used
@@ -55,22 +54,41 @@ survcompare <- function(df_train,
                         useCoxLasso = FALSE,
                         outer_cv = 3,
                         inner_cv = 3,
-                        srf_tuning = NaN,
+                        srf_tuning = list(),
                         return_models = FALSE,
                         repeat_cv = 2,
                         train_srf = FALSE) {
 
   Call <- match.call()
-  inputs <- list(df_train, predict_factors, predict_time,
-                 outer_cv,inner_cv, repeat_cv,
-                 randomseed, return_models,
-                 srf_tuning, useCoxLasso)
-  inputclass<- list(df_train = "data.frame", predict_factors = "character", predict_time = "numeric",
-                    outer_cv = "numeric",inner_cv = "numeric", repeat_cv = "numeric",
-                    randomseed = "numeric",return_models = "logical",
-                    srf_tuning = "list", useCoxLasso = "logical")
-  cp<- check_call(inputs, inputclass, Call)
-  if (cp$anyerror) stop (paste(cp$msg[cp$msg!=""], sep=""))
+  inputs <- list(
+    df_train,
+    predict_factors,
+    predict_time,
+    outer_cv,
+    inner_cv,
+    repeat_cv,
+    randomseed,
+    return_models,
+    srf_tuning,
+    useCoxLasso
+  )
+
+  inputclass <-
+    list(
+      df_train = "data.frame",
+      predict_factors = "character",
+      predict_time = "numeric",
+      outer_cv = "numeric",
+      inner_cv = "numeric",
+      repeat_cv = "numeric",
+      randomseed = "numeric",
+      return_models = "logical",
+      srf_tuning = "list",
+      useCoxLasso = "logical"
+    )
+  cp <- check_call(inputs, inputclass, Call)
+  if (cp$anyerror)
+    stop (paste(cp$msg[cp$msg != ""], sep = ""))
 
   if (is.null(randomseed)) {
     randomseed <- round(stats::runif(1) * 1e9, 0) + 1

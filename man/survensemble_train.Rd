@@ -11,7 +11,7 @@ survensemble_train(
   fixed_time = NaN,
   inner_cv = 3,
   randomseed = NULL,
-  srf_tuning = NULL,
+  srf_tuning = list(),
   fast_version = TRUE,
   oob = TRUE,
   useCoxLasso = FALSE,
@@ -29,7 +29,7 @@ survensemble_train(
 
 \item{randomseed}{random seed}
 
-\item{srf_tuning}{list of mtry, nodedepth and nodesize, default is NULL}
+\item{srf_tuning}{list of mtry, nodedepth and nodesize, to use default supply empty list()}
 
 \item{fast_version}{TRUE/FALSE, TRUE by default}
 

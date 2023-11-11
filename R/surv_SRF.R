@@ -331,7 +331,7 @@ survsrf_train <- function(df_train,
                           fixed_time = NaN,
                           inner_cv = 3,
                           randomseed = NULL,
-                          srf_tuning = NULL,
+                          srf_tuning = list(),
                           fast_version = TRUE,
                           oob = TRUE,
                           verbose = FALSE) {
@@ -372,7 +372,7 @@ survsrf_train <- function(df_train,
   nodedepth <- c(5, 25)
 
   # update them if given in srf_tuning
-  if (is.list(srf_tuning)) {
+  if (length(srf_tuning)>0) {
     if (!is.null(srf_tuning$nodesize)) {
       nodesize = srf_tuning$nodesize
     }
@@ -520,7 +520,7 @@ survsrf_predict <- function(trained_model,
 #' @param randomseed random seed
 #' @param return_models TRUE/FALSE, if TRUE returns all CV objects
 #' @param inner_cv k in the inner loop of k-fold CV for SRF hyperparameters tuning, default is 3
-#' @param srf_tuning list of tuning parameters for random forest: 1) NULL for using a default tuning grid, or 2) a list("mtry"=c(...), "nodedepth" = c(...), "nodesize" = c(...))
+#' @param srf_tuning list of tuning parameters for random forest: 1) list() for using a default tuning grid, or 2) a list("mtry"=c(...), "nodedepth" = c(...), "nodesize" = c(...))
 #' @param oob TRUE/FALSE use out-of-bag prediction accuracy while tuning instead of cross-validation, TRUE by defaul
 #' @examples \donttest{
 #' df <- simulate_nonlinear()
@@ -537,17 +537,29 @@ survsrf_cv <- function(df,
                        randomseed = NULL,
                        return_models = FALSE,
                        inner_cv = 3,
-                       srf_tuning = NULL,
+                       srf_tuning = list(),
                        oob = TRUE) {
   Call <- match.call()
-  inputs <- list(df , predict.factors, fixed_time,
-                 outer_cv,inner_cv, repeat_cv,
-                 randomseed, return_models,
-                 srf_tuning)
-  inputclass<- list(df = "data.frame", predict.factors = "character", fixed_time = "numeric",
-                    outer_cv = "numeric",inner_cv = "numeric", repeat_cv = "numeric",
-                    randomseed = "numeric",return_models = "logical",
-                    srf_tuning = "list")
+  inputs <- list(df,
+                 predict.factors,
+                 fixed_time,
+                 outer_cv,
+                 repeat_cv,
+                 randomseed,
+                 return_models,
+                 inner_cv,
+                 srf_tuning,
+                 oob)
+  inputclass<- list(df = "data.frame",
+                    predict.factors = "character",
+                    fixed_time = "numeric",
+                    outer_cv = "numeric",
+                    repeat_cv = "numeric",
+                    randomseed = "numeric",
+                    return_models = "logical",
+                    inner_cv = "numeric",
+                    srf_tuning = "list",
+                    oob = "logical")
   cp<- check_call(inputs, inputclass, Call)
   if (cp$anyerror) stop (paste(cp$msg[cp$msg!=""], sep=""))
 

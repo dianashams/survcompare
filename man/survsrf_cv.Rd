@@ -13,7 +13,7 @@ survsrf_cv(
   randomseed = NULL,
   return_models = FALSE,
   inner_cv = 3,
-  srf_tuning = NULL,
+  srf_tuning = list(),
   oob = TRUE
 )
 }
@@ -34,7 +34,7 @@ survsrf_cv(
 
 \item{inner_cv}{k in the inner loop of k-fold CV for SRF hyperparameters tuning, default is 3}
 
-\item{srf_tuning}{list of tuning parameters for random forest: 1) NULL for using a default tuning grid, or 2) a list("mtry"=c(...), "nodedepth" = c(...), "nodesize" = c(...))}
+\item{srf_tuning}{list of tuning parameters for random forest: 1) list() for using a default tuning grid, or 2) a list("mtry"=c(...), "nodedepth" = c(...), "nodesize" = c(...))}
 
 \item{oob}{TRUE/FALSE use out-of-bag prediction accuracy while tuning instead of cross-validation, TRUE by defaul}
 }
