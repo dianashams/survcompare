@@ -46,6 +46,12 @@ surv_CV <-
       repeat_cv = 1
     }
 
+    note_srf = ifelse(
+      model_name == "Survival Random Forest",
+      "",
+      "For SRF inner CV is not used if oob = TRUE (default)."
+    )
+
     print(
       paste(
         "Cross-validating ",
@@ -56,7 +62,8 @@ surv_CV <-
         outer_cv,
         " outer, ",
         inner_cv,
-        " inner loops)",
+        " inner loops).",
+        note_srf,
         sep = ""
       )
     )
