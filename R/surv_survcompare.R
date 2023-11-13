@@ -44,7 +44,7 @@
 #' @examples
 #' df <-simulate_nonlinear(100)
 #' srf_params <- list("mtry" = c(2), "nodedepth"=c(25), "nodesize" =c(15))
-#' mysurvcomp <- survcompare(df, names(df)[1:4], srf_tuning = srf_params)
+#' mysurvcomp <- survcompare(df, names(df)[1:4], srf_tuning = srf_params, outer_cv = 2, inner_cv =2)
 #' summary(mysurvcomp)
 #' @export
 survcompare <- function(df_train,

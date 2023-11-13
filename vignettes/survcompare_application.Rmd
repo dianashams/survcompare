@@ -127,7 +127,7 @@ print(round(compare_models2$results_mean,4))
 
 Now, lets apply the package to a real life data. We will use GBSG data from the survival package (<https://rdrr.io/cran/survival/man/gbsg.html>).
 
-```{r example_3_gbsg}
+```{r example_3_gbsg, eval = FALSE}
 library(survival)
 
 #prepare the data
@@ -139,13 +139,48 @@ myfactors <-
 mygbsg <- mygbsg[c("time", "event", myfactors)]
 sum(is.na(mygbsg[myfactors])) #check if any missing data
 
-# run survcompare function
-survcompare(mygbsg, myfactors)
+# run survcompare 
+survcompare(mygbsg, myfactors, randomseed = 42, repeat_cv = 5)
+
+# [1] "Cross-validating Cox PH model using 5 repeat(s), 3 outer, 3 inner loops)"
+#   |===============================================================| 100%
+# Time difference of 1.142473 secs
+# [1] "Cross-validating CoxPH and SRF Ensemble using 5 repeat(s), 3 outer, 3 inner loops)"
+#   |===============================================================| 100%
+# Time difference of 49.34405 secs
+# 
+# Internally validated test performance of CoxPH     and Survival Random Forest ensemble:
+#                   T C_score AUCROC      BS BS_scaled Calib_slope
+# CoxPH        4.1797  0.6751 0.7203  0.2182    0.1489      1.2529
+# SRF_Ensemble 4.1797  0.6938 0.7279  0.2162    0.1567      1.3961
+# Diff         0.0000  0.0187 0.0076 -0.0020    0.0078      0.1432
+# pvalue          NaN  0.0000 0.0744  0.4534    0.0919      0.0229
+#              Calib_alpha   sec
+# CoxPH             0.4193  1.14
+# SRF_Ensemble      0.4186 49.34
+# Diff             -0.0007 48.20
+# pvalue            0.5410   NaN
 
 ```
 
-We got the following results (depending on random seed, it may slightly differ):
+We got the following results (depending on a random seed, it may slightly differ):
 
-"Survival Random Forest ensemble has outperformed CoxPH by 0.0134 in C-index. The difference is statistically significant with the p-value 0.00074325\*\*\*. The supplied data may contain non-linear or cross-term dependencies, better captured by the Survival Random Forest. C-score: CoxPH 0.6762(95CI=0.6327-0.7151;SD=0.0272), SRF_Ensemble 0.6895(95CI=0.648-0.7293;SD=0.0254)."
+```
+Survival Random Forest ensemble has outperformed CoxPH    by 0.0187 in C-index. The difference is statistically significant with the p-value 1.347e-05***. The supplied data may contain non-linear or cross-term dependencies, better captured by the Survival Random Forest.
+
+C-score: 
+  
+  CoxPH      0.6751(95CI=0.6417-0.7137;SD=0.0231)
+  
+  SRF_Ensemble 0.6938(95CI=0.6596-0.7346;SD=0.0212)
+
+AUCROC:
+  
+  CoxPH      0.7203(95CI=0.6693-0.7708;SD=0.0356)
+  
+  SRF_Ensemble 0.7279(95CI=0.6797-0.7781;SD=0.0311)
+ 
+ See other items as x$item. Items available: results_mean, results_mean_train, return_models, test, train, difftest, main_stats, randomseed, useCoxLasso
+ ```
 
 This example illustrates a situation when outperformance of the non-linear model is statistically significant, but not large in absolute terms. The ultimate model choice will depend on how critical such an improvement is for the model stakeholders.
