@@ -164,10 +164,9 @@ predict.survensemble <- function(object,
 #' @param useCoxLasso TRUE/FALSE, default is FALSE
 #' @param srf_tuning list of tuning parameters for random forest: 1) NULL for using a default tuning grid, or 2) a list("mtry"=c(...), "nodedepth" = c(...), "nodesize" = c(...))
 #' @param oob TRUE/FALSE use out-of-bag predictions while tuning instead of cross-validation, TRUE by default
-#' @examples
+#' @examples \donttest{
 #' \dontshow{options(rf.cores = 1)}
-#' \donttest{
-#' #' df <- simulate_nonlinear()
+#' df <- simulate_nonlinear()
 #' ens_cv <- survensemble_cv(df, names(df)[1:4])
 #' summary(ens_cv)
 #' }
