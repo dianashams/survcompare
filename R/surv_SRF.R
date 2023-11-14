@@ -520,9 +520,11 @@ survsrf_predict <- function(trained_model,
 #' @param randomseed random seed
 #' @param return_models TRUE/FALSE, if TRUE returns all CV objects
 #' @param inner_cv k in the inner loop of k-fold CV for SRF hyperparameters tuning, default is 3
-#' @param srf_tuning list of tuning parameters for random forest: 1) list() for using a default tuning grid, or 2) a list("mtry"=c(...), "nodedepth" = c(...), "nodesize" = c(...))
-#' @param oob TRUE/FALSE use out-of-bag prediction accuracy while tuning instead of cross-validation, TRUE by defaul
-#' @examples \donttest{
+#' @param srf_tuning list of tuning parameters for random forest: 1) NULL for using a default tuning grid, or 2) a list("mtry"=c(...), "nodedepth" = c(...), "nodesize" = c(...))
+#' @param oob TRUE/FALSE use out-of-bag prediction accuracy while tuning instead of cross-validation, TRUE by default
+#' @examples
+#' \dontshow{options(rf.cores = 1)}
+#' \donttest{
 #' df <- simulate_nonlinear()
 #' srf_cv <- survsrf_cv(df, names(df)[1:4])
 #' summary(srf_cv)

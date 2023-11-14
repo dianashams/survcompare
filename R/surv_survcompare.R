@@ -42,6 +42,7 @@
 #' @param train_srf TRUE/FALSE for whether to train SRF on its own, apart from the CoxPH->SRF ensemble. Default is FALSE as there is not much information in SRF itself compared to the ensembled version.
 #' @return outcome = list(data frame with performance results, fitted Cox models, fitted SRF)
 #' @examples
+#' \dontshow{options(rf.cores = 1)}
 #' df <-simulate_nonlinear(100)
 #' srf_params <- list("mtry" = c(2), "nodedepth"=c(25), "nodesize" =c(15))
 #' mysurvcomp <- survcompare(df, names(df)[1:4], srf_tuning = srf_params, outer_cv = 2, inner_cv =2)

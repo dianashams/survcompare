@@ -34,9 +34,9 @@ survsrf_cv(
 
 \item{inner_cv}{k in the inner loop of k-fold CV for SRF hyperparameters tuning, default is 3}
 
-\item{srf_tuning}{list of tuning parameters for random forest: 1) list() for using a default tuning grid, or 2) a list("mtry"=c(...), "nodedepth" = c(...), "nodesize" = c(...))}
+\item{srf_tuning}{list of tuning parameters for random forest: 1) NULL for using a default tuning grid, or 2) a list("mtry"=c(...), "nodedepth" = c(...), "nodesize" = c(...))}
 
-\item{oob}{TRUE/FALSE use out-of-bag prediction accuracy while tuning instead of cross-validation, TRUE by defaul}
+\item{oob}{TRUE/FALSE use out-of-bag prediction accuracy while tuning instead of cross-validation, TRUE by default}
 }
 \value{
 list of outputs
@@ -45,6 +45,7 @@ list of outputs
 Cross-validates SRF model
 }
 \examples{
+\dontshow{options(rf.cores = 1)}
 \donttest{
 df <- simulate_nonlinear()
 srf_cv <- survsrf_cv(df, names(df)[1:4])

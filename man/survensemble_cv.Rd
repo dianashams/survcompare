@@ -48,8 +48,9 @@ list of outputs
 Cross-validates predictive performance for Ensemble 1
 }
 \examples{
+\dontshow{options(rf.cores = 1)}
 \donttest{
-df <- simulate_nonlinear()
+#' df <- simulate_nonlinear()
 ens_cv <- survensemble_cv(df, names(df)[1:4])
 summary(ens_cv)
 }

@@ -356,3 +356,5 @@ check_call <- function(inputs, inputclass, call_to_check) {
   anyerror <- any(classok==0)
   return(list("anyerror"=anyerror, "classok" = classok, "msg"= msg))
 }
+
+
