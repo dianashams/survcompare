@@ -11,6 +11,7 @@ vignette: >
 knitr::opts_chunk$set(
   collapse = TRUE,
   comment = "#>",
+  rf_user <- rfcores_old <- options()$rf.cores,
   options(rf.cores = 1)
 )
 ```
@@ -185,3 +186,9 @@ AUCROC:
  ```
 
 This example illustrates a situation when outperformance of the non-linear model is statistically significant, but not large in absolute terms. The ultimate model choice will depend on how critical such an improvement is for the model stakeholders.
+
+```{r, include = FALSE}
+# reinstating the value for rf.cores back to default/user-defined value
+options(rf.cores = rfcores_old)
+
+```

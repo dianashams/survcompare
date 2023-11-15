@@ -42,11 +42,12 @@
 #' @param train_srf TRUE/FALSE for whether to train SRF on its own, apart from the CoxPH->SRF ensemble. Default is FALSE as there is not much information in SRF itself compared to the ensembled version.
 #' @return outcome = list(data frame with performance results, fitted Cox models, fitted SRF)
 #' @examples
-#' \dontshow{options(rf.cores = 1)}
+#' \dontshow{rfcores_old <- options()$rf.cores; options(rf.cores=1)}
 #' df <-simulate_nonlinear(100)
 #' srf_params <- list("mtry" = c(2), "nodedepth"=c(25), "nodesize" =c(15))
 #' mysurvcomp <- survcompare(df, names(df)[1:4], srf_tuning = srf_params, outer_cv = 2, inner_cv =2)
 #' summary(mysurvcomp)
+#' \dontshow{options(rf.cores=rfcores_old)}
 #' @export
 survcompare <- function(df_train,
                         predict_factors,
@@ -90,6 +91,10 @@ survcompare <- function(df_train,
   cp <- check_call(inputs, inputclass, Call)
   if (cp$anyerror)
     stop (paste(cp$msg[cp$msg != ""], sep = ""))
+
+  if (sum(is.na(df_train[c("time", "event", predict_factors)])) > 0) {
+    stop("Missing data can not be handled. Please impute first.")
+  }
 
   if (is.null(randomseed)) {
     randomseed <- round(stats::runif(1) * 1e9, 0) + 1

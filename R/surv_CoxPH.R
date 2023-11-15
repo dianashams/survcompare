@@ -283,6 +283,9 @@ survcox_cv <- function(df,
   cp<- check_call(inputs, inputclass, Call)
   if (cp$anyerror) stop (paste(cp$msg[cp$msg!=""], sep=""))
 
+  if (sum(is.na(df[c("time", "event", predict.factors)])) > 0) {
+    stop("Missing data can not be handled. Please impute first.")
+  }
 
   output <- surv_CV(
     df = df,

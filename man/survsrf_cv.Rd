@@ -45,10 +45,11 @@ list of outputs
 Cross-validates SRF model
 }
 \examples{
-\dontshow{options(rf.cores = 1)}
 \donttest{
+\dontshow{rfcores_old<- options()$rf.cores; options(rf.cores = 1)}
 df <- simulate_nonlinear()
 srf_cv <- survsrf_cv(df, names(df)[1:4])
 summary(srf_cv)
+\dontshow{options(rf.cores=rfcores_old)}
 }
 }

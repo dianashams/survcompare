@@ -165,10 +165,11 @@ predict.survensemble <- function(object,
 #' @param srf_tuning list of tuning parameters for random forest: 1) NULL for using a default tuning grid, or 2) a list("mtry"=c(...), "nodedepth" = c(...), "nodesize" = c(...))
 #' @param oob TRUE/FALSE use out-of-bag predictions while tuning instead of cross-validation, TRUE by default
 #' @examples \donttest{
-#' \dontshow{options(rf.cores = 1)}
+#' \dontshow{rfcores_old <- options()$rf.cores; options(rf.cores=1)}
 #' df <- simulate_nonlinear()
 #' ens_cv <- survensemble_cv(df, names(df)[1:4])
 #' summary(ens_cv)
+#' \dontshow{options(rf.cores=rfcores_old)}
 #' }
 #' @return list of outputs
 #' @export
@@ -195,6 +196,10 @@ survensemble_cv <- function(df,
 
   cp<- check_call(inputs, inputclass, Call)
   if (cp$anyerror) stop (paste(cp$msg[cp$msg!=""], sep=""))
+
+  if (sum(is.na(df[c("time", "event", predict.factors)])) > 0) {
+    stop("Missing data can not be handled. Please impute first.")
+  }
 
   output <- surv_CV(
     df = df,

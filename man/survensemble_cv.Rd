@@ -49,9 +49,10 @@ Cross-validates predictive performance for Ensemble 1
 }
 \examples{
 \donttest{
-\dontshow{options(rf.cores = 1)}
+\dontshow{rfcores_old <- options()$rf.cores; options(rf.cores=1)}
 df <- simulate_nonlinear()
 ens_cv <- survensemble_cv(df, names(df)[1:4])
 summary(ens_cv)
+\dontshow{options(rf.cores=rfcores_old)}
 }
 }

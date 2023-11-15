@@ -25,6 +25,10 @@ surv_CV <-
       stop("Data should be a data frame, predictors should correspond to the columns.")
     }
 
+    if (sum(is.na(df[c("time", "event", predict.factors)])) > 0) {
+      stop("Missing data can not be handled. Please impute first.")
+    }
+
     if (sum(is.nan(fixed_time)) > 0) {
       fixed_time <- round(quantile(df[df$event == 1, "time"], 0.9), 1)
     }

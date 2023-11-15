@@ -68,11 +68,12 @@ the predictive power of the supplied predictors.
 Cross-validates and compares Cox Proportionate Hazards and Survival Random Forest models
 }
 \examples{
-\dontshow{options(rf.cores = 1)}
+\dontshow{rfcores_old <- options()$rf.cores; options(rf.cores=1)}
 df <-simulate_nonlinear(100)
 srf_params <- list("mtry" = c(2), "nodedepth"=c(25), "nodesize" =c(15))
 mysurvcomp <- survcompare(df, names(df)[1:4], srf_tuning = srf_params, outer_cv = 2, inner_cv =2)
 summary(mysurvcomp)
+\dontshow{options(rf.cores=rfcores_old)}
 }
 \author{
 Diana Shamsutdinova \email{diana.shamsutdinova.github@gmail.com}
