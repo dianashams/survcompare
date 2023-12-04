@@ -8,6 +8,7 @@
 #' @param useCoxLasso  TRUE or FALSE
 #' @param retrain_cox if useCoxLasso is TRUE, whether to re-train coxph on non-zero predictors, FALSE by default
 #' @param inner_cv k in k-fold CV for training lambda for Cox Lasso, only used for useCoxLasso = TRUE
+#' @param alpha useCoxLasso is TRUE, then alpha =1 is default (Lasso), can be changed to 0 (Ridge) or (0,1) for Elastic Net
 #' @return fitted CoxPH or CoxLasso model
 #' @export
 survcox_train <- function(df_train,
@@ -15,10 +16,12 @@ survcox_train <- function(df_train,
                           fixed_time = NaN,
                           useCoxLasso = FALSE,
                           retrain_cox = FALSE,
-                          inner_cv = 5) {
+                          inner_cv = 5,
+                          alpha = 1
+                          ) {
   Call <- match.call()
-  indx <-
-    pmatch(c("df_train", "predict.factors"), names(Call), nomatch = 0)
+  indx <- pmatch(c("df_train", "predict.factors"), names(Call), nomatch = 0)
+
   if (indx[1] * indx[2] == 0) {
     stop("Please supply data and predictors")
   }
@@ -40,7 +43,7 @@ survcox_train <- function(df_train,
         )
       ),
       data = df_train, x = TRUE)
-      # replace NAwith 0 i.e. ignore params that Cox couldn't estimate
+      # replace NA with 0 i.e. ignore params that Cox couldn't estimate
       cox.m$coefficients[is.na(cox.m$coefficients)] <- 0
     },
     silent = TRUE)
@@ -53,7 +56,12 @@ survcox_train <- function(df_train,
     }
     return(cox.m)
   } else {
-    return(survcoxlasso_train(df_train, predict.factors, inner_cv))
+    return(survcoxlasso_train(df_train,
+                              predict.factors,
+                              inner_cv,
+                              fixed_time,
+                              retrain_cox,
+                              alpha = alpha))
   }
 }
 
@@ -73,7 +81,10 @@ survcoxlasso_train <- function(df_train,
                                inner_cv = 5,
                                fixed_time = NaN,
                                retrain_cox = FALSE,
-                               verbose = FALSE) {
+                               verbose = FALSE,
+                               nlambda = 50,
+                               maxit = 500,
+                               alpha = 1) {
   stopifnot(expr = {
     is.data.frame(df_train)
     predict.factors %in% colnames(df_train)
@@ -86,7 +97,9 @@ survcoxlasso_train <- function(df_train,
       survival::Surv(df_train$time, df_train$event),
       family = "cox",
       nfold = inner_cv,
-      alpha = 1
+      alpha = alpha,
+      nlambda = nlambda,
+      maxit = maxit
     )
     new.predictors <-
       rownames(coef(cv10, s = "lambda.min"))[as.matrix(coef(cv10, s = "lambda.min")) != 0]
