@@ -268,6 +268,7 @@ survcox_predict <- function(trained_model,
 #' @param return_models TRUE/FALSE, if TRUE returns all CV objects
 #' @param inner_cv k in the inner loop of k-fold CV, default is 3; only used if CoxLasso is TRUE
 #' @param useCoxLasso TRUE/FALSE, FALSE by default
+#' @param alpha useCoxLasso is TRUE, then alpha =1 is default (Lasso), can be changed to 0 (Ridge) or (0,1) for Elastic Net
 #' @examples \donttest{
 #' df <- simulate_nonlinear()
 #' coxph_cv <- survcox_cv(df, names(df)[1:4])
@@ -283,7 +284,8 @@ survcox_cv <- function(df,
                        randomseed = NULL,
                        return_models = FALSE,
                        inner_cv = 3,
-                       useCoxLasso = FALSE) {
+                       useCoxLasso = FALSE,
+                       alpha = 1) {
   Call <- match.call()
   inputs <- list(df , predict.factors, fixed_time,
                  outer_cv,inner_cv, repeat_cv,

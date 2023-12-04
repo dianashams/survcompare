@@ -40,6 +40,7 @@
 #' @param return_models TRUE/FALSE to return the trained models; default is FALSE, only performance is returned
 #' @param repeat_cv if NULL, runs once, otherwise repeats several times with different random split for CV, reports average of all
 #' @param train_srf TRUE/FALSE for whether to train SRF on its own, apart from the CoxPH->SRF ensemble. Default is FALSE as there is not much information in SRF itself compared to the ensembled version.
+#' @param alpha useCoxLasso is TRUE, then alpha =1 is default (Lasso), can be changed to 0 (Ridge) or (0,1) for Elastic Net
 #' @return outcome = list(data frame with performance results, fitted Cox models, fitted SRF)
 #' @examples
 #' \dontshow{rfcores_old <- options()$rf.cores; options(rf.cores=1)}
@@ -59,7 +60,8 @@ survcompare <- function(df_train,
                         srf_tuning = list(),
                         return_models = FALSE,
                         repeat_cv = 2,
-                        train_srf = FALSE) {
+                        train_srf = FALSE,
+                        alpha = 1) {
 
   Call <- match.call()
   inputs <- list(
@@ -112,7 +114,8 @@ survcompare <- function(df_train,
     randomseed = randomseed,
     useCoxLasso = useCoxLasso,
     return_models = return_models,
-    repeat_cv = repeat_cv
+    repeat_cv = repeat_cv,
+    alpha = alpha
   )
   if (train_srf) {
     srf_cv <- survsrf_cv(
