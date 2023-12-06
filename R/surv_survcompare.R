@@ -236,7 +236,7 @@ survcompare <- function(df_train,
   results_mean_train["Diff",] = results_mean[2,] - results_mean[1, ]
   results_mean["pvalue",] = c(t_coxph[3, ], NaN) #NaN for "sec" column
   results_mean_train["pvalue",] = c(t_coxph_train[3, ], NaN)
-  # __________________________________________________
+  # __________________________________________________________________
 
   # output
   output <- list()

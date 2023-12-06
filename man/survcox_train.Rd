@@ -11,7 +11,8 @@ survcox_train(
   fixed_time = NaN,
   useCoxLasso = FALSE,
   retrain_cox = FALSE,
-  inner_cv = 5
+  inner_cv = 5,
+  alpha = 1
 )
 }
 \arguments{
@@ -26,6 +27,8 @@ survcox_train(
 \item{retrain_cox}{if useCoxLasso is TRUE, whether to re-train coxph on non-zero predictors, FALSE by default}
 
 \item{inner_cv}{k in k-fold CV for training lambda for Cox Lasso, only used for useCoxLasso = TRUE}
+
+\item{alpha}{useCoxLasso is TRUE, then alpha =1 is default (Lasso), can be changed to 0 (Ridge) or (0,1) for Elastic Net}
 }
 \value{
 fitted CoxPH or CoxLasso model

@@ -10,7 +10,10 @@ survcoxlasso_train(
   inner_cv = 5,
   fixed_time = NaN,
   retrain_cox = FALSE,
-  verbose = FALSE
+  verbose = FALSE,
+  nlambda = 50,
+  maxit = 500,
+  alpha = 1
 )
 }
 \arguments{

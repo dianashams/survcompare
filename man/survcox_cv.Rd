@@ -13,7 +13,8 @@ survcox_cv(
   randomseed = NULL,
   return_models = FALSE,
   inner_cv = 3,
-  useCoxLasso = FALSE
+  useCoxLasso = FALSE,
+  alpha = 1
 )
 }
 \arguments{
@@ -34,6 +35,8 @@ survcox_cv(
 \item{inner_cv}{k in the inner loop of k-fold CV, default is 3; only used if CoxLasso is TRUE}
 
 \item{useCoxLasso}{TRUE/FALSE, FALSE by default}
+
+\item{alpha}{useCoxLasso is TRUE, then alpha =1 is default (Lasso), can be changed to 0 (Ridge) or (0,1) for Elastic Net}
 }
 \value{
 list of outputs

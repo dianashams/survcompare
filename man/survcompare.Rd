@@ -16,7 +16,8 @@ survcompare(
   srf_tuning = list(),
   return_models = FALSE,
   repeat_cv = 2,
-  train_srf = FALSE
+  train_srf = FALSE,
+  alpha = 1
 )
 }
 \arguments{
@@ -41,6 +42,8 @@ survcompare(
 \item{repeat_cv}{if NULL, runs once, otherwise repeats several times with different random split for CV, reports average of all}
 
 \item{train_srf}{TRUE/FALSE for whether to train SRF on its own, apart from the CoxPH->SRF ensemble. Default is FALSE as there is not much information in SRF itself compared to the ensembled version.}
+
+\item{alpha}{useCoxLasso is TRUE, then alpha =1 is default (Lasso), can be changed to 0 (Ridge) or (0,1) for Elastic Net}
 }
 \value{
 outcome = list(data frame with performance results, fitted Cox models, fitted SRF)
