@@ -74,6 +74,9 @@ survcox_train <- function(df_train,
 #' @param fixed_time  not used here, for internal use
 #' @param retrain_cox whether to re-train coxph on non-zero predictors; FALSE by default
 #' @param verbose TRUE/FALSE prints warnings if no predictors in Lasso
+#' @param alpha useCoxLasso is TRUE, then alpha =1 is default (Lasso), can be changed to 0 (Ridge) or (0,1) for Elastic Net
+#' @param nlambda number of lambdas to try, to be passed to cv.glmnet()
+#' @param maxit maximum number of iterations, to be passed to cv.glmnet()
 #' @return fitted CoxPH object with coefficient of CoxLasso or re-trained CoxPH with non-zero CoxLasso if retrain_cox = FALSE or TRUE
 #' @export
 survcoxlasso_train <- function(df_train,

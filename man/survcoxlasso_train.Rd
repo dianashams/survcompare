@@ -28,6 +28,12 @@ survcoxlasso_train(
 \item{retrain_cox}{whether to re-train coxph on non-zero predictors; FALSE by default}
 
 \item{verbose}{TRUE/FALSE prints warnings if no predictors in Lasso}
+
+\item{nlambda}{number of lambdas to try, to be passed to cv.glmnet()}
+
+\item{maxit}{maximum number of iterations, to be passed to cv.glmnet()}
+
+\item{alpha}{useCoxLasso is TRUE, then alpha =1 is default (Lasso), can be changed to 0 (Ridge) or (0,1) for Elastic Net}
 }
 \value{
 fitted CoxPH object with coefficient of CoxLasso or re-trained CoxPH with non-zero CoxLasso if retrain_cox = FALSE or TRUE
