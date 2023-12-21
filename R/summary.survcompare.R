@@ -22,16 +22,16 @@ summary.survcompare <-
       "and Survival Random Forest ensemble:\n"
     )
     # printing the table with mean test results, diff to CoxPH
-    print(round(x$results_mean, 4))
     cat("\n")
     pv <- x$difftest["pvalue", "C_score"]
     m <- x$difftest["m", "C_score"]
     msd<- x$difftest["std", "C_score"]
+    apply(res1 - res0, FUN = mean, 2, na.rm = 1)
 
     mtext <- paste(
       round(m, 4),
       ", 95CI=(",
-      round(m - 2 * msd, 4),
+      round(unname(quantile(temp, 0.025)),4),
       ",",
       round(m + 2 * msd, 4),
       "), SD=",

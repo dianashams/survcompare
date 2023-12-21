@@ -139,6 +139,7 @@ survcoxlasso_train <- function(df_train,
         cox.m <- survival::coxph(f, data = df_train, x = TRUE)
         cox.m$coefficients <-
           as.numeric(coef(cv10, s = "lambda.min"))
+        names(cox.m$coefficients) = predict.factors
       }
     }
   },
