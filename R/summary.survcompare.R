@@ -7,12 +7,12 @@
 summary.survcompare <-
   function(object, ...) {
     # prints summary statement for the output of the 'survcompare' function
-    
+
     #check
     if (!inherits(object, "survcompare")) {
       stop("Not a \"survcompare\" object")
     }
-    
+
     # Cox model Lasso or PH
     coxend <- ifelse(object$useCoxLasso, "CoxLasso  ", "CoxPH    ")
     x <- object
@@ -26,9 +26,10 @@ summary.survcompare <-
     cat("\n")
     pv <- x$difftest["pvalue", "C_score"]
     m <- x$difftest["m", "C_score"]
+    msd<- x$difftest["std", "C_score"]
     pvstars <-
       ifelse(pv < 0.001, "***", ifelse(pv <= 0.01, "**", ifelse(pv <= 0.05, "*", "")))
-    
+
     # compile the output message:
     if (x$difftest["pvalue", "C_score"] < 0.05) {
       t1 <- paste(
@@ -57,10 +58,10 @@ summary.survcompare <-
       t3 <-
         ". \nThe data may NOT contain considerable non-linear or cross-term dependencies, \nthat could be captured by the Survival Random Forest.\n"
     }
-    
+
     # print the output message
     cat(paste(t1, t2, ifelse(pv < 0.001, round(pv, 8), round(pv, 4)), pvstars, t3, sep = ""))
-    
+
     #print the main stats
     ms <- x$main_stats
     f <- function(i) {
@@ -107,9 +108,9 @@ print.survcompare <- function(x, ...) {
   if (!inherits(x, "survcompare")) {
     stop("Not a \"survcompare\" object")
   }
-  
+
   summary.survcompare(x)
-  
+
   cat("\n", "See other items as x$item. Items available:\n")
   cat(names(x), sep = ", ")
   invisible(x)
