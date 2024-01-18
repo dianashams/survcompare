@@ -86,7 +86,7 @@ survcoxlasso_train <- function(df_train,
                                retrain_cox = FALSE,
                                verbose = FALSE,
                                nlambda = 50,
-                               maxit = 500,
+                               maxit = 100,
                                alpha = 1) {
   stopifnot(expr = {
     is.data.frame(df_train)
