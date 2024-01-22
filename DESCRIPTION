@@ -29,4 +29,6 @@ Suggests:
     testthat (>= 3.0.0)
 VignetteBuilder: knitr
 Maintainer: Diana Shamsutdinova <diana.shamsutdinova.github@gmail.com>
+URL: https://github.com/dianashams/survcompare
+BugReports: https://github.com/dianashams/survcompare/issues
 Config/testthat/edition: 3
