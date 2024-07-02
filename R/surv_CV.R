@@ -75,13 +75,20 @@ surv_CV <-
     modelstats_train <- list()
     modelstats_test <- list()
     models_for_each_cv <- list()
-    #progress bar
-    pb <- utils::txtProgressBar(0, outer_cv * repeat_cv, style = 3)
-    utils::setTxtProgressBar(pb, outer_cv * repeat_cv / 50)
+    # fast progress bar
+    # pb <- utils::txtProgressBar(0, outer_cv * repeat_cv, style = 3)
+    # utils::setTxtProgressBar(pb, outer_cv * repeat_cv / 50)
+
+    # slow progress bar
+    pb <- utils::txtProgressBar(0, repeat_cv, style = 3)
+    utils::setTxtProgressBar(pb, repeat_cv / 50)
 
     # cross-validation loop
     for (rep_cv in 1:repeat_cv) {
       set.seed(randomseed + rep_cv)
+      # slow progress bar
+      utils::setTxtProgressBar(pb, rep_cv)
+
       if (rep_cv != 1) {
         df <- df[sample(1:nrow(df)), ]
       }
@@ -91,10 +98,14 @@ surv_CV <-
       for (cv_iteration in 1:outer_cv) {
         df_train_cv <- df[cv_folds != cv_iteration,]
         df_test_cv <- df[cv_folds == cv_iteration,]
+
+        predict.factors.cv <- eligible_params(predict.factors, df_train_cv)
+
         # tune the model using train_function
         trained_model <-
           do.call(train_function,
-                  append(list(df_train_cv, predict.factors), model_args))
+                  append(list(df_train_cv, predict.factors.cv), model_args))
+
         # compute event probability predictions for given times
         y_predict_test <-
           do.call(predict_function,
@@ -124,7 +135,7 @@ surv_CV <-
           models_for_each_cv[[cv_iteration + (rep_cv - 1) * outer_cv]] <-
             trained_model
         }
-        utils::setTxtProgressBar(pb, cv_iteration + (rep_cv - 1) * outer_cv)
+        ##utils::setTxtProgressBar(pb, cv_iteration + (rep_cv - 1) * outer_cv)
       }
     }
 
@@ -138,8 +149,12 @@ surv_CV <-
     row.names(df_modelstats_train) <- 1:(outer_cv * repeat_cv)
     row.names(df_modelstats_test) <- 1:(outer_cv * repeat_cv)
 
-    utils::setTxtProgressBar(pb, outer_cv * repeat_cv)
+    #fast progress bar
+    # utils::setTxtProgressBar(pb, outer_cv * repeat_cv)
+    # slow progress bar
+    utils::setTxtProgressBar(pb, repeat_cv)
     close(pb)
+
     df_modelstats_test$test <- 1
     df_modelstats_train$test <- 0
 
@@ -152,22 +167,45 @@ surv_CV <-
           "mean" = apply(x, 2, mean, na.rm = 1),
           "sd" = apply(x, 2, sd, na.rm = 1),
           "95CILow" = apply(x, 2, quantile, 0.025, na.rm = 1),
-          "95CIHigh" = apply(x, 2, quantile, 0.975, na.rm = 1)
-        ),
-        4
-      ))
+          "95CIHigh" = apply(x, 2, quantile, 0.975, na.rm = 1),
+          "median" = apply(x, 2, median, na.rm = 1)
+        ),4))
     }
+    #if CV was repeated many times, get pooled CV stats too
+    pooled_test <- function(x) {
+      temp2<- data.frame()
+      for (i in 1:repeat_cv) {
+        shift = (i-1)*outer_cv #get a chunk of x for i-th repetition
+        xi= apply(x[(shift+1):(shift+outer_cv), ], 2, mean,na.rm=TRUE)
+        temp2<- rbind(temp2, xi)
+      }
+      names(temp2) = names(x)
+      return(temp2)
+    }
+
     #mean, sd and confidence intervals for all test and train datasets
     summarydf <- as.data.frame(cbind(
       "test" = stats_summary(df_modelstats_test),
       "train" = stats_summary(df_modelstats_train)
     ))
 
+    #Same for the pooled results over CV repetitions (if >1)
+    if (repeat_cv>1){
+      summarydf_pooled <- as.data.frame(cbind(
+        "test" = stats_summary(pooled_test(df_modelstats_test)),
+        "train" = stats_summary(pooled_test(df_modelstats_train))
+      ))
+    }else{
+      summarydf_pooled = summarydf}
+
     output <- list()
     output$test <- df_modelstats_test
     output$train <- df_modelstats_train
+    output$test_pooled <- pooled_test(df_modelstats_test)
     output$testaverage <-
       sapply(df_modelstats_test, mean, na.rm = 1)
+    output$testmedian <-
+      sapply(df_modelstats_test, median, na.rm = 1)
     output$trainaverage <-
       sapply(df_modelstats_train, mean, na.rm = 1)
     output$tuned_cv_models <- models_for_each_cv
@@ -175,6 +213,8 @@ surv_CV <-
     output$call <- Call
     output$cv <- c(outer_cv, inner_cv, repeat_cv)
     output$summarydf <- summarydf
+    output$summarydf_pooled <- summarydf_pooled
+    output$model_name <- model_name
     class(output) <- "survensemble_cv"
     time_1 <- Sys.time()
     output$time <- time_1 - time_0
