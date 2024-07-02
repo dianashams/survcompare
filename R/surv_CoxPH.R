@@ -300,7 +300,7 @@ survcox_cv <- function(df,
     train_function = survcox_train,
     predict_function = survcox_predict,
     model_args = list("useCoxLasso" = useCoxLasso),
-    model_name = "Cox PH model"
+    model_name = ifelse(!useCoxLasso, "Cox-PH", "Cox-Lasso")
   )
   output$call <- Call
   return(output)
