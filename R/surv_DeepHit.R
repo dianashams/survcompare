@@ -88,7 +88,7 @@ deephit_tune_single <-
       "dropout" = c(0.1,0.3),
       "epochs" = c(5,50),
       "learning_rate" =c(0.001),
-      "frac" = c(0.1, 0.3), 
+      "frac" = c(0.1, 0.3),
       "num_nodes" =    list(c(8,8), c(16,16,16,2), c(32,32,32,4))
     ) #20
     grid_size <- dim(grid_of_values)[1]
@@ -98,8 +98,8 @@ deephit_tune_single <-
     #progress bar
     pb <- utils::txtProgressBar(0, inner_cv * grid_size, style = 3)
     utils::setTxtProgressBar(pb, inner_cv * grid_size / 50)
-    
-    # tuning cross-validation loop    
+
+    # tuning cross-validation loop
     for (cv_iteration in 1:inner_cv) {
       # print(paste("deephit tuning CV step", cv_iteration, "of", inner_cv))
       cv_folds <-
@@ -142,11 +142,11 @@ deephit_tune_single <-
   }
 
 
-################## deephit_CV ########################
+################## deephit_cv ########################
 
 # The function trains deephit model with given params
 #' @export
-deephit_CV <- function(df,
+deephit_cv <- function(df,
                         predict.factors,
                         fixed_time = NaN,
                         outer_cv = 3,
@@ -162,7 +162,7 @@ deephit_CV <- function(df,
   if (sum(is.na(df[c("time", "event", predict.factors)])) > 0) {
     stop("Missing data can not be handled. Please impute first.")
   }
-  
+
   output <- surv_CV(
     df = df,
     predict.factors = predict.factors,
