@@ -10,19 +10,19 @@ ens_deephit_train <-
            randomseed = NULL,
            useCoxLasso = FALSE,
            deephitparams = list()) {
-    
+
     #setting random seed
     if (is.null(randomseed)) {
       randomseed <- round(stats::runif(1) * 1e9, 0)
     }
     set.seed(randomseed)
-    
+
     # setting fixed_time if not given
     if (sum(is.nan(fixed_time)) > 0 | (length(fixed_time) > 1)) {
       fixed_time <-
         round(quantile(df_train[df_train$event == 1, "time"], 0.9), 1)
     }
-    
+
     #creating folds
     cv_folds <-
       caret::createFolds(df_train$event, k = 5, list = FALSE)
@@ -42,22 +42,22 @@ ens_deephit_train <-
       # adding Cox prediction to the df_train in the column "cox_predict"
       df_train[cv_folds == cv_iteration, "cox_predict"] <- cox_predict_oob
     }
-    
+
     # cox_m<- survcox_train(df_train, predict.factors,
     #                                  useCoxLasso = useCoxLasso)
     #df_train$cox_predict <- survcox_predict(cox_m,df_train,fixed_time)
-    
+
     # adding Cox predictions as a new factor to tune SRF,
-    predict.factors.plusCox <- c(predict.factors[-1], "cox_predict")
-    
+    predict.factors.plusCox <- c(predict.factors, "cox_predict")
+
     # train the deephit model
     deephit.ens <-
       deephit_train(df_train,predict.factors.plusCox,deephitparams)
-    
+
     #base cox model
     cox_base_model <-
       survcox_train(df_train, predict.factors, useCoxLasso = useCoxLasso)
-    
+
     #output
     output = list()
     output$model <- deephit.ens
@@ -78,8 +78,8 @@ ens_deephit_predict <-
            fixed_time,
            predict.factors
   ) {
-    trained_model<- trained_object$model
-    predictdata <- newdata[predict.factors[-1]]
+    trained_model <- trained_object$model
+    predictdata <- newdata[predict.factors]
     # use model_base with the base Cox model to find cox_predict
     predictdata$cox_predict <- survcox_predict(trained_object$model_base,
                                                newdata, fixed_time)
@@ -98,7 +98,7 @@ ens_deephit_predict <-
 
 ############### ens_deephit_CV #############
 #' @export
-ens_deephit_CV <- function(df,
+ens_deephit_cv <- function(df,
                             predict.factors,
                             fixed_time = NaN,
                             outer_cv = 3,
@@ -114,7 +114,7 @@ ens_deephit_CV <- function(df,
   if (sum(is.na(df[c("time", "event", predict.factors)])) > 0) {
     stop("Missing data can not be handled. Please impute first.")
   }
-  
+
   output <- surv_CV(
     df = df,
     predict.factors = predict.factors,
