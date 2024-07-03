@@ -43,7 +43,7 @@ deepsurv_train <-
       if(is.null(deepsurvparams$dropout)) {deepsurvparams$dropout= 0.2} 
       if(is.null(deepsurvparams$learning_rate)) {deepsurvparams$learning_rate = 0.01} 
       if(is.null(deepsurvparams$num_nodes)) {deepsurvparams$num_nodes =  c(16, 16)} 
-      if(is.null(deepsurvparams$batch_size)) {deepsurvparams$batch_size =  round(max(100, dim(df_train_cv)[1] / 4), 0) } 
+      if(is.null(deepsurvparams$batch_size)) {deepsurvparams$batch_size =  round(max(100, dim(df_train)[1] / 4), 0) } 
       if(is.null(deepsurvparams$epochs)) {deepsurvparams$epochs =  30} 
       deepsurvm <- survivalmodels::deepsurv(
         data = df_train,
