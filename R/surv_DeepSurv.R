@@ -27,7 +27,6 @@ deepsurv_train <-
            predict.factors,
            deepsurvparams = list()
   ) {
-
     if (length(deepsurvparams) ==0) {
       deepsurvm <- survivalmodels::deepsurv(
         data = df_train,
@@ -37,8 +36,9 @@ deepsurv_train <-
       if(is.null(deepsurvparams$dropout)) {deepsurvparams$dropout= 0.2} 
       if(is.null(deepsurvparams$learning_rate)) {deepsurvparams$learning_rate = 0.01} 
       if(is.null(deepsurvparams$num_nodes)) {deepsurvparams$num_nodes =  c(16, 16)} 
-      if(is.null(deepsurvparams$batch_size)) {deepsurvparams$batch_size =  round(max(100, dim(df_train)[1] / 4), 0) } 
-      if(is.null(deepsurvparams$epochs)) {deepsurvparams$epochs =  30} 
+      if(is.null(deepsurvparams$batch_size)) {deepsurvparams$batch_size =  
+                                              round(max(100, dim(df_train)[1] / 4), 0) } 
+      if(is.null(deepsurvparams$epochs)) {deepsurvparams$epochs = 50} 
       deepsurvm <- survivalmodels::deepsurv(
         data = df_train,
         x = df_train[predict.factors],
@@ -90,10 +90,9 @@ deepsurv_tune_single <-
     # defining the tuning grid
     grid_of_values <- expand.grid(
       "dropout" = c(0.1, 0.3),
-      "learning_rate" = c(0.1, 0.3),
-      "num_nodes" =
-        list(c(16, 16), c(32, 32), c(64, 64), c(16, 16, 16), c(32, 32, 32))
-    ) #20
+      "learning_rate" = c(0.001, 0.01),
+      "num_nodes" =  list(c(16, 16), c(32, 32), c(16, 16, 16), c(32, 32, 32))
+    ) #2*2*4=16
     grid_size <- dim(grid_of_values)[1]
     #placeholder for c-index
     cind = matrix(NA, nrow = grid_size, ncol = inner_cv)
