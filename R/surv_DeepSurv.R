@@ -150,7 +150,7 @@ deepsurv_tune_single <-
 
 # The function trains DeepSurv model with given params
 #' @export
-deepsurv_CV <- function(df,
+deepsurv_cv <- function(df,
                         predict.factors,
                         fixed_time = NaN,
                         outer_cv = 3,
