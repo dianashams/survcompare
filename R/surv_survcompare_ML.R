@@ -140,7 +140,7 @@ survcompare_ml <- function(df_train,
     repeat_cv = repeat_cv
     )
   } else if (ml=="DeepSurv") {
-    ens1_cv <- ens_deepsurv_CV(
+    ens1_cv <- ens_deepsurv_cv(
       df = df_train,
       predict.factors = predict_factors,
       fixed_time = predict_time,
