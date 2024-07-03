@@ -98,7 +98,7 @@ ens_deepsurv_predict <-
 
 ############### ens_deepsurv_CV #############
 #' @export
-ens_deepsurv_CV <- function(df,
+ens_deepsurv_cv <- function(df,
                             predict.factors,
                             fixed_time = NaN,
                             outer_cv = 3,
