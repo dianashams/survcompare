@@ -27,13 +27,7 @@ deepsurv_train <-
            predict.factors,
            deepsurvparams = list()
   ) {
-    # if (length(deepsurvparams) ==0) {
-    #   deepsurvparams = list(
-    #   "dropout" = 0.2,
-    #   "learning_rate" = 0.001,
-    #   "num_nodes" = c(32, 32),
-    #   "batch_size" = 100,
-    #   "epochs" = 20)}
+
     if (length(deepsurvparams) ==0) {
       deepsurvm <- survivalmodels::deepsurv(
         data = df_train,
