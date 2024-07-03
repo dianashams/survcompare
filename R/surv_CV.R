@@ -51,7 +51,7 @@ surv_CV <-
     }
 
     note_srf = ifelse( model_name == "Survival Random Forest",
-                      "For SRF inner CV is not used if oob = TRUE (default), 
+                      "For SRF inner CV is not used if oob = TRUE (default)", 
                       "") 
 
     print(
