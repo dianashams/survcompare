@@ -50,11 +50,9 @@ surv_CV <-
       repeat_cv = 1
     }
 
-    note_srf = ifelse(
-      model_name == "Survival Random Forest",
-      "",
-      "For SRF inner CV is not used if oob = TRUE (default)."
-    )
+    note_srf = ifelse( model_name == "Survival Random Forest",
+                      "For SRF inner CV is not used if oob = TRUE (default), 
+                      "") 
 
     print(
       paste(
