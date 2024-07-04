@@ -34,11 +34,11 @@ deephit_train <-
         x = df_train[predict.factors],
         y = Surv(df_train$time, df_train$event))
     }else{
-      if(is.null(deephitparams$dropout)) {deephitparams$dropout= 0.2} 
-      if(is.null(deephitparams$learning_rate)) {deephitparams$learning_rate = 0.01} 
-      if(is.null(deephitparams$num_nodes)) {deephitparams$num_nodes =  c(16, 16,16,2)} 
-      if(is.null(deephitparams$batch_size)) {deephitparams$batch_size =  round(max(100, dim(df_train)[1] / 4), 0) } 
-      if(is.null(deephitparams$epochs)) {deephitparams$epochs =  30} 
+      if(is.null(deephitparams$dropout)) {deephitparams$dropout= 0.2}
+      if(is.null(deephitparams$learning_rate)) {deephitparams$learning_rate = 0.01}
+      if(is.null(deephitparams$num_nodes)) {deephitparams$num_nodes =  c(16, 16,16,2)}
+      if(is.null(deephitparams$batch_size)) {deephitparams$batch_size =  round(max(100, dim(df_train)[1] / 4), 0) }
+      if(is.null(deephitparams$epochs)) {deephitparams$epochs =  30}
       deephitm <- deephit(
         data = df_train,
         x = df_train[predict.factors],
@@ -113,7 +113,7 @@ deephit_tune_single <-
       df_test_cv <- df_tune[cv_folds == cv_iteration, ]
       #Grid search
       for (i in 1:grid_size) {
-        deephitm <- deephit(
+        deephitm <- survivalmodels::deephit(
           data = df_train,
           x = df_train_cv[predict.factors],
           y = Surv(df_train_cv$time, df_train_cv$event),
