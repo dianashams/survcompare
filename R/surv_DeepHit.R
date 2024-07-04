@@ -9,7 +9,7 @@ deephit_predict <-
            fixed_time
   ){
     s1 <-
-      predict(trained_model, newdata = newdata[predict.factors], type = "survival")
+      predict(trained_model, newdata, type = "survival")
     #times<- as.double(colnames(s1))
     f <- function(i) {
       approxfun(as.double(colnames(s1)), s1[i,], method = "linear")(fixed_time)
@@ -237,7 +237,7 @@ deephit_tune_single <-
         )
         #check test performance
         pp <-
-          deephit_predict(deephitm, df_test_cv, predict.factors, fixed_time)
+          deephit_predict(deephitm, df_test_cv, fixed_time)
         cind[i, cv_iteration] =
           surv_validate(pp, fixed_time, df_train_cv, df_test_cv)[1, "C_score"]
         #cind[i, cv_iteration] =
