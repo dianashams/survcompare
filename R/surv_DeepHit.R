@@ -6,13 +6,15 @@
 deephit_predict <-
   function(trained_model,
            newdata,
-           fixed_time
-  ){
-    s1 <-
-      predict(trained_model, newdata, type = "survival")
-    #times<- as.double(colnames(s1))
+           fixed_time)
+  {
+    if (inherits(trained_model, "list")) {
+      trained_model <- trained_model$model
+    }
+
+    s1 <- predict(trained_model, newdata, type = "survival")
     f <- function(i) {
-      approxfun(as.double(colnames(s1)), s1[i,], method = "linear")(fixed_time)
+      approxfun(as.double(colnames(s1)), s1[i, ], method = "linear")(fixed_time)
     }
     predict_eventprob <- 1 - unlist(lapply(1:dim(s1)[1], f))
     return(predict_eventprob)
@@ -24,6 +26,7 @@ deephit_predict <-
 deephit_train <-
   function(df_train,
            predict.factors,
+           fixed_time = NaN,
            deephitparams = list(),
            max_grid_size = 25) {
 
@@ -33,31 +36,39 @@ deephit_train <-
         dftune_size = dim(df_train)[1],
         max_grid_size = max_grid_size
       )
-    print(grid_of_hyperparams)
 
-    #if only one option is given, we use it to train
     if (dim(grid_of_hyperparams)[1] == 1) {
-      deephitm <- deephit(
-        data = df_train,
-        x = df_train[predict.factors],
-        y = Surv(df_train$time, df_train$event),
-        dropout = grid_of_hyperparams[1,"dropout"],
-        learning_rate = grid_of_hyperparams[1,"learning_rate"],
-        num_nodes = grid_of_hyperparams[1,"num_nodes"][[1]],
-        batch_size = grid_of_hyperparams[1,"batch_size"],
-        epochs = grid_of_hyperparams[1,"epochs"],
-        mod_alpha = grid_of_hyperparams[1,"mod_alpha"],
-        sigma = grid_of_hyperparams[1,"sigma"],
-        cuts = grid_of_hyperparams[1,"cuts"]
-      )
-      #if there are options, we tune
+      #if only one option is given, we use it to train
+      bestparams = grid_of_hyperparams[1,]
     } else{
-      tuning_results <-
-        deephit_tune(1, df_train, predict.factors,)
-      '##########################################'
-
+      #if there are options, we tune the grid of hyperparams
+      tuning_m <- deephit_tune(
+        df_train,
+        predict.factors,
+        repeat_tune = 1,
+        fixed_time = fixed_time,
+        deephitparams = deephitparams,
+        max_grid_size = max_grid_size
+      )
+      bestparams = tuning_m$bestparams
     }
-    return(deephitm)
+    deephitm <- deephit(
+      data = df_train,
+      x = df_train[predict.factors],
+      y = Surv(df_train$time, df_train$event),
+      dropout = bestparams$dropout,
+      learning_rate = bestparams$learning_rate,
+      num_nodes = bestparams$num_nodes[[1]],
+      batch_size = bestparams$batch_size,
+      epochs = bestparams$epochs,
+      mod_alpha = bestparams$mod_alpha,
+      sigma = bestparams$sigma,
+      cuts = bestparams$cuts
+    )
+    output = list()
+    output$model = deephitm
+    output$params = bestparams
+    return(output)
   }
 
 ################## deephit_tune ##################
@@ -88,9 +99,9 @@ deephit_train <-
 #' deephit_tune(d, p,deephitparams = deephitparams, max_grid_size = 10)
 #' @export
 deephit_tune <-
-  function(repeat_tune,
-           df_tune,
+  function(df_tune,
            predict.factors,
+           repeat_tune=1,
            fixed_time = NaN,
            deephitparams = list(),
            inner_cv = 3,
@@ -98,14 +109,13 @@ deephit_tune <-
            randomseed = NaN) {
 
     deephitgrid <-
-      ml_hyperparams(mlparams = deephitparams,dftune_size = dim(df_tune)[1],
-        max_grid_size = max_grid_size,randomseed = randomseed  )
-
+      ml_hyperparams( mlparams = deephitparams, dftune_size = dim(df_tune)[1],
+        max_grid_size = max_grid_size,  randomseed = randomseed   )
+    #print(deephitgrid)
     means = c()
     for (i in (1:repeat_tune)) {
-      ds_tune_fus <-
-        deephit_tune_single(df_tune,predict.factors,fixed_time,
-                            deephitgrid,inner_cv)
+      #print(i)
+      ds_tune_fus <- deephit_tune_single(df_tune, predict.factors, fixed_time, deephitgrid, inner_cv)
       means <- cbind(means, ds_tune_fus$cindex_mean)
       remove(ds_tune_fus)
     }
@@ -117,7 +127,7 @@ deephit_tune <-
       cbind(deephitgrid, allmeans)[order(allmeans, decreasing = TRUE),]
     output$bestparams <- output$cindex_ordered[1,]
     return(output)
-  }
+}
 
 #' Internal function for getting grid of hyperparameters
 #' for random or grid search of size = max_grid_size
@@ -208,7 +218,7 @@ deephit_tune_single <-
            fixed_time = NaN,
            grid_hyperparams=c(),
            inner_cv = 3) {
-    print (grid_hyperparams)
+
     #fixed_time
     if (sum(is.nan(fixed_time) > 0) | length(fixed_time) > 1) {
       # not implemented for multiple time
