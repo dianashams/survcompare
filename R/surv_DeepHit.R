@@ -24,58 +24,48 @@ deephit_predict <-
 deephit_train <-
   function(df_train,
            predict.factors,
-           deephitparams = list()
-  ) {
-    if (length(deephitparams) ==0) {
-      deephitm <- deephit(
-        data = df_train,
-        x = df_train[predict.factors],
-        y = Surv(df_train$time, df_train$event))
-    }else{
+           deephitparams = list()) {
 
-      if(is.null(deephitparams$dropout)) {deephitparams$dropout= 0.2}
-      if(is.null(deephitparams$learning_rate)) {deephitparams$learning_rate = 0.01}
-      if(is.null(deephitparams$num_nodes)) {deephitparams$num_nodes =  c(16, 16,16,16)}
-      if(is.null(deephitparams$batch_size)) {
-        deephitparams$batch_size =  min(max(64, round(dim(df_train)[1]/8, 0)),256)}
-      if(is.null(deephitparams$epochs)) {deephitparams$epochs =  30}
-      if(is.null(deephitparams$mod_alpha)) {deephitparams$mod_alpha =  0.2}
-      if(is.null(deephitparams$sigma)) {deephitparams$sigma =  0.1}
-      if(is.null(deephitparams$cuts)) {deephitparams$cuts =  10}
+    # if (length(deephitparams) == 0) {
+    #   deephitm <- deephit(
+    #     data = df_train,
+    #     x = df_train[predict.factors],
+    #     y = Surv(df_train$time, df_train$event)
+    #   )
+    #   return(deephitm)
+    # }
 
-      grid_of_hyperparams <- expand.grid(
-        dropout = deephitparams$dropout,
-        learning_rate = deephitparams$learning_rate,
-        num_nodes = deephitparams$num_nodes,
-        batch_size = deephitparams$batch_size,
-        epochs = deephitparams$epochs,
-        mod_alpha = deephitparams$mod_alpha,
-        sigma = deephitparams$sigma,
-        cuts = deephitparams$cuts
+    if (is.null(deephitparams$max_grid_size)) {max_grid_size = 25}
+    print(deephitparams)
+    grid_of_hyperparams <-
+      ml_hyperparams(
+        mlparams = deephitparams,
+        dftune_size = dim(df_train)[1],
+        max_grid_size = max_grid_size
       )
 
-      #if only one option is given, we use it to train
-      if (dim(grid_of_hyperparams)[1]==1){
+    #if only one option is given, we use it to train
+    if (dim(grid_of_hyperparams)[1] == 1) {
+      print(grid_of_hyperparams)
       deephitm <- deephit(
         data = df_train,
         x = df_train[predict.factors],
         y = Surv(df_train$time, df_train$event),
-        dropout = deephitparams$dropout,
-        learning_rate = deephitparams$learning_rate,
-        num_nodes = deephitparams$num_nodes,
-        batch_size = deephitparams$batch_size,
-        epochs = deephitparams$epochs,
-        mod_alpha = deephitparams$mod_alpha,
-        sigma = deephitparams$sigma,
-        cuts = deephitparams$cuts
+        dropout = grid_of_hyperparams[1,"dropout"],
+        learning_rate = grid_of_hyperparams[1,"learning_rate"],
+        num_nodes = grid_of_hyperparams[1,"num_nodes"][[1]],
+        batch_size = grid_of_hyperparams[1,"batch_size"],
+        epochs = grid_of_hyperparams[1,"epochs"],
+        mod_alpha = grid_of_hyperparams[1,"mod_alpha"],
+        sigma = grid_of_hyperparams[1,"sigma"],
+        cuts = grid_of_hyperparams[1,"cuts"]
       )
       #if there are options, we tune
-      }else{
-        tuning_results <-
-          deephit_tune(1,df_train,predict.factors,)
+    } else{
+      tuning_results <-
+        deephit_tune(1, df_train, predict.factors,)
+      '##########################################'
 
-
-      }
     }
     return(deephitm)
   }
@@ -89,50 +79,10 @@ deephit_train <-
 #' @param fixed_time  not used here, but for some models the time for which performance is optimized
 #' @param deephitparams list with the range of hyperparameters
 #' @param inner_cv number of folds for each CV
-#' @max_grid_size 50 by default. If grid size > max_grid_size, a random search is performed for max_grid_size iterations. Set this to a small number for random search
+#' @param max_grid_size 25 by default. If grid size > max_grid_size, a random search is performed for max_grid_size iterations. Set this to a small number for random search
+#' @param randomseed to choose random subgroup of hyperparams
 #' @return  output=list(cindex_ordered, bestparams)
-#' @export
-deephit_tune <-
-  function(repeat_tune,
-           df_tune,
-           predict.factors,
-           fixed_time = NaN,
-           deephitparams = list(),
-           inner_cv = 3,
-           max_grid_size = 50
-           ) {
-    means = c()
-    for (i in (1:repeat_tune)) {
-      print (repeat_tune)
-      ds_tune_fus <-
-        deephit_tune_single(df_tune,
-                            predict.factors,
-                            fixed_time,
-                            deephitparams,
-                            inner_cv,
-                            max_grid_size)
-      means <- cbind(means, ds_tune_fus$cindex_mean)
-    }
-    grid = ds_tune_fus$grid
-    allmeans <- apply(means, 1, mean)
-    # grid and average cindex ordered by cindex (highest first)
-    output = list()
-    output$cindex_ordered <-
-      cbind(grid, allmeans)[order(allmeans, decreasing = TRUE),]
-    output$bestparams <- output$cindex_ordered[1,]
-    return(output)
-  }
-
-################## deepsurv_tune ##################
-#' Internal function for deephit_tune(), performs 1 CV
-#' @param df_tune data
-#' @param predict.factors predictor names
-#' @param fixed_time  not used here, but for some models the time for which performance is optimized
-#' @param deephitparams list with the range of hyperparameters
-#' @param inner_cv number of folds for each CV
-#' @max_grid_size 1000 by default. If grid size > max_grid_size, a random search is performed for max_grid_size iterations. Set this to a small number for random search
-#' #' @examples
-#' \dontshow{rfcores_old <- options()$rf.cores; options(rf.cores=1)}
+#' @examples
 #' d <-simulate_nonlinear(100),
 #' p<- names(d)[1:4]
 #' deephitparams = list(
@@ -145,64 +95,142 @@ deephit_tune <-
 #'  "sigma" = 0.1,
 #'  "cuts" = 10
 #' )
-#' deephit_tune_single(d, p,deephitparams = deephitparams, max_grid_size = 10)
-#' \dontshow{options(rf.cores=rfcores_old)}
+#' deephit_tune(d, p,deephitparams = deephitparams, max_grid_size = 10)
+#' @export
+deephit_tune <-
+  function(repeat_tune,
+           df_tune,
+           predict.factors,
+           fixed_time = NaN,
+           deephitparams = list(),
+           inner_cv = 3,
+           max_grid_size = 25,
+           randomseed = NaN) {
+
+    deephitgrid <-
+      ml_hyperparams(mlparams = deephitparams,dftune_size = dim(df_tune)[1],
+        max_grid_size = max_grid_size,randomseed = randomseed  )
+
+    means = c()
+    for (i in (1:repeat_tune)) {
+      ds_tune_fus <-
+        deephit_tune_single(df_tune,predict.factors,fixed_time,
+                            deephitgrid,inner_cv)
+      means <- cbind(means, ds_tune_fus$cindex_mean)
+      remove(ds_tune_fus)
+    }
+
+    allmeans <- apply(means, 1, mean)
+    # grid and average cindex ordered by cindex (highest first)
+    output = list()
+    output$cindex_ordered <-
+      cbind(deephitgrid, allmeans)[order(allmeans, decreasing = TRUE),]
+    output$bestparams <- output$cindex_ordered[1,]
+    return(output)
+  }
+
+#' Internal function for getting grid of hyperparameters
+#' for random or grid search of size = max_grid_size
+#' @export
+ml_hyperparams <- function(mlparams = list(),
+                           max_grid_size = 25,
+                           dftune_size = 1000,
+                           use_large_grid = TRUE,
+                           randomseed = NaN) {
+  if (use_large_grid) {
+    default_grid <- list(
+        "dropout" = seq(0, 0.7, 0.1),
+        "learning_rate" = c(0.001),
+        "num_nodes" = list(
+          c(8, 8),c(16, 16),c(64, 64),c(128, 128),
+          c(16, 16, 16, 4),c(32, 32, 32, 4),c(64, 64, 64, 64)),
+        "batch_size" =
+          seq(min(64, round(dftune_size/ 8)), 256, 64),
+        "epochs" = c(10, 50, 100, 150),
+        "mod_alpha" = seq(0, 1, 0.2),
+        "sigma" = c(0.1, 0.25, 0.5, 1, 2.5, 5, 10, 100),
+        "cuts" = c(10, 50, 100)
+      ) #size ~ 7*7*5*4*8*3= 23520#
+    } else{
+      default_grid <-list(
+        "dropout" = c(0.1, 0.3),
+        "learning_rate" = c(0.001),
+        "num_nodes" = list(c(8, 8), c(16, 16, 16, 4), c(32, 32, 32, 4)),
+        "batch_size" = min(max(64, round(dftune_size/ 8, 0)), 256),
+        "epochs" = c(5, 50),
+        "mod_alpha" = 0.2,
+        "sigma" = 0.1,
+        "cuts" = c(10, 50)
+      ) # size = 24
+      }
+
+  if (length(mlparams) == 0) {
+    grid_of_hyperparams <- expand.grid(default_grid)
+  } else{
+      if (is.null(mlparams$dropout)) {mlparams$dropout = default_grid$dropout    }
+      if (is.null(mlparams$learning_rate)) {mlparams$learning_rate = default_grid$learning_rate}
+      if (is.null(mlparams$num_nodes)) {mlparams$num_nodes = default_grid$num_nodes}
+      if (is.null(mlparams$batch_size)) {mlparams$batch_size = default_grid$batch_size}
+      if (is.null(mlparams$epochs)) {mlparams$epochs = default_grid$epochs}
+      if (is.null(mlparams$mod_alpha)) {mlparams$mod_alpha = default_grid$mod_alpha}
+      if (is.null(mlparams$sigma)) {      mlparams$sigma = default_grid$sigma    }
+      if (is.null(mlparams$cuts)) {      mlparams$cuts = default_grid$cuts    }
+
+    grid_of_hyperparams <- expand.grid(
+      "dropout" = mlparams$dropout,
+      "learning_rate" = mlparams$learning_rate,
+      "num_nodes" = mlparams$num_nodes,
+      "batch_size" = mlparams$batch_size,
+      "epochs" = mlparams$epochs,
+      "mod_alpha" = mlparams$mod_alpha,
+      "sigma" = mlparams$sigma,
+      "cuts" = mlparams$cuts
+    )
+    }
+
+  grid_size <- dim(grid_of_hyperparams)[1]
+
+  final_grid <- grid_of_hyperparams
+  if (grid_size > max_grid_size) {
+    if (!is.nan(randomseed)) {set.seed(randomseed)}
+    final_grid <-
+      grid_of_hyperparams[sample(1:grid_size, max_grid_size, replace = FALSE), ]
+    grid_size <- max_grid_size
+    }
+  remove(grid_of_hyperparams); remove(default_grid)
+
+  return(final_grid)
+}
+
+
+################## deephit_tune_single ##################
+#' Internal function for deephit_tune(), performs 1 CV
+#' @param df_tune data
+#' @param predict.factors predictor names
+#' @param fixed_time predictions for which time are computed for c-index
+#' @param grid_hyperparams  hyperparameters grid (or a default will be used )
+#' @param inner_cv number of folds for each CV
 #' @return  output=list(grid, cindex, cindex_mean)
 #' @export
 deephit_tune_single <-
   function(df_tune,
            predict.factors,
            fixed_time = NaN,
-           deephitparams=list(),
-           inner_cv = 3,
-           max_grid_size = 50) {
-
-    default_grid <-
-      list(
-      "dropout" = c(0.1, 0.3),
-      "learning_rate" = c(0.001),
-      "num_nodes" =    list(c(8, 8), c(16, 16, 16, 4), c(32, 32, 32, 4)),
-      "batch_size" = min(max(64, round(dim(df_tune)[1]/8, 0)),256),
-      "epochs" = c(5, 50),
-      "mod_alpha" = 0.2,
-      "sigma" = 0.1,
-      "cuts" = 10
-      ) #size = 2x3x2= 12
-
-    if (length(deephitparams) == 0) {
-      grid_of_hyperparams <- default_grid
-    }else{
-      if (is.null(deephitparams$dropout)) {deephitparams$dropout = default_grid$dropout}
-      if (is.null(deephitparams$learning_rate)) {deephitparams$learning_rate = default_grid$learning_rate}
-      if (is.null(deephitparams$num_nodes)) {deephitparams$num_nodes = default_grid$num_nodes}
-      if (is.null(deephitparams$batch_size)) {deephitparams$batch_size= default_grid$batch_size}
-      if (is.null(deephitparams$epochs)) {deephitparams$epochs = default_grid$epochs}
-      if (is.null(deephitparams$mod_alpha)) {deephitparams$mod_alpha = default_grid$mod_alpha}
-      if (is.null(deephitparams$sigma)) {deephitparams$sigma = default_grid$sigma}
-      if (is.null(deephitparams$cuts)) {deephitparams$cuts = default_grid$cuts}
+           grid_hyperparams=c(),
+           inner_cv = 3) {
+    print (grid_hyperparams)
+    #fixed_time
+    if (sum(is.nan(fixed_time) > 0) | length(fixed_time) > 1) {
+      # not implemented for multiple time
+      fixed_time <- round(quantile(df_tune[df_tune$event == 1, "time"], 0.9), 2)
     }
 
-    grid_of_hyperparams <- expand.grid(
-        "dropout" = deephitparams$dropout,
-        "learning_rate" = deephitparams$learning_rate,
-        "num_nodes" = deephitparams$num_nodes,
-        "batch_size" = deephitparams$batch_size,
-        "epochs" = deephitparams$epochs,
-        "mod_alpha" = deephitparams$mod_alpha,
-        "sigma" = deephitparams$sigma,
-        "cuts" = deephitparams$cuts
-    )
+    if (length(grid_hyperparams)==0){
+      grid_hyperparams<-
+      ml_hyperparams(mlparams = list(),
+                     dftune_size = dim(df_tune)[1])}
 
-    print(grid_of_hyperparams)
-    grid_size <- dim(grid_of_hyperparams)[1]
-
-    # choose random sub-grid if grid_size too large
-    if (grid_size > max_grid_size) {
-      grid_of_values<- grid_of_hyperparams[sample(1:grid_size, max_grid_size,replace = FALSE), ]
-      grid_size <- max_grid_size
-    }else{
-      grid_of_values <- grid_of_hyperparams
-      }
+    grid_size <- dim(grid_hyperparams)[1]
 
     #placeholder for c-index
     cind = matrix(NA, nrow = grid_size, ncol = inner_cv)
@@ -226,14 +254,14 @@ deephit_tune_single <-
           y = Surv(df_train_cv$time, df_train_cv$event),
           shuffle = TRUE,
           early_stopping = TRUE,
-          dropout = grid_of_values[i, "dropout"],
-          learning_rate = grid_of_values[i, "learning_rate"],
-          num_nodes = grid_of_values[i, "num_nodes"][[1]],
-          batch_size = grid_of_values[i, "batch_size"],
-          epochs = grid_of_values[i, "epochs"],
-          mod_alpha = grid_of_values[i, "mod_alpha"],
-          sigma = grid_of_values[i, "sigma"],
-          cuts = grid_of_values[i, "cuts"]
+          dropout = grid_hyperparams[i, "dropout"],
+          learning_rate = grid_hyperparams[i, "learning_rate"],
+          num_nodes = grid_hyperparams[i, "num_nodes"][[1]],
+          batch_size = grid_hyperparams[i, "batch_size"],
+          epochs = grid_hyperparams[i, "epochs"],
+          mod_alpha = grid_hyperparams[i, "mod_alpha"],
+          sigma = grid_hyperparams[i, "sigma"],
+          cuts = grid_hyperparams[i, "cuts"]
         )
         #check test performance
         pp <-
@@ -250,11 +278,10 @@ deephit_tune_single <-
     remove(deephitm)
     cindex_mean <- apply(cind, 1, mean)
     output = list()
-    output$grid = grid_of_values
     output$cindex = cind
     output$cindex_mean = cindex_mean
     output$cindex_ordered <-
-      cbind(grid_of_values, cindex_mean)[order(cindex_mean, decreasing = TRUE),]
+      cbind(grid_hyperparams, cindex_mean)[order(cindex_mean, decreasing = TRUE),]
     output$bestparams <- output$cindex_ordered[1,]
     return(output)
   }
@@ -293,7 +320,7 @@ deephit_cv <- function(df,
     train_function = deephit_train,
     predict_function = deephit_predict,
     model_args = list("deephitparams" = deephitparams),
-    predict_args = list("predict.factors" = predict.factors),
+    predict_args = list(),
     model_name = "DeepHit"
   )
   output$call <- Call
