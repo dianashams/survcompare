@@ -24,29 +24,19 @@ deephit_predict <-
 deephit_train <-
   function(df_train,
            predict.factors,
-           deephitparams = list()) {
+           deephitparams = list(),
+           max_grid_size = 25) {
 
-    # if (length(deephitparams) == 0) {
-    #   deephitm <- deephit(
-    #     data = df_train,
-    #     x = df_train[predict.factors],
-    #     y = Surv(df_train$time, df_train$event)
-    #   )
-    #   return(deephitm)
-    # }
-
-    if (is.null(deephitparams$max_grid_size)) {max_grid_size = 25}
-    print(deephitparams)
     grid_of_hyperparams <-
       ml_hyperparams(
         mlparams = deephitparams,
         dftune_size = dim(df_train)[1],
         max_grid_size = max_grid_size
       )
+    print(grid_of_hyperparams)
 
     #if only one option is given, we use it to train
     if (dim(grid_of_hyperparams)[1] == 1) {
-      print(grid_of_hyperparams)
       deephitm <- deephit(
         data = df_train,
         x = df_train[predict.factors],
@@ -300,7 +290,8 @@ deephit_cv <- function(df,
                         randomseed = NULL,
                         return_models = FALSE,
                         useCoxLasso = FALSE,
-                        deephitparams = list()
+                        deephitparams = list(),
+                        max_grid_size =25
 ) {
   Call <- match.call()
 
@@ -319,7 +310,8 @@ deephit_cv <- function(df,
     return_models = return_models,
     train_function = deephit_train,
     predict_function = deephit_predict,
-    model_args = list("deephitparams" = deephitparams),
+    model_args = list("deephitparams" = deephitparams,
+                      "max_grid_size"= max_grid_size),
     predict_args = list(),
     model_name = "DeepHit"
   )
