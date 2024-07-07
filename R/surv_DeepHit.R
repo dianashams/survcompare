@@ -6,13 +6,12 @@
 deephit_predict <-
   function(trained_model,
            newdata,
+           predict.factors,
            fixed_time)
   {
-    if (inherits(trained_model, "list")) {
-      trained_model <- trained_model$model
-    }
+    if (inherits(trained_model, "list")) {trained_model <- trained_model$model}
 
-    s1 <- predict(trained_model, newdata, type = "survival")
+    s1 <- predict(trained_model, newdata[predict.factors], type = "survival")
     f <- function(i) {
       approxfun(as.double(colnames(s1)), s1[i, ], method = "linear")(fixed_time)
     }
@@ -28,7 +27,9 @@ deephit_train <-
            predict.factors,
            fixed_time = NaN,
            deephitparams = list(),
-           max_grid_size = 25) {
+           max_grid_size = 25,
+           inner_cv = 3,
+           randomseed = NaN) {
 
     grid_of_hyperparams <-
       ml_hyperparams(
@@ -48,7 +49,9 @@ deephit_train <-
         repeat_tune = 1,
         fixed_time = fixed_time,
         deephitparams = deephitparams,
-        max_grid_size = max_grid_size
+        max_grid_size = max_grid_size,
+        inner_cv = inner_cv,
+        randomseed = randomseed
       )
       bestparams = tuning_m$bestparams
     }
@@ -104,18 +107,28 @@ deephit_tune <-
            repeat_tune=1,
            fixed_time = NaN,
            deephitparams = list(),
-           inner_cv = 3,
            max_grid_size = 25,
+           inner_cv = 3,
            randomseed = NaN) {
 
     deephitgrid <-
-      ml_hyperparams( mlparams = deephitparams, dftune_size = dim(df_tune)[1],
-        max_grid_size = max_grid_size,  randomseed = randomseed   )
-    #print(deephitgrid)
+      ml_hyperparams(
+        mlparams = deephitparams,
+        dftune_size = dim(df_tune)[1],
+        max_grid_size = max_grid_size,
+        randomseed = randomseed
+      )
     means = c()
     for (i in (1:repeat_tune)) {
-      #print(i)
-      ds_tune_fus <- deephit_tune_single(df_tune, predict.factors, fixed_time, deephitgrid, inner_cv)
+      ds_tune_fus <-
+        deephit_tune_single(
+          df_tune = df_tune,
+          predict.factors =  predict.factors,
+          fixed_time = fixed_time,
+          grid_hyperparams = deephitgrid,
+          inner_cv = inner_cv,
+          randomseed=randomseed
+        )
       means <- cbind(means, ds_tune_fus$cindex_mean)
       remove(ds_tune_fus)
     }
@@ -127,7 +140,7 @@ deephit_tune <-
       cbind(deephitgrid, allmeans)[order(allmeans, decreasing = TRUE),]
     output$bestparams <- output$cindex_ordered[1,]
     return(output)
-}
+  }
 
 #' Internal function for getting grid of hyperparameters
 #' for random or grid search of size = max_grid_size
@@ -217,10 +230,11 @@ deephit_tune_single <-
            predict.factors,
            fixed_time = NaN,
            grid_hyperparams=c(),
-           inner_cv = 3) {
+           inner_cv = 3,
+           randomseed = NaN) {
 
     #fixed_time
-    if (sum(is.nan(fixed_time) > 0) | length(fixed_time) > 1) {
+    if ( is.nan(fixed_time) | length(fixed_time) > 1) {
       # not implemented for multiple time
       fixed_time <- round(quantile(df_tune[df_tune$event == 1, "time"], 0.9), 2)
     }
@@ -241,6 +255,7 @@ deephit_tune_single <-
 
     # tuning cross-validation loop
     for (cv_iteration in 1:inner_cv) {
+      if (!is.nan(randomseed)) {set.seed(randomseed + 123 + cv_iteration)}
       # print(paste("deephit tuning CV step", cv_iteration, "of", inner_cv))
       cv_folds <-
         caret::createFolds(df_tune$event, k = inner_cv, list = FALSE)
@@ -265,7 +280,7 @@ deephit_tune_single <-
         )
         #check test performance
         pp <-
-          deephit_predict(deephitm, df_test_cv, fixed_time)
+          deephit_predict(trained_model = deephitm, newdata = df_test_cv, predict.factors = predict.factors, fixed_time = fixed_time)
         cind[i, cv_iteration] =
           surv_validate(pp, fixed_time, df_train_cv, df_test_cv)[1, "C_score"]
         #cind[i, cv_iteration] =
@@ -322,7 +337,7 @@ deephit_cv <- function(df,
     predict_function = deephit_predict,
     model_args = list("deephitparams" = deephitparams,
                       "max_grid_size"= max_grid_size),
-    predict_args = list(),
+    predict_args = list("predict.factors" = predict.factors),
     model_name = "DeepHit"
   )
   output$call <- Call

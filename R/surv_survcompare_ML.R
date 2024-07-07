@@ -31,7 +31,8 @@ survcompare_ml <- function(df_train,
                            return_models = FALSE,
                            repeat_cv = 2,
                            train_ml = FALSE,
-                           ml = "DeepHit") {
+                           ml = "DeepHit",
+                           max_grid_size = 25) {
 
   Call <- match.call()
   inputs <- list(
@@ -74,8 +75,8 @@ survcompare_ml <- function(df_train,
   if (is.null(predict_time)) {
     predict_time <- quantile(df_train[df_train$event == 1, "time"], 0.9)
   }
-
-  ensemble_name <- paste(ml, "ensemble", sep="_") #SRF_ensemble or DeepHit_ensemble
+  #SRF_ensemble or DeepHit_ensemble
+  ensemble_name <- paste(ml, "ensemble", sep="_")
 
   # cross-validation
   cox_cv <- survcox_cv(
@@ -99,7 +100,8 @@ survcompare_ml <- function(df_train,
         randomseed = randomseed,
         return_models = return_models,
         deephitparams = mltuningparams,
-        repeat_cv = repeat_cv
+        repeat_cv = repeat_cv,
+        max_grid_size = max_grid_size
       )} else if (ml=="DeepSurv") {
         ml_cv <- deepsurv_cv(
           df = df_train,
@@ -137,7 +139,8 @@ survcompare_ml <- function(df_train,
     return_models = return_models,
     deephitparams = mltuningparams,
     useCoxLasso = useCoxLasso,
-    repeat_cv = repeat_cv
+    repeat_cv = repeat_cv,
+    max_grid_size = max_grid_size
     )
   } else if (ml=="DeepSurv") {
     ens1_cv <- ens_deepsurv_cv(
@@ -166,6 +169,9 @@ survcompare_ml <- function(df_train,
       repeat_cv = repeat_cv
     )
     }
+
+  print(summary(cox_cv))
+  print(summary(ens1_cv))
 
   # gathering the output: test&train performance
 

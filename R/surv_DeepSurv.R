@@ -33,12 +33,12 @@ deepsurv_train <-
         x = df_train[predict.factors],
         y = Surv(df_train$time, df_train$event))
     }else{
-      if(is.null(deepsurvparams$dropout)) {deepsurvparams$dropout= 0.2} 
-      if(is.null(deepsurvparams$learning_rate)) {deepsurvparams$learning_rate = 0.01} 
-      if(is.null(deepsurvparams$num_nodes)) {deepsurvparams$num_nodes =  c(16, 16)} 
-      if(is.null(deepsurvparams$batch_size)) {deepsurvparams$batch_size =  
-                                              round(max(100, dim(df_train)[1] / 4), 0) } 
-      if(is.null(deepsurvparams$epochs)) {deepsurvparams$epochs = 50} 
+      if(is.null(deepsurvparams$dropout)) {deepsurvparams$dropout= 0.2}
+      if(is.null(deepsurvparams$learning_rate)) {deepsurvparams$learning_rate = 0.01}
+      if(is.null(deepsurvparams$num_nodes)) {deepsurvparams$num_nodes =  c(16, 16)}
+      if(is.null(deepsurvparams$batch_size)) {deepsurvparams$batch_size =
+                                              round(max(100, dim(df_train)[1] / 4), 0) }
+      if(is.null(deepsurvparams$epochs)) {deepsurvparams$epochs = 50}
       deepsurvm <- survivalmodels::deepsurv(
         data = df_train,
         x = df_train[predict.factors],
@@ -63,6 +63,13 @@ deepsurv_tune <-
            predict.factors,
            fixed_time,
            inner_cv = 3) {
+
+    #fixed_time
+    if (is.nan(fixed_time) | length(fixed_time) > 1) {
+      # not implemented for multiple time
+      fixed_time <- round(quantile(df_tune[df_tune$event == 1, "time"], 0.9), 2)
+    }
+
     means = c()
     for (i in (1:repeat_tune)) {
       print (repeat_tune)
@@ -85,8 +92,15 @@ deepsurv_tune <-
 deepsurv_tune_single <-
   function(df_tune,
            predict.factors,
-           fixed_time,
+           fixed_time = NaN,
            inner_cv = 3) {
+
+    #fixed_time
+    if (is.nan(fixed_time) | length(fixed_time) > 1) {
+      # not implemented for multiple time
+      fixed_time <- round(quantile(df_tune[df_tune$event == 1, "time"], 0.9), 2)
+    }
+
     # defining the tuning grid
     grid_of_values <- expand.grid(
       "dropout" = c(0.1, 0.3),
@@ -97,11 +111,11 @@ deepsurv_tune_single <-
     #placeholder for c-index
     cind = matrix(NA, nrow = grid_size, ncol = inner_cv)
     # tuning cross-validation loop
-    
+
     #progress bar
     pb <- utils::txtProgressBar(0, inner_cv * grid_size, style = 3)
     utils::setTxtProgressBar(pb, inner_cv * grid_size / 50)
-    
+
     for (cv_iteration in 1:inner_cv) {
       # print(paste("DeepSurv tuning CV step", cv_iteration, "of", inner_cv))
       cv_folds <-
@@ -125,7 +139,7 @@ deepsurv_tune_single <-
         )
         #check test performance
         pp <-
-          deepsurv_predict(deepsurvm, df_test_cv, predict.factors, fixed_time)
+          deepsurv_predict(trained_model = deepsurvm,newdata =  df_test_cv, fixed_time =fixed_time, predict.factors = predict.factors)
         cind[i, cv_iteration] =
           surv_validate(pp, fixed_time, df_train_cv, df_test_cv)[1, "C_score"]
         #cind[i, cv_iteration] =
@@ -170,11 +184,11 @@ deepsurv_cv <- function(df,
   #                   useCoxLasso="logical", deepsurvparams = "list")
   # cp<- check_call(inputs, inputclass, Call)
   # if (cp$anyerror) stop (paste(cp$msg[cp$msg!=""], sep=""))
-  
+
   if (sum(is.na(df[c("time", "event", predict.factors)])) > 0) {
     stop("Missing data can not be handled. Please impute first.")
   }
-  
+
   output <- surv_CV(
     df = df,
     predict.factors = predict.factors,

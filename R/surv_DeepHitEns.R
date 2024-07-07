@@ -9,21 +9,17 @@ ens_deephit_train <-
            inner_cv = 3,
            randomseed = NULL,
            useCoxLasso = FALSE,
-           deephitparams = list()) {
-
-    #setting random seed
-    if (is.null(randomseed)) {
-      randomseed <- round(stats::runif(1) * 1e9, 0)
-    }
-    set.seed(randomseed)
+           deephitparams = list(),
+           max_grid_size =25) {
 
     # setting fixed_time if not given
-    if (sum(is.nan(fixed_time)) > 0 | (length(fixed_time) > 1)) {
+    if (is.nan(fixed_time)| (length(fixed_time) > 1)) {
       fixed_time <-
         round(quantile(df_train[df_train$event == 1, "time"], 0.9), 1)
     }
 
     #creating folds
+    if (!is.na(randomseed)) {set.seed(randomseed)}
     cv_folds <-
       caret::createFolds(df_train$event, k = 5, list = FALSE)
     cindex_train <- vector(length = 5)
@@ -52,7 +48,10 @@ ens_deephit_train <-
 
     # train the deephit model
     deephit.ens <-
-      deephit_train(df_train,predict.factors.plusCox,deephitparams)
+      deephit_train(df_train = df_train,predict.factors = predict.factors.plusCox,
+                    fixed_time =fixed_time, deephitparams = deephitparams,
+                    max_grid_size = max_grid_size,
+                    inner_cv = inner_cv,randomseed = randomseed )
 
     #base cox model
     cox_base_model <-
@@ -107,7 +106,8 @@ ens_deephit_cv <- function(df,
                             randomseed = NULL,
                             return_models = FALSE,
                             useCoxLasso = FALSE,
-                            deephitparams = list()
+                            deephitparams = list(),
+                            max_grid_size =25
 ) {
   Call <- match.call()
 
@@ -127,7 +127,8 @@ ens_deephit_cv <- function(df,
     train_function = ens_deephit_train,
     predict_function = ens_deephit_predict,
     model_args = list("deephitparams" = deephitparams,
-                      "useCoxLasso" = useCoxLasso),
+                      "useCoxLasso" = useCoxLasso,
+                      "max_grid_size" = max_grid_size),
     predict_args = list("predict.factors" = predict.factors),
     model_name = "CoxPH and DeepHit Ensemble"
   )
