@@ -290,7 +290,10 @@ survcompare_ml <- function(df_train,
   output$results_median <- results_median
   output$results_mean_train <- results_mean_train
   output$return_models <- list("CoxPH" = cox_cv$tuned_cv_models,
+                               ml = ifelse(train_ml, ml_cv$tuned_cv_models,NaN),
                                ensemble_name = ens1_cv$tuned_cv_models)
+  output$bestparams <- list(ml = ifelse(train_ml, ml_cv$bestparams, NaN),
+                            ensemble_name = ens1_cv$bestparams)
   output$test <- list("CoxPH" = cox_cv$test,
                       ensemble_name = ens1_cv$test)
   output$train <- list("CoxPH" = cox_cv$train,
