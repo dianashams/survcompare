@@ -70,7 +70,7 @@ deephit_train <-
     )
     output = list()
     output$model = deephitm
-    output$params = bestparams
+    output$bestparams = bestparams
     return(output)
   }
 
@@ -312,7 +312,7 @@ deephit_cv <- function(df,
                         outer_cv = 3,
                         inner_cv = 3,
                         repeat_cv = 2,
-                        randomseed = NULL,
+                        randomseed = NaN,
                         return_models = FALSE,
                         useCoxLasso = FALSE,
                         deephitparams = list(),

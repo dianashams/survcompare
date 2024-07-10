@@ -7,7 +7,7 @@ ens_deephit_train <-
            predict.factors,
            fixed_time = NaN,
            inner_cv = 3,
-           randomseed = NULL,
+           randomseed = NaN,
            useCoxLasso = FALSE,
            deephitparams = list(),
            max_grid_size =25) {
@@ -19,7 +19,7 @@ ens_deephit_train <-
     }
 
     #creating folds
-    if (!is.na(randomseed)) {set.seed(randomseed)}
+    if (!is.nan(randomseed)) {set.seed(randomseed)}
     cv_folds <-
       caret::createFolds(df_train$event, k = 5, list = FALSE)
     cindex_train <- vector(length = 5)
@@ -59,7 +59,7 @@ ens_deephit_train <-
 
     #output
     output = list()
-    output$model <- deephit.ens
+    output$model <- deephit.ens$model
     output$model_base <- cox_base_model
     output$randomseed <- randomseed
     output$call <-  match.call()
@@ -103,7 +103,7 @@ ens_deephit_cv <- function(df,
                             outer_cv = 3,
                             inner_cv = 3,
                             repeat_cv = 2,
-                            randomseed = NULL,
+                            randomseed = NaN,
                             return_models = FALSE,
                             useCoxLasso = FALSE,
                             deephitparams = list(),
@@ -128,7 +128,8 @@ ens_deephit_cv <- function(df,
     predict_function = ens_deephit_predict,
     model_args = list("deephitparams" = deephitparams,
                       "useCoxLasso" = useCoxLasso,
-                      "max_grid_size" = max_grid_size),
+                      "max_grid_size" = max_grid_size,
+                      "randomseed" = randomseed),
     predict_args = list("predict.factors" = predict.factors),
     model_name = "CoxPH and DeepHit Ensemble"
   )

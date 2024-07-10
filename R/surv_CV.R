@@ -5,15 +5,16 @@ surv_CV <-
            outer_cv = 3,
            inner_cv = 3,
            repeat_cv = 2,
-           randomseed = NULL,
+           randomseed = NaN,
            return_models = FALSE,
            train_function,
            predict_function,
            model_args = list(),
            predict_args = list(),
            model_name = "a model") {
+
     time_0 <- Sys.time()
-    if (is.null(randomseed)) {
+    if (is.nan(randomseed)) {
       randomseed <- round(stats::runif(1) * 1e9, 0)
     }
 
@@ -50,29 +51,20 @@ surv_CV <-
       repeat_cv = 1
     }
 
-    note_srf = ifelse( model_name == "Survival Random Forest",
-                      "For SRF inner CV is not used if oob = TRUE (default)", 
-                      "") 
+    note_srf = ifelse(
+      model_name == "Survival Random Forest",
+      "For SRF inner CV is not used if oob = TRUE (default)",
+      "")
 
-    print(
-      paste(
-        "Cross-validating ",
-        model_name,
-        " using ",
-        repeat_cv,
-        " repeat(s), ",
-        outer_cv,
-        " outer, ",
-        inner_cv,
-        " inner loops).",
-        note_srf,
-        sep = ""
-      )
-    )
+    print(paste("Cross-validating ",model_name," using ",repeat_cv,
+        " repeat(s), ",outer_cv," outer, ",inner_cv," inner loops).",
+        note_srf,sep = ""))
 
     modelstats_train <- list()
     modelstats_test <- list()
     models_for_each_cv <- list()
+    params_for_each_cv <- list()
+
     # fast progress bar
     # pb <- utils::txtProgressBar(0, outer_cv * repeat_cv, style = 3)
     # utils::setTxtProgressBar(pb, outer_cv * repeat_cv / 50)
@@ -96,7 +88,6 @@ surv_CV <-
       for (cv_iteration in 1:outer_cv) {
         df_train_cv <- df[cv_folds != cv_iteration,]
         df_test_cv <- df[cv_folds == cv_iteration,]
-
         predict.factors.cv <- eligible_params(predict.factors, df_train_cv)
 
         # tune the model using train_function
@@ -132,10 +123,17 @@ surv_CV <-
         if (return_models) {
           models_for_each_cv[[cv_iteration + (rep_cv - 1) * outer_cv]] <-
             trained_model
+          if(!is.null(trained_model$bestparams)){
+          params_for_each_cv[[cv_iteration + (rep_cv - 1) * outer_cv]]<-
+            trained_model$bestparams}
+        }else{
+          # save tuned parameters
+          if(!is.null(trained_model$bestparams)){
+            params_for_each_cv[[cv_iteration + (rep_cv - 1) * outer_cv]]<-
+              trained_model$bestparams}
+          }
         }
-        ##utils::setTxtProgressBar(pb, cv_iteration + (rep_cv - 1) * outer_cv)
-      }
-    }
+    }#end of cv loop
 
     df_modelstats_test <- data.frame(modelstats_test[[1]])
     df_modelstats_train <- data.frame(modelstats_train[[1]])
@@ -196,6 +194,16 @@ surv_CV <-
     }else{
       summarydf_pooled = summarydf}
 
+    # tuned params from list to dataframe
+    if (length(params_for_each_cv)>1) {
+      bp <- params_for_each_cv[[1]]
+      for (i in 2:length(params_for_each_cv)) {
+        bp <- rbind(bp, params_for_each_cv[[i]])
+      }
+    }else{
+      bp <- params_for_each_cv
+    }
+
     output <- list()
     output$test <- df_modelstats_test
     output$train <- df_modelstats_train
@@ -208,6 +216,7 @@ surv_CV <-
       sapply(df_modelstats_train, mean, na.rm = 1)
     output$tuned_cv_models <- models_for_each_cv
     output$randomseed <- randomseed
+    output$bestparams<- bp
     output$call <- Call
     output$cv <- c(outer_cv, inner_cv, repeat_cv)
     output$summarydf <- summarydf
