@@ -11,7 +11,7 @@ surv_CV <-
            predict_function,
            model_args = list(),
            predict_args = list(),
-           model_name = "a model") {
+           model_name = "my model") {
 
     time_0 <- Sys.time()
     if (is.nan(randomseed)) {

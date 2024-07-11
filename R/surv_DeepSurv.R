@@ -130,7 +130,7 @@ deepsurv_tune_single <-
           y = Surv(df_train_cv$time, df_train_cv$event),
           shuffle = TRUE,
           epochs = 50,
-          early_stopping = TRUE,
+          #early_stopping = TRUE,
           frac = 0.2,
           batch_size = round(max(100, dim(df_train_cv)[1] / 4), 0),
           dropout = grid_of_values[i, "dropout"],

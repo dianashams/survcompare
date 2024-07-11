@@ -59,6 +59,7 @@ deephit_train <-
       data = df_train,
       x = df_train[predict.factors],
       y = Surv(df_train$time, df_train$event),
+      #early_stopping = TRUE,
       dropout = bestparams$dropout,
       learning_rate = bestparams$learning_rate,
       num_nodes = bestparams$num_nodes[[1]],
@@ -159,7 +160,7 @@ ml_hyperparams <- function(mlparams = list(),
           c(16, 16, 16, 4),c(32, 32, 32, 4),c(64, 64, 64, 64)),
         "batch_size" =
           seq(min(64, round(dftune_size/ 8)), 256, 64),
-        "epochs" = c(10, 50, 100, 150),
+        "epochs" = c(10, 50, 100, 200,400),
         "mod_alpha" = seq(0, 1, 0.2),
         "sigma" = c(0.1, 0.25, 0.5, 1, 2.5, 5, 10, 100),
         "cuts" = c(10, 50, 100)
@@ -234,33 +235,32 @@ deephit_tune_single <-
            randomseed = NaN) {
 
     #fixed_time
-    if ( is.nan(fixed_time) | length(fixed_time) > 1) {
+    if (is.nan(fixed_time) | length(fixed_time) > 1) {
       # not implemented for multiple time
-      fixed_time <- round(quantile(df_tune[df_tune$event == 1, "time"], 0.9), 2)
+      fixed_time <-
+        round(quantile(df_tune[df_tune$event == 1, "time"], 0.9), 2)
     }
-
-    if (length(grid_hyperparams)==0){
-      grid_hyperparams<-
-      ml_hyperparams(mlparams = list(),
-                     dftune_size = dim(df_tune)[1])}
-
+    if (length(grid_hyperparams) == 0) {
+      grid_hyperparams <-
+        ml_hyperparams(mlparams = list(),
+                       dftune_size = dim(df_tune)[1])
+    }
     grid_size <- dim(grid_hyperparams)[1]
-
     #placeholder for c-index
     cind = matrix(NA, nrow = grid_size, ncol = inner_cv)
-
     #progress bar
     pb <- utils::txtProgressBar(0, inner_cv * grid_size, style = 3)
     utils::setTxtProgressBar(pb, inner_cv * grid_size / 50)
-
     # tuning cross-validation loop
     for (cv_iteration in 1:inner_cv) {
-      if (!is.nan(randomseed)) {set.seed(randomseed + 123 + cv_iteration)}
+      if (!is.nan(randomseed)) {
+        set.seed(randomseed + 123 + cv_iteration)
+      }
       # print(paste("deephit tuning CV step", cv_iteration, "of", inner_cv))
       cv_folds <-
         caret::createFolds(df_tune$event, k = inner_cv, list = FALSE)
-      df_train_cv <- df_tune[cv_folds != cv_iteration, ]
-      df_test_cv <- df_tune[cv_folds == cv_iteration, ]
+      df_train_cv <- df_tune[cv_folds != cv_iteration,]
+      df_test_cv <- df_tune[cv_folds == cv_iteration,]
       #Grid search
       for (i in 1:grid_size) {
         deephitm <- survivalmodels::deephit(
@@ -268,7 +268,7 @@ deephit_tune_single <-
           x = df_train_cv[predict.factors],
           y = Surv(df_train_cv$time, df_train_cv$event),
           shuffle = TRUE,
-          early_stopping = TRUE,
+          #early_stopping = TRUE,
           dropout = grid_hyperparams[i, "dropout"],
           learning_rate = grid_hyperparams[i, "learning_rate"],
           num_nodes = grid_hyperparams[i, "num_nodes"][[1]],
@@ -280,7 +280,12 @@ deephit_tune_single <-
         )
         #check test performance
         pp <-
-          deephit_predict(trained_model = deephitm, newdata = df_test_cv, predict.factors = predict.factors, fixed_time = fixed_time)
+          deephit_predict(
+            trained_model = deephitm,
+            newdata = df_test_cv,
+            predict.factors = predict.factors,
+            fixed_time = fixed_time
+          )
         cind[i, cv_iteration] =
           surv_validate(pp, fixed_time, df_train_cv, df_test_cv)[1, "C_score"]
         #cind[i, cv_iteration] =
@@ -296,8 +301,8 @@ deephit_tune_single <-
     output$cindex = cind
     output$cindex_mean = cindex_mean
     output$cindex_ordered <-
-      cbind(grid_hyperparams, cindex_mean)[order(cindex_mean, decreasing = TRUE),]
-    output$bestparams <- output$cindex_ordered[1,]
+      cbind(grid_hyperparams, cindex_mean)[order(cindex_mean, decreasing = TRUE), ]
+    output$bestparams <- output$cindex_ordered[1, ]
     return(output)
   }
 

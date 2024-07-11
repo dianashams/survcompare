@@ -10,19 +10,19 @@ ens_deepsurv_train <-
            randomseed = NULL,
            useCoxLasso = FALSE,
            deepsurvparams = list()) {
-    
+
     #setting random seed
     if (is.null(randomseed)) {
       randomseed <- round(stats::runif(1) * 1e9, 0)
     }
     set.seed(randomseed)
-    
+
     # setting fixed_time if not given
     if (sum(is.nan(fixed_time)) > 0 | (length(fixed_time) > 1)) {
       fixed_time <-
         round(quantile(df_train[df_train$event == 1, "time"], 0.9), 1)
     }
-    
+
     #creating folds
     cv_folds <-
       caret::createFolds(df_train$event, k = 5, list = FALSE)
@@ -42,22 +42,22 @@ ens_deepsurv_train <-
       # adding Cox prediction to the df_train in the column "cox_predict"
       df_train[cv_folds == cv_iteration, "cox_predict"] <- cox_predict_oob
     }
-    
+
     # cox_m<- survcox_train(df_train, predict.factors,
     #                                  useCoxLasso = useCoxLasso)
     #df_train$cox_predict <- survcox_predict(cox_m,df_train,fixed_time)
-    
+
     # adding Cox predictions as a new factor to tune SRF,
     predict.factors.plusCox <- c(predict.factors[-1], "cox_predict")
-    
+
     # train the DeepSurv model
     deepsurv.ens <-
       deepsurv_train(df_train,predict.factors.plusCox,deepsurvparams)
-    
+
     #base cox model
     cox_base_model <-
       survcox_train(df_train, predict.factors, useCoxLasso = useCoxLasso)
-    
+
     #output
     output = list()
     output$model <- deepsurv.ens
@@ -120,11 +120,11 @@ ens_deepsurv_cv <- function(df,
   #                   useCoxLasso="logical", deepsurvparams = "list")
   # cp<- check_call(inputs, inputclass, Call)
   # if (cp$anyerror) stop (paste(cp$msg[cp$msg!=""], sep=""))
-  
+
   if (sum(is.na(df[c("time", "event", predict.factors)])) > 0) {
     stop("Missing data can not be handled. Please impute first.")
   }
-  
+
   output <- surv_CV(
     df = df,
     predict.factors = predict.factors,
@@ -138,7 +138,7 @@ ens_deepsurv_cv <- function(df,
     predict_function = ens_deepsurv_predict,
     model_args = list("deepsurvparams" = deepsurvparams),
     predict_args = list("predict.factors" = predict.factors),
-    model_name = "CoxPH and DeepSurv Ensemble"
+    model_name = ifelse(useCoxLasso, "DeepSurv_CoxLasso_Ensemble", "DeepSurv_CoxPH_Ensemble")
   )
   output$call <- Call
   return(output)

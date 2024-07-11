@@ -39,19 +39,18 @@ ens_deephit_train <-
       df_train[cv_folds == cv_iteration, "cox_predict"] <- cox_predict_oob
     }
 
-    # cox_m<- survcox_train(df_train, predict.factors,
-    #                                  useCoxLasso = useCoxLasso)
-    #df_train$cox_predict <- survcox_predict(cox_m,df_train,fixed_time)
-
     # adding Cox predictions as a new factor to tune SRF,
     predict.factors.plusCox <- c(predict.factors, "cox_predict")
 
     # train the deephit model
     deephit.ens <-
-      deephit_train(df_train = df_train,predict.factors = predict.factors.plusCox,
-                    fixed_time =fixed_time, deephitparams = deephitparams,
+      deephit_train(df_train = df_train,
+                    predict.factors = predict.factors.plusCox,
+                    fixed_time = fixed_time,
+                    deephitparams = deephitparams,
                     max_grid_size = max_grid_size,
-                    inner_cv = inner_cv,randomseed = randomseed )
+                    inner_cv = inner_cv,
+                    randomseed = randomseed )
 
     #base cox model
     cox_base_model <-
@@ -62,6 +61,7 @@ ens_deephit_train <-
     output$model <- deephit.ens$model
     output$model_base <- cox_base_model
     output$randomseed <- randomseed
+    output$bestparams <- deephit.ens$bestparams
     output$call <-  match.call()
     class(output) <- "survensemble"
     return(output)
@@ -131,7 +131,8 @@ ens_deephit_cv <- function(df,
                       "max_grid_size" = max_grid_size,
                       "randomseed" = randomseed),
     predict_args = list("predict.factors" = predict.factors),
-    model_name = "CoxPH and DeepHit Ensemble"
+    model_name = ifelse(useCoxLasso, "DeepHit_CoxLasso_Ensemble",
+                        "DeepHit_CoxPH_Ensemble")
   )
   output$call <- Call
   return(output)

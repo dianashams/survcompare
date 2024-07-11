@@ -16,8 +16,12 @@
 #'  hyperparams <- list("dropout" = 0.2,"learning_rate" = 0.1,
 #'  "num_nodes" = c(32, 32),"batch_size" = 100,"epochs" = 10)
 #' mysurvcomp <-
-#'    survcompare_ds(df, names(df)[1:4], mltuningparams = hyperparams,
-#'    outer_cv = 2, inner_cv =2)
+#'    survcompare_ml(
+#'    df,
+#'    names(df)[1:4],
+#'    mltuningparams = hyperparams,
+#'    ml = "DeepSurv"
+#'    )
 #' summary(mysurvcomp)
 #' @export
 survcompare_ml <- function(df_train,
@@ -170,9 +174,6 @@ survcompare_ml <- function(df_train,
     )
     }
 
-  print(summary(cox_cv))
-  print(summary(ens1_cv))
-
   # gathering the output: test&train performance
 
   stats_ci <- function(x, col = "C_score") {
@@ -217,7 +218,7 @@ survcompare_ml <- function(df_train,
       stats_ci(ml_cv$test_pooled, "AUCROC")
     ))
     }
-  } else{
+  } else{ #train_ml = FALSE
     modelnames <-
       c(ifelse(useCoxLasso, "CoxLasso", "CoxPH"), ensemble_name)
     results_mean <-
@@ -304,6 +305,7 @@ survcompare_ml <- function(df_train,
   output$randomseed <- randomseed
   output$useCoxLasso <- useCoxLasso
   output$model_name <- ifelse(ml=="DeepHit", "DeepHit", "Survival Random Forest")
+  output$cv <- c(outer_cv, inner_cv,repeat_cv)
   class(output) <- "survcompare"
   summary.survcompare(output)
   return(output)

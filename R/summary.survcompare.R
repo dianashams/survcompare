@@ -12,16 +12,20 @@ summary.survcompare <-
     if (!inherits(object, "survcompare")) {stop("Not a \"survcompare\" object")}
 
     # Cox model Lasso or PH
-    coxend <- ifelse(object$useCoxLasso, "CoxLasso  ", "CoxPH    ")
+    coxend <- object$model_name_base
 
     # SRF or DeepHit
-    if(object$model_name == "DeepHit"){
-      mlmodel = "DeepHit"
-    } else {mlmodel = "Survival Random Forest"}
+    mlmodel = object$model_name
 
     # Summary title to print
     x <- object
-    cat("\nInternally validated test performance of",coxend, "and" , mlmodel, ". Mean performance:\n")
+    cat(
+      "\nInternally validated test performance of",
+      coxend,       "and" ,       mlmodel,
+      "over", object$cv[3], "repeated",
+      object$cv[1], "-fold cross-validations (inner k =",
+      object$cv[2], ").",
+      "Mean performance:\n")
 
     # PRINT MEAN TEST RESULTS
     printing_columns= c("T", "C_score", "AUCROC","Calib_slope","sec")
@@ -43,7 +47,7 @@ summary.survcompare <-
     # compile the output message:
     if (x$difftest["pvalue", "C_score"] < 0.05) {
       t1 <- paste(
-        mlmodel, " ensemble has outperformed ",
+        mlmodel, " has outperformed ",
         coxend, "by ", round(m, 4)," in C-index.\n",sep = ""    )
       t2 <-
         "The difference is statistically significant with the p-value "
@@ -52,7 +56,7 @@ summary.survcompare <-
               mlmodel, ".\n", sep="")
     } else{
       t1 <- paste(
-        mlmodel, " ensemble has NOT outperformed ",
+        mlmodel, " has NOT outperformed ",
         coxend, "with mean c-index difference of",
         round(m, 4), ".\n",sep = "")
       t2 <-
@@ -77,9 +81,9 @@ summary.survcompare <-
     ii = ifelse(dim(ms)[1]==4, 0, 1)
     cat(
       paste( "Mean C-score: \n  ",coxend,"  ",
-             f(1),"\n  Ensemble ",f(2),
+             f(1),"\n  ", mlmodel, " ", f(2),
              "\nMean AUCROC:\n  ",coxend,"  ",f(3+ii),
-             "\n  Ensemble ",f(4+ii),sep = ""))
+             "\n",mlmodel, " ", f(4+ii),sep = ""))
     invisible(object)
   }
 
