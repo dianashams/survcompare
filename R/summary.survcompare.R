@@ -14,7 +14,7 @@ summary.survcompare <-
     # Cox model Lasso or PH
     coxend <- object$model_name_base
 
-    # SRF or DeepHit
+    # e.g. SRF DeepHit DeepSurv
     mlmodel = object$model_name
 
     # Summary title to print

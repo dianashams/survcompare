@@ -263,10 +263,13 @@ difftest <- function(res1, res0, sample_n, param_n) {
   std <- apply(res1 - res0, FUN = stats::sd, 2, na.rm = 1)
   tpval <-
     function(x) {
+      if (class(try(stats::t.test(x, alternative = "greater")$p.value)
+      )  ==  "try-error")
+        return(NaN)
       return(stats::t.test(x, alternative = "greater")$p.value)
     }
   #Fisher test for diff in R2 of 2 models
-  #https://sites.duke.edu/bossbackup/files/2013/02/FTestTutorial.pdf
+  # https://sites.duke.edu/bossbackup/files/2013/02/FTestTutorial.pdf
   pv_bs <-
     1 - stats::pf(
       mean(res1$BS, na.rm = 1) / mean(res0$BS, na.rm = 1),
