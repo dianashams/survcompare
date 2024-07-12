@@ -12,13 +12,22 @@ deepsurv_predict <-
     if (inherits(trained_model, "list")) {
       trained_model <- trained_model$model
     }
+    if (class(try(
+      predict(trained_model, newdata[predict.factors], type = "survival"),
+      silent= TRUE))=="try-error"){
+      return(        rep(NaN, dim(newdata)[1])              )
+    }
+
     s1 <- predict(trained_model, newdata[predict.factors], type = "survival")
+
     f <- function(i) {
-      if (class(try(approxfun(as.double(colnames(s1)), s1[i, ], method = "linear")(fixed_time))
-      )  ==  "try-error") {
-        return(NaN)
-      } else{
-        return(approxfun(as.double(colnames(s1)), s1[i, ], method = "linear")(fixed_time))
+      if (class(try(
+        approxfun(as.double(colnames(s1)), s1[i, ], method = "linear")(fixed_time),
+        silent = TRUE   )      )  ==  "try-error") {return(NaN)
+        } else{
+          return(
+            approxfun(as.double(colnames(s1)), s1[i, ], method = "linear")(fixed_time)
+            )
       }
     }
     predict_eventprob <- 1 - unlist(lapply(1:dim(s1)[1], f))
