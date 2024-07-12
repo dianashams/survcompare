@@ -217,7 +217,7 @@ survensemble_cv <- function(df,
       "srf_tuning" = srf_tuning,
       "oob" = oob
     ),
-    model_name = ifelse(useCoxLasso, "SRF_CoxLasso_Ensemble", "SRF_CoxPH_Ensemble")
+    model_name = "SRF_ensemble"
   )
   output$call <- Call
   return(output)
