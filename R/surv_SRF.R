@@ -324,7 +324,7 @@ survsrf_tune <- function(df_tune,
 #' @param fast_version  TRUE/FALSE, TRUE by default
 #' @param oob TRUE/FALSE use out-of-bag predictions while tuning SRF instead of cross-validation, default is TRUE and is faster
 #' @param verbose TRUE/FALSE, FALSE by default
-#' @return output = list(beststats, allstats, model)
+#' @return output = list(bestparams, allstats, model)
 #' @export
 survsrf_train <- function(df_train,
                           predict.factors,
@@ -464,7 +464,7 @@ survsrf_train <- function(df_train,
     seed = randomseed
   )
   output <- list()
-  output$beststats <- best_combo_stat
+  output$bestparams <- best_combo_stat
   output$allstats <- modelstatsall
   output$model <- final.rfs
   output$tuning <-
