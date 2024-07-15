@@ -268,7 +268,7 @@ survcox_cv <- function(df,
                        fixed_time = NaN,
                        outer_cv = 3,
                        repeat_cv = 2,
-                       randomseed = NULL,
+                       randomseed = NaN,
                        return_models = FALSE,
                        inner_cv = 3,
                        useCoxLasso = FALSE) {

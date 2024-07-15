@@ -2,7 +2,7 @@ surv_CV <-
   function(df,
            predict.factors,
            fixed_time = NaN,
-           outer_cv = 3,
+           outer_cv = 5,
            inner_cv = 3,
            repeat_cv = 2,
            randomseed = NaN,
@@ -55,7 +55,6 @@ surv_CV <-
       model_name == "Survival Random Forest",
       "For SRF inner CV is not used if oob = TRUE (default)",
       "")
-
     print(paste("Cross-validating ",model_name," using ",repeat_cv,
         " repeat(s), ",outer_cv," outer, ",inner_cv," inner loops).",
         note_srf,sep = ""))
@@ -65,27 +64,25 @@ surv_CV <-
     models_for_each_cv <- list()
     params_for_each_cv <- list()
 
-    # fast progress bar
-    # pb <- utils::txtProgressBar(0, outer_cv * repeat_cv, style = 3)
-    # utils::setTxtProgressBar(pb, outer_cv * repeat_cv / 50)
-
-    # slow progress bar
-    pb <- utils::txtProgressBar(0, repeat_cv, style = 3)
-    utils::setTxtProgressBar(pb, repeat_cv / 50)
-
-    # cross-validation loop
+    # repeat_cv loop
     for (rep_cv in 1:repeat_cv) {
+
+      print(paste("Repeated CV", rep_cv, "/", repeat_cv))
+
       set.seed(randomseed + rep_cv)
-      # slow progress bar
-      utils::setTxtProgressBar(pb, rep_cv)
 
       if (rep_cv != 1) {
         df <- df[sample(1:nrow(df)), ]
       }
       cv_folds <-
         caret::createFolds(df$event, k = outer_cv, list = FALSE)
+      # cross-validation loop:
+      # progress bar
+      pb <- utils::txtProgressBar(0, outer_cv, style = 3)
 
       for (cv_iteration in 1:outer_cv) {
+
+        utils::setTxtProgressBar(pb, cv_iteration) #progress bar update
         df_train_cv <- df[cv_folds != cv_iteration,]
         df_test_cv <- df[cv_folds == cv_iteration,]
         predict.factors.cv <- eligible_params(predict.factors, df_train_cv)
@@ -128,12 +125,13 @@ surv_CV <-
             trained_model$bestparams}
         }else{
           # save tuned parameters
-          if(!is.null(trained_model$bestparams)){
-            params_for_each_cv[[cv_iteration + (rep_cv - 1) * outer_cv]]<-
-              trained_model$bestparams}
-          }
-        }
-    }#end of cv loop
+          if(!is.null(trained_model$bestparams))
+            {params_for_each_cv[[cv_iteration + (rep_cv - 1) * outer_cv]]<-
+              trained_model$bestparams}#end if
+          }#end else
+      } #end of cv loop
+      close(pb1) #close progress bar to start new one
+    }#end of repeat loop
 
     df_modelstats_test <- data.frame(modelstats_test[[1]])
     df_modelstats_train <- data.frame(modelstats_train[[1]])
@@ -144,12 +142,6 @@ surv_CV <-
     }
     row.names(df_modelstats_train) <- 1:(outer_cv * repeat_cv)
     row.names(df_modelstats_test) <- 1:(outer_cv * repeat_cv)
-
-    #fast progress bar
-    # utils::setTxtProgressBar(pb, outer_cv * repeat_cv)
-    # slow progress bar
-    utils::setTxtProgressBar(pb, repeat_cv)
-    close(pb)
 
     df_modelstats_test$test <- 1
     df_modelstats_train$test <- 0

@@ -9,7 +9,7 @@ ens_deephit_train <-
            inner_cv = 3,
            randomseed = NaN,
            useCoxLasso = FALSE,
-           deephitparams = list(),
+           tuningparams = list(),
            max_grid_size =25) {
 
     # setting fixed_time if not given
@@ -47,7 +47,7 @@ ens_deephit_train <-
       deephit_train(df_train = df_train,
                     predict.factors = predict.factors.plusCox,
                     fixed_time = fixed_time,
-                    deephitparams = deephitparams,
+                    tuningparams = tuningparams,
                     max_grid_size = max_grid_size,
                     inner_cv = inner_cv,
                     randomseed = randomseed )
@@ -106,7 +106,7 @@ ens_deephit_cv <- function(df,
                             randomseed = NaN,
                             return_models = FALSE,
                             useCoxLasso = FALSE,
-                            deephitparams = list(),
+                            tuningparams = list(),
                             max_grid_size =25
 ) {
   Call <- match.call()
@@ -126,13 +126,12 @@ ens_deephit_cv <- function(df,
     return_models = return_models,
     train_function = ens_deephit_train,
     predict_function = ens_deephit_predict,
-    model_args = list("deephitparams" = deephitparams,
+    model_args = list("tuningparams" = tuningparams,
                       "useCoxLasso" = useCoxLasso,
                       "max_grid_size" = max_grid_size,
                       "randomseed" = randomseed),
     predict_args = list("predict.factors" = predict.factors),
-    model_name = ifelse(useCoxLasso, "DeepHit_CoxLasso_Ensemble",
-                        "DeepHit_CoxPH_Ensemble")
+    model_name = "DeepHit_ensemble"
   )
   output$call <- Call
   return(output)

@@ -320,7 +320,7 @@ survsrf_tune <- function(df_tune,
 #' @param fixed_time time at which performance is maximized
 #' @param inner_cv k in k-fold CV for model tuning
 #' @param randomseed random seed
-#' @param srf_tuning list of mtry, nodedepth and nodesize, default is NULL
+#' @param tuningparams list of mtry, nodedepth and nodesize, default is NULL
 #' @param fast_version  TRUE/FALSE, TRUE by default
 #' @param oob TRUE/FALSE use out-of-bag predictions while tuning SRF instead of cross-validation, default is TRUE and is faster
 #' @param verbose TRUE/FALSE, FALSE by default
@@ -331,7 +331,7 @@ survsrf_train <- function(df_train,
                           fixed_time = NaN,
                           inner_cv = 3,
                           randomseed = NULL,
-                          srf_tuning = list(),
+                          tuningparams = list(),
                           fast_version = TRUE,
                           oob = TRUE,
                           verbose = FALSE) {
@@ -371,16 +371,16 @@ survsrf_train <- function(df_train,
     seq(min(15, round(n / 6 - 1, 0)), max(min(n / 10, 50), 30), 5)
   nodedepth <- c(5, 25)
 
-  # update them if given in srf_tuning
-  if (length(srf_tuning)>0) {
-    if (!is.null(srf_tuning$nodesize)) {
-      nodesize = srf_tuning$nodesize
+  # update them if given in tuningparams
+  if (length(tuningparams)>0) {
+    if (!is.null(tuningparams$nodesize)) {
+      nodesize = tuningparams$nodesize
     }
-    if (!is.null(srf_tuning$mtry)) {
-      mtry = c(srf_tuning$mtry)
+    if (!is.null(tuningparams$mtry)) {
+      mtry = c(tuningparams$mtry)
     }
-    if (!is.null(srf_tuning$nodedepth)) {
-      nodedepth = srf_tuning$nodedepth
+    if (!is.null(tuningparams$nodedepth)) {
+      nodedepth = tuningparams$nodedepth
     }
   }
 
@@ -520,7 +520,7 @@ survsrf_predict <- function(trained_model,
 #' @param randomseed random seed
 #' @param return_models TRUE/FALSE, if TRUE returns all CV objects
 #' @param inner_cv k in the inner loop of k-fold CV for SRF hyperparameters tuning, default is 3
-#' @param srf_tuning list of tuning parameters for random forest: 1) NULL for using a default tuning grid, or 2) a list("mtry"=c(...), "nodedepth" = c(...), "nodesize" = c(...))
+#' @param tuningparams list of tuning parameters for random forest: 1) NULL for using a default tuning grid, or 2) a list("mtry"=c(...), "nodedepth" = c(...), "nodesize" = c(...))
 #' @param oob TRUE/FALSE use out-of-bag prediction accuracy while tuning instead of cross-validation, TRUE by default
 #' @examples \donttest{
 #' \dontshow{rfcores_old<- options()$rf.cores; options(rf.cores = 1)}
@@ -539,7 +539,7 @@ survsrf_cv <- function(df,
                        randomseed = NULL,
                        return_models = FALSE,
                        inner_cv = 3,
-                       srf_tuning = list(),
+                       tuningparams = list(),
                        oob = TRUE) {
   Call <- match.call()
   inputs <- list(df,
@@ -550,7 +550,7 @@ survsrf_cv <- function(df,
                  randomseed,
                  return_models,
                  inner_cv,
-                 srf_tuning,
+                 tuningparams,
                  oob)
   inputclass<- list(df = "data.frame",
                     predict.factors = "character",
@@ -560,7 +560,7 @@ survsrf_cv <- function(df,
                     randomseed = "numeric",
                     return_models = "logical",
                     inner_cv = "numeric",
-                    srf_tuning = "list",
+                    tuningparams = "list",
                     oob = "logical")
   cp<- check_call(inputs, inputclass, Call)
   if (cp$anyerror) stop (paste(cp$msg[cp$msg!=""], sep=""))
@@ -580,7 +580,7 @@ survsrf_cv <- function(df,
     return_models = return_models,
     train_function = survsrf_train,
     predict_function = survsrf_predict,
-    model_args = list("srf_tuning" = srf_tuning, "oob" = oob),
+    model_args = list("tuningparams" = tuningparams, "oob" = oob),
     model_name = "Survival Random Forest"
   )
   output$call <- Call

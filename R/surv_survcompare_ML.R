@@ -1,11 +1,11 @@
 #' @param df_train training data, a data frame with "time" and "event" columns to define the survival outcome
 #' @param predict_factors list of column names to be used as predictors
-#' @param predict_time prediction time of interest. If NULL, 0.90th quantile of event times is used
+#' @param fixed_time prediction time of interest. If NULL, 0.90th quantile of event times is used
 #' @param randomseed random seed for replication
 #' @param useCoxLasso TRUE / FALSE, for whether to use regularized version of the Cox model, FALSE is default
 #' @param outer_cv k in k-fold CV
 #' @param inner_cv k in k-fold CV for internal CV to tune survival random forest hyper-parameters
-#' @param mltuningparams list of tuning parameters for random forest: 1) NULL for using a default tuning grid, or 2) a list("mtry"=c(...), "nodedepth" = c(...), "nodesize" = c(...))
+#' @param tuningparams list of tuning parameters for random forest: 1) NULL for using a default tuning grid, or 2) a list("mtry"=c(...), "nodedepth" = c(...), "nodesize" = c(...))
 #' @param return_models TRUE/FALSE to return the trained models; default is FALSE, only performance is returned
 #' @param repeat_cv if NULL, runs once, otherwise repeats several times with different random split for CV, reports average of all
 #' @param train_ml TRUE/FALSE for whether to train DeepHit on its own, apart from the CoxPH->DeepHit ensemble. Default is FALSE as there is not much information in DeespSurv itself compared to the ensembled version.
@@ -13,25 +13,25 @@
 #' @return outcome = list(data frame with performance results, fitted Cox models, fitted DeespSurv)
 #' @examples
 #' df <-simulate_nonlinear(100)
-#'  hyperparams <- list("dropout" = 0.2,"learning_rate" = 0.1,
+#'  tuningparams <- list("dropout" = 0.2,"learning_rate" = 0.1,
 #'  "num_nodes" = c(32, 32),"batch_size" = 100,"epochs" = 10)
 #' mysurvcomp <-
 #'    survcompare_ml(
 #'    df,
 #'    names(df)[1:4],
-#'    mltuningparams = hyperparams,
+#'    tuningparams = tuningparams,
 #'    ml = "DeepSurv"
 #'    )
 #' summary(mysurvcomp)
 #' @export
 survcompare_ml <- function(df_train,
                            predict_factors,
-                           predict_time = NULL,
+                           fixed_time = NULL,
                            randomseed = NULL,
                            useCoxLasso = FALSE,
                            outer_cv = 3,
                            inner_cv = 3,
-                           mltuningparams = list(),
+                           tuningparams = list(),
                            return_models = FALSE,
                            repeat_cv = 2,
                            train_ml = FALSE,
@@ -42,13 +42,13 @@ survcompare_ml <- function(df_train,
   inputs <- list(
     df_train,
     predict_factors,
-    predict_time,
+    fixed_time,
     outer_cv,
     inner_cv,
     repeat_cv,
     randomseed,
     return_models,
-    mltuningparams,
+    tuningparams,
     useCoxLasso
   )
 
@@ -56,13 +56,13 @@ survcompare_ml <- function(df_train,
     list(
       df_train = "data.frame",
       predict_factors = "character",
-      predict_time = "numeric",
+      fixed_time = "numeric",
       outer_cv = "numeric",
       inner_cv = "numeric",
       repeat_cv = "numeric",
       randomseed = "numeric",
       return_models = "logical",
-      mltuningparams = "list",
+      tuningparams = "list",
       useCoxLasso = "logical"
     )
   cp <- check_call(inputs, inputclass, Call)
@@ -76,8 +76,8 @@ survcompare_ml <- function(df_train,
   if (is.null(randomseed)) {
     randomseed <- round(stats::runif(1) * 1e9, 0) + 1
   }
-  if (is.null(predict_time)) {
-    predict_time <- quantile(df_train[df_train$event == 1, "time"], 0.9)
+  if (is.null(fixed_time)) {
+    fixed_time <- quantile(df_train[df_train$event == 1, "time"], 0.9)
   }
   #SRF_ensemble or DeepHit_ensemble
   ensemble_name <- paste(ml, "ensemble", sep="_")
@@ -86,7 +86,7 @@ survcompare_ml <- function(df_train,
   cox_cv <- survcox_cv(
     df = df_train,
     predict.factors = predict_factors,
-    fixed_time = predict_time ,
+    fixed_time = fixed_time ,
     outer_cv = outer_cv,
     randomseed = randomseed,
     useCoxLasso = useCoxLasso,
@@ -98,36 +98,36 @@ survcompare_ml <- function(df_train,
       ml_cv <- deephit_cv(
         df = df_train,
         predict.factors = predict_factors,
-        fixed_time = predict_time,
+        fixed_time = fixed_time,
         outer_cv = outer_cv,
         inner_cv = inner_cv,
         randomseed = randomseed,
         return_models = return_models,
-        deephitparams = mltuningparams,
+        tuningparams = tuningparams,
         repeat_cv = repeat_cv,
         max_grid_size = max_grid_size
       )} else if (ml=="DeepSurv") {
         ml_cv <- deepsurv_cv(
           df = df_train,
           predict.factors = predict_factors,
-          fixed_time = predict_time,
+          fixed_time = fixed_time,
           outer_cv = outer_cv,
           inner_cv = inner_cv,
           randomseed = randomseed,
           return_models = return_models,
-          deepsurvparams = mltuningparams,
+          tuningparams = tuningparams,
           repeat_cv = repeat_cv
           )
         }else{  # ml == "SRF"
           ml_cv <- survsrf_cv(
             df = df_train,
             predict.factors = predict_factors,
-            fixed_time = predict_time,
+            fixed_time = fixed_time,
             outer_cv = outer_cv,
             inner_cv = inner_cv,
             randomseed = randomseed,
             return_models = return_models,
-            srf_tuning = mltuningparams,
+            tuningparams = tuningparams,
             repeat_cv = repeat_cv
           )
         }
@@ -136,12 +136,12 @@ survcompare_ml <- function(df_train,
   ens1_cv <- ens_deephit_cv(
     df = df_train,
     predict.factors = predict_factors,
-    fixed_time = predict_time,
+    fixed_time = fixed_time,
     outer_cv = outer_cv,
     inner_cv = inner_cv,
     randomseed = randomseed,
     return_models = return_models,
-    deephitparams = mltuningparams,
+    tuningparams = tuningparams,
     useCoxLasso = useCoxLasso,
     repeat_cv = repeat_cv,
     max_grid_size = max_grid_size
@@ -150,12 +150,12 @@ survcompare_ml <- function(df_train,
     ens1_cv <- ens_deepsurv_cv(
       df = df_train,
       predict.factors = predict_factors,
-      fixed_time = predict_time,
+      fixed_time = fixed_time,
       outer_cv = outer_cv,
       inner_cv = inner_cv,
       randomseed = randomseed,
       return_models = return_models,
-      deepsurvparams = mltuningparams,
+      tuningparams = tuningparams,
       useCoxLasso = useCoxLasso,
       repeat_cv = repeat_cv
     )
@@ -163,12 +163,12 @@ survcompare_ml <- function(df_train,
     ens1_cv <- survensemble_cv(
       df = df_train,
       predict.factors = predict_factors,
-      fixed_time = predict_time,
+      fixed_time = fixed_time,
       outer_cv = outer_cv,
       inner_cv = inner_cv,
       randomseed = randomseed,
       return_models = return_models,
-      srf_tuning = mltuningparams,
+      tuningparams = tuningparams,
       useCoxLasso = useCoxLasso,
       repeat_cv = repeat_cv
     )
@@ -188,7 +188,7 @@ survcompare_ml <- function(df_train,
   # combined results, if ML was trained (train_ml = TRUE), and then if only the Ensemble (FALSE)
   if (train_ml) {
     modelnames <-
-      c(ifelse(useCoxLasso, "CoxLasso", "CoxPH"),ensemble_name,"DeepHit")
+      c(ifelse(useCoxLasso, "CoxLasso", "CoxPH"),ensemble_name,ml)
     results_mean <-
       as.data.frame(rbind(cox_cv$testaverage,ens1_cv$testaverage,ml_cv$testaverage))
     results_mean_train <-
@@ -291,20 +291,21 @@ survcompare_ml <- function(df_train,
   output$results_median <- results_median
   output$results_mean_train <- results_mean_train
   output$return_models <- list("CoxPH" = cox_cv$tuned_cv_models,
-                               ml = ifelse(train_ml, ml_cv$tuned_cv_models,NaN),
-                               ensemble_name = ens1_cv$tuned_cv_models)
-  output$bestparams <- list(ml = ifelse(train_ml, ml_cv$bestparams, NaN),
-                            ensemble_name = ens1_cv$bestparams)
+                               "ml" = ifelse(train_ml, ml_cv$tuned_cv_models,NaN),
+                               "ensemble" = ens1_cv$tuned_cv_models)
+  output$bestparams <- list("ensemble" = ens1_cv$bestparams,
+                            "ml" = ifelse(train_ml, ml_cv$bestparams, NaN))
   output$test <- list("CoxPH" = cox_cv$test,
-                      ensemble_name = ens1_cv$test)
+                      "ensemble" = ens1_cv$test)
   output$train <- list("CoxPH" = cox_cv$train,
-                       ensemble_name = ens1_cv$train)
+                       "ensemble" = ens1_cv$train)
   output$difftest <- t_coxph
   output$main_stats <- auc_c_stats
   output$main_stats_pooled <- auc_c_stats_pooled
   output$randomseed <- randomseed
   output$useCoxLasso <- useCoxLasso
-  output$model_name <- ifelse(ml=="DeepHit", "DeepHit", "Survival Random Forest")
+  output$model_name_base <- cox_cv$model_name
+  output$model_name <- ens1_cv$model_name
   output$cv <- c(outer_cv, inner_cv,repeat_cv)
   class(output) <- "survcompare"
   summary.survcompare(output)

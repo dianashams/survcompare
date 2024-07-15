@@ -1,29 +1,25 @@
 
 ################  ens_deepsurv_train ####################
-# Create out-of-bag Cox predictions, then train DeepSurv
+# Create out-of-bag Cox predictions, then train deepsurv
 #' @export
 ens_deepsurv_train <-
   function(df_train,
            predict.factors,
            fixed_time = NaN,
            inner_cv = 3,
-           randomseed = NULL,
+           randomseed = NaN,
            useCoxLasso = FALSE,
-           deepsurvparams = list()) {
-
-    #setting random seed
-    if (is.null(randomseed)) {
-      randomseed <- round(stats::runif(1) * 1e9, 0)
-    }
-    set.seed(randomseed)
+           tuningparams = list(),
+           max_grid_size =25) {
 
     # setting fixed_time if not given
-    if (sum(is.nan(fixed_time)) > 0 | (length(fixed_time) > 1)) {
+    if (is.nan(fixed_time)| (length(fixed_time) > 1)) {
       fixed_time <-
         round(quantile(df_train[df_train$event == 1, "time"], 0.9), 1)
     }
 
     #creating folds
+    if (!is.nan(randomseed)) {set.seed(randomseed)}
     cv_folds <-
       caret::createFolds(df_train$event, k = 5, list = FALSE)
     cindex_train <- vector(length = 5)
@@ -43,16 +39,18 @@ ens_deepsurv_train <-
       df_train[cv_folds == cv_iteration, "cox_predict"] <- cox_predict_oob
     }
 
-    # cox_m<- survcox_train(df_train, predict.factors,
-    #                                  useCoxLasso = useCoxLasso)
-    #df_train$cox_predict <- survcox_predict(cox_m,df_train,fixed_time)
-
     # adding Cox predictions as a new factor to tune SRF,
-    predict.factors.plusCox <- c(predict.factors[-1], "cox_predict")
+    predict.factors.plusCox <- c(predict.factors, "cox_predict")
 
-    # train the DeepSurv model
+    # train the deepsurv model
     deepsurv.ens <-
-      deepsurv_train(df_train,predict.factors.plusCox,deepsurvparams)
+      deepsurv_train(df_train = df_train,
+                    predict.factors = predict.factors.plusCox,
+                    fixed_time = fixed_time,
+                    tuningparams = tuningparams,
+                    max_grid_size = max_grid_size,
+                    inner_cv = inner_cv,
+                    randomseed = randomseed )
 
     #base cox model
     cox_base_model <-
@@ -60,9 +58,10 @@ ens_deepsurv_train <-
 
     #output
     output = list()
-    output$model <- deepsurv.ens
+    output$model <- deepsurv.ens$model
     output$model_base <- cox_base_model
     output$randomseed <- randomseed
+    output$bestparams <- deepsurv.ens$bestparams
     output$call <-  match.call()
     class(output) <- "survensemble"
     return(output)
@@ -78,8 +77,8 @@ ens_deepsurv_predict <-
            fixed_time,
            predict.factors
   ) {
-    trained_model<- trained_object$model
-    predictdata <- newdata[predict.factors[-1]]
+    trained_model <- trained_object$model
+    predictdata <- newdata[predict.factors]
     # use model_base with the base Cox model to find cox_predict
     predictdata$cox_predict <- survcox_predict(trained_object$model_base,
                                                newdata, fixed_time)
@@ -99,27 +98,18 @@ ens_deepsurv_predict <-
 ############### ens_deepsurv_CV #############
 #' @export
 ens_deepsurv_cv <- function(df,
-                            predict.factors,
-                            fixed_time = NaN,
-                            outer_cv = 3,
-                            inner_cv = 3,
-                            repeat_cv = 2,
-                            randomseed = NULL,
-                            return_models = FALSE,
-                            useCoxLasso = FALSE,
-                            deepsurvparams = list()
+                           predict.factors,
+                           fixed_time = NaN,
+                           outer_cv = 3,
+                           inner_cv = 3,
+                           repeat_cv = 2,
+                           randomseed = NaN,
+                           return_models = FALSE,
+                           useCoxLasso = FALSE,
+                           tuningparams = list(),
+                           max_grid_size =25
 ) {
   Call <- match.call()
-  # inputs <- list(df , predict.factors, fixed_time,
-  #                outer_cv,inner_cv, repeat_cv,
-  #                randomseed, return_models,
-  #                useCoxLasso,deepsurvparams)
-  # inputclass<- list(df = "data.frame", predict.factors = "character", fixed_time = "numeric",
-  #                   outer_cv = "numeric",inner_cv = "numeric", repeat_cv = "numeric",
-  #                   randomseed = "numeric",return_models = "logical",
-  #                   useCoxLasso="logical", deepsurvparams = "list")
-  # cp<- check_call(inputs, inputclass, Call)
-  # if (cp$anyerror) stop (paste(cp$msg[cp$msg!=""], sep=""))
 
   if (sum(is.na(df[c("time", "event", predict.factors)])) > 0) {
     stop("Missing data can not be handled. Please impute first.")
@@ -136,9 +126,12 @@ ens_deepsurv_cv <- function(df,
     return_models = return_models,
     train_function = ens_deepsurv_train,
     predict_function = ens_deepsurv_predict,
-    model_args = list("deepsurvparams" = deepsurvparams),
+    model_args = list("tuningparams" = tuningparams,
+                      "useCoxLasso" = useCoxLasso,
+                      "max_grid_size" = max_grid_size,
+                      "randomseed" = randomseed),
     predict_args = list("predict.factors" = predict.factors),
-    model_name = ifelse(useCoxLasso, "DeepSurv_CoxLasso_Ensemble", "DeepSurv_CoxPH_Ensemble")
+    model_name = "DeepSurv_ensemble"
   )
   output$call <- Call
   return(output)
