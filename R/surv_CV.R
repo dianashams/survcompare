@@ -130,7 +130,7 @@ surv_CV <-
               trained_model$bestparams}#end if
           }#end else
       } #end of cv loop
-      close(pb1) #close progress bar to start new one
+      close(pb) #close progress bar to start new one
     }#end of repeat loop
 
     df_modelstats_test <- data.frame(modelstats_test[[1]])

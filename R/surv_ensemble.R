@@ -14,7 +14,7 @@
 #' @param fixed_time  for which the performance is maximized
 #' @param inner_cv  number of inner cycles for model tuning
 #' @param randomseed  random seed
-#' @param srf_tuning list of mtry, nodedepth and nodesize, to use default supply empty list()
+#' @param tuningparams list of mtry, nodedepth and nodesize, to use default supply empty list()
 #' @param fast_version  TRUE/FALSE, TRUE by default
 #' @param oob FALSE/TRUE, TRUE by default
 #' @param useCoxLasso FALSE/TRUE, FALSE by default
@@ -26,7 +26,7 @@ survensemble_train <- function(df_train,
                                fixed_time = NaN,
                                inner_cv = 3,
                                randomseed = NULL,
-                               srf_tuning = list(),
+                               tuningparams = list(),
                                fast_version = TRUE,
                                oob = TRUE,
                                useCoxLasso = FALSE,
@@ -86,7 +86,7 @@ survensemble_train <- function(df_train,
       fixed_time = fixed_time,
       inner_cv = inner_cv,
       randomseed = randomseed,
-      srf_tuning = srf_tuning,
+      tuningparams = tuningparams,
       fast_version = fast_version,
       oob = oob
     )
@@ -162,7 +162,7 @@ predict.survensemble <- function(object,
 #' @param randomseed random seed
 #' @param return_models TRUE/FALSE, if TRUE returns all CV objects
 #' @param useCoxLasso TRUE/FALSE, default is FALSE
-#' @param srf_tuning list of tuning parameters for random forest: 1) NULL for using a default tuning grid, or 2) a list("mtry"=c(...), "nodedepth" = c(...), "nodesize" = c(...))
+#' @param tuningparams list of tuning parameters for random forest: 1) NULL for using a default tuning grid, or 2) a list("mtry"=c(...), "nodedepth" = c(...), "nodesize" = c(...))
 #' @param oob TRUE/FALSE use out-of-bag predictions while tuning instead of cross-validation, TRUE by default
 #' @examples \donttest{
 #' \dontshow{rfcores_old <- options()$rf.cores; options(rf.cores=1)}
@@ -182,17 +182,17 @@ survensemble_cv <- function(df,
                             randomseed = NULL,
                             return_models = FALSE,
                             useCoxLasso = FALSE,
-                            srf_tuning = list(),
+                            tuningparams = list(),
                             oob = TRUE) {
   Call <- match.call()
   inputs <- list(df , predict.factors, fixed_time,
                  outer_cv,inner_cv, repeat_cv,
                  randomseed, return_models,
-                 useCoxLasso,srf_tuning, oob)
+                 useCoxLasso,tuningparams, oob)
   inputclass<- list(df = "data.frame", predict.factors = "character", fixed_time = "numeric",
                     outer_cv = "numeric",inner_cv = "numeric", repeat_cv = "numeric",
                     randomseed = "numeric",return_models = "logical",
-                    useCoxLasso="logical", srf_tuning = "list", oob = "logical")
+                    useCoxLasso="logical", tuningparams = "list", oob = "logical")
 
   cp<- check_call(inputs, inputclass, Call)
   if (cp$anyerror) stop (paste(cp$msg[cp$msg!=""], sep=""))
@@ -214,7 +214,7 @@ survensemble_cv <- function(df,
     predict_function = predict.survensemble,
     model_args = list(
       "useCoxLasso" = useCoxLasso,
-      "srf_tuning" = srf_tuning,
+      "tuningparams" = tuningparams,
       "oob" = oob
     ),
     model_name = "SRF_ensemble"

@@ -14,12 +14,10 @@ deepsurv_predict <-
     }
     if (class(try(
       predict(trained_model, newdata[predict.factors], type = "survival"),
-      silent= TRUE))=="try-error"){
+      silent= TRUE))[1]=="try-error"){
       return(        rep(NaN, dim(newdata)[1])              )
     }
-
     s1 <- predict(trained_model, newdata[predict.factors], type = "survival")
-
     f <- function(i) {
       if (class(try(
         approxfun(as.double(colnames(s1)), s1[i, ], method = "linear")(fixed_time),
@@ -42,7 +40,7 @@ deepsurv_train <-
            predict.factors,
            fixed_time = NaN,
            tuningparams = list(),
-           max_grid_size = 25,
+           max_grid_size = 10,
            inner_cv = 3,
            randomseed = NaN) {
 
@@ -74,7 +72,8 @@ deepsurv_train <-
       data = df_train,
       x = df_train[predict.factors],
       y = Surv(df_train$time, df_train$event),
-      #early_stopping = TRUE,
+      early_stopping = bestparams$early_stopping,
+      frac = 0.3,
       dropout = bestparams$dropout,
       learning_rate = bestparams$learning_rate,
       num_nodes = bestparams$num_nodes[[1]],
@@ -117,7 +116,7 @@ deepsurv_tune <-
            repeat_tune=1,
            fixed_time = NaN,
            tuningparams = list(),
-           max_grid_size = 25,
+           max_grid_size = 10,
            inner_cv = 3,
            randomseed = NaN) {
 
@@ -156,22 +155,26 @@ deepsurv_tune <-
 #' for random or grid search of size = max_grid_size
 #' @export
 ml_hyperparams <- function(mlparams = list(),
-                           max_grid_size = 25,
+                           max_grid_size = 10,
                            dftune_size = 1000,
                            randomseed = NaN) {
   default_grid <- list(
-      "dropout" = seq(0, 0.7, 0.1),
-      "learning_rate" = c(0.001),
+      "dropout" = c(0.1,0.2,0.3,0.5,0.7),
+      "learning_rate" = c(0.001,0.01,0.1),
       "num_nodes" = list(
-        c(32, 32),c(64, 64),c(128, 128),
-        c(16, 16, 16, 16),c(32, 32, 32, 32),c(64, 64, 64, 64)),
+        c(16, 16),  c(32, 32),  c(64, 64),
+        c(8, 8, 8),  c(16, 16, 16), c(32,32,32),
+        c(16, 16, 16, 16), c(32, 32, 32, 32),
+        c(64, 64, 64, 64),c(64, 64, 16, 8)
+      ),
       "batch_size" =
         seq(min(64, round(dftune_size/ 8)), 256, 64),
-      "epochs" = c(50, 100, 200, 300,400),
+      "epochs" = c(10, 50, 100, 200, 300),
       "mod_alpha" = seq(0, 1, 0.2),
-      "sigma" = c(0.1, 0.25, 0.5, 1, 2.5, 5, 10, 20, 100),
-      "cuts" = c(10, 50, 75, 100, 150)
-    ) #size ~ 7*7*5*4*8*3= 23520#
+      "sigma" = c(0.1, 1, 10, 100),
+      "cuts" = c(10, 50, 100),
+      "early_stopping" = c(TRUE, FALSE)
+    )
 
   if (length(mlparams) == 0) {
     grid_of_hyperparams <- expand.grid(default_grid)
@@ -182,8 +185,9 @@ ml_hyperparams <- function(mlparams = list(),
     if (is.null(mlparams$batch_size)) {mlparams$batch_size = default_grid$batch_size}
     if (is.null(mlparams$epochs)) {mlparams$epochs = default_grid$epochs}
     if (is.null(mlparams$mod_alpha)) {mlparams$mod_alpha = default_grid$mod_alpha}
-    if (is.null(mlparams$sigma)) {      mlparams$sigma = default_grid$sigma    }
-    if (is.null(mlparams$cuts)) {      mlparams$cuts = default_grid$cuts    }
+    if (is.null(mlparams$sigma)) {mlparams$sigma = default_grid$sigma}
+    if (is.null(mlparams$cuts)) { mlparams$cuts = default_grid$cuts}
+    if (is.null(mlparams$early_stopping)) {mlparams$early_stopping = default_grid$early_stopping}
 
     grid_of_hyperparams <- expand.grid(
       "dropout" = mlparams$dropout,
@@ -193,7 +197,8 @@ ml_hyperparams <- function(mlparams = list(),
       "epochs" = mlparams$epochs,
       "mod_alpha" = mlparams$mod_alpha,
       "sigma" = mlparams$sigma,
-      "cuts" = mlparams$cuts
+      "cuts" = mlparams$cuts,
+      "early_stopping"= mlparams$early_stopping
     )
   }
 
@@ -263,7 +268,8 @@ deepsurv_tune_single <-
           x = df_train_cv[predict.factors],
           y = Surv(df_train_cv$time, df_train_cv$event),
           shuffle = TRUE,
-          #early_stopping = TRUE,
+          early_stopping = grid_hyperparams[i, "early_stopping"],
+          frac= 0.3,
           dropout = grid_hyperparams[i, "dropout"],
           learning_rate = grid_hyperparams[i, "learning_rate"],
           num_nodes = grid_hyperparams[i, "num_nodes"][[1]],
@@ -313,7 +319,7 @@ deepsurv_cv <- function(df,
                        return_models = FALSE,
                        useCoxLasso = FALSE,
                        tuningparams = list(),
-                       max_grid_size =25
+                       max_grid_size = 10
 ) {
   Call <- match.call()
 

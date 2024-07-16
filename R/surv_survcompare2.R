@@ -125,6 +125,7 @@ survcompare2 <- function(cv1, cv2) {
   output$useCoxLasso <- FALSE
   output$model_name_base <- name1
   output$model_name <- name2
+  output$cv <- cv1$cv
   class(output) <- "survcompare"
   #summary.survcompare(output)
   return(output)

@@ -40,7 +40,7 @@ survcox_train <- function(df_train,
         )
       ),
       data = df_train, x = TRUE)
-      # replace NAwith 0 i.e. ignore params that Cox couldn't estimate
+      # replace NA with 0 i.e. ignore params that Cox couldn't estimate
       cox.m$coefficients[is.na(cox.m$coefficients)] <- 0
     },
     silent = TRUE)

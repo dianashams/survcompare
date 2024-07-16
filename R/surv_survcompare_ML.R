@@ -10,6 +10,7 @@
 #' @param repeat_cv if NULL, runs once, otherwise repeats several times with different random split for CV, reports average of all
 #' @param train_ml TRUE/FALSE for whether to train DeepHit on its own, apart from the CoxPH->DeepHit ensemble. Default is FALSE as there is not much information in DeespSurv itself compared to the ensembled version.
 #' @param ml "DeepHit" or "SRF", "DeepHit" by default
+#' @param max_grid_size max number of hyperperam grid searches (random)
 #' @return outcome = list(data frame with performance results, fitted Cox models, fitted DeespSurv)
 #' @examples
 #' df <-simulate_nonlinear(100)
@@ -36,7 +37,7 @@ survcompare_ml <- function(df_train,
                            repeat_cv = 2,
                            train_ml = FALSE,
                            ml = "DeepHit",
-                           max_grid_size = 25) {
+                           max_grid_size = 10) {
 
   Call <- match.call()
   inputs <- list(
@@ -77,7 +78,7 @@ survcompare_ml <- function(df_train,
     randomseed <- round(stats::runif(1) * 1e9, 0) + 1
   }
   if (is.null(fixed_time)) {
-    fixed_time <- quantile(df_train[df_train$event == 1, "time"], 0.9)
+    fixed_time <- quantile(df_train[df_train$event == 1, "time"], 0.9, na.rm = TRUE)
   }
   #SRF_ensemble or DeepHit_ensemble
   ensemble_name <- paste(ml, "ensemble", sep="_")
@@ -181,8 +182,8 @@ survcompare_ml <- function(df_train,
     c(
       "mean" = mean(temp, na.rm = 1),
       "sd" = sd(temp, na.rm = 1),
-      "95CILow" = unname(quantile(temp, 0.025)),
-      "95CIHigh" = unname(quantile(temp, 0.975))
+      "95CILow" = unname(quantile(temp, 0.025, na.rm= TRUE)),
+      "95CIHigh" = unname(quantile(temp, 0.975, na.rm = TRUE))
     )
   }
   # combined results, if ML was trained (train_ml = TRUE), and then if only the Ensemble (FALSE)

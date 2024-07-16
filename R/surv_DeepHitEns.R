@@ -10,7 +10,7 @@ ens_deephit_train <-
            randomseed = NaN,
            useCoxLasso = FALSE,
            tuningparams = list(),
-           max_grid_size =25) {
+           max_grid_size =10) {
 
     # setting fixed_time if not given
     if (is.nan(fixed_time)| (length(fixed_time) > 1)) {
@@ -107,7 +107,7 @@ ens_deephit_cv <- function(df,
                             return_models = FALSE,
                             useCoxLasso = FALSE,
                             tuningparams = list(),
-                            max_grid_size =25
+                            max_grid_size =10
 ) {
   Call <- match.call()
 

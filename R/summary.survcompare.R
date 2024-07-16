@@ -23,7 +23,7 @@ summary.survcompare <-
       "\nInternally validated test performance of",
       coxend,       "and" ,       mlmodel,
       "over", object$cv[3], "repeated",
-      object$cv[1], "-fold cross-validations (inner k =",
+      object$cv[1], "fold cross-validations (inner k =",
       object$cv[2], ").",
       "Mean performance:\n")
 
@@ -52,17 +52,17 @@ summary.survcompare <-
       t2 <-
         "The difference is statistically significant with the p-value "
       t3 <-
-        paste(".\nThe supplied data may contain non-linear or cross-term dependencies, \nbetter captured by the",
+        paste(".\nThe supplied data may contain non-linear or cross-term dependencies, \nbetter captured by ",
               mlmodel, ".\n", sep="")
     } else{
       t1 <- paste(
         mlmodel, " has NOT outperformed ",
-        coxend, "with mean c-index difference of",
+        coxend, " with the mean c-index difference of ",
         round(m, 4), ".\n",sep = "")
       t2 <-
         "The difference is not statistically significant with the p-value = "
       t3 <-
-        paste(". \nThe data may NOT contain considerable non-linear or cross-term dependencies,\nthat could be captured by",
+        paste(". \nThe data may NOT contain considerable non-linear or cross-term dependencies,\nthat could be captured by ",
               mlmodel, ".\n", sep="")
     }
     # print the output message

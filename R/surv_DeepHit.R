@@ -10,7 +10,6 @@ deephit_predict <-
            fixed_time)
   {
     if (inherits(trained_model, "list")) {trained_model <- trained_model$model}
-
     s1 <- predict(trained_model, newdata[predict.factors], type = "survival")
     f <- function(i) {
       approxfun(as.double(colnames(s1)), s1[i, ], method = "linear")(fixed_time)
@@ -27,7 +26,7 @@ deephit_train <-
            predict.factors,
            fixed_time = NaN,
            tuningparams = list(),
-           max_grid_size = 25,
+           max_grid_size = 10,
            inner_cv = 3,
            randomseed = NaN) {
 
@@ -55,11 +54,12 @@ deephit_train <-
       )
       bestparams = tuning_m$bestparams
     }
+    print(bestparams) # !!!!!!!!!!!!!!!!!!!!!!!!!! #
     deephitm <- deephit(
       data = df_train,
       x = df_train[predict.factors],
       y = Surv(df_train$time, df_train$event),
-      #early_stopping = TRUE,
+      early_stopping = bestparams$early_stopping,
       dropout = bestparams$dropout,
       learning_rate = bestparams$learning_rate,
       num_nodes = bestparams$num_nodes[[1]],
@@ -84,7 +84,7 @@ deephit_train <-
 #' @param fixed_time  not used here, but for some models the time for which performance is optimized
 #' @param tuningparams list with the range of hyperparameters
 #' @param inner_cv number of folds for each CV
-#' @param max_grid_size 25 by default. If grid size > max_grid_size, a random search is performed for max_grid_size iterations. Set this to a small number for random search
+#' @param max_grid_size 10 by default. If grid size > max_grid_size, a random search is performed for max_grid_size iterations. Set this to a small number for random search
 #' @param randomseed to choose random subgroup of hyperparams
 #' @return  output=list(cindex_ordered, bestparams)
 #' @examples
@@ -108,7 +108,7 @@ deephit_tune <-
            repeat_tune=1,
            fixed_time = NaN,
            tuningparams = list(),
-           max_grid_size = 25,
+           max_grid_size = 10,
            inner_cv = 3,
            randomseed = NaN) {
 
@@ -195,7 +195,6 @@ deephit_tune_single <-
           x = df_train_cv[predict.factors],
           y = Surv(df_train_cv$time, df_train_cv$event),
           shuffle = TRUE,
-          #early_stopping = TRUE,
           dropout = grid_hyperparams[i, "dropout"],
           learning_rate = grid_hyperparams[i, "learning_rate"],
           num_nodes = grid_hyperparams[i, "num_nodes"][[1]],
@@ -203,7 +202,9 @@ deephit_tune_single <-
           epochs = grid_hyperparams[i, "epochs"],
           mod_alpha = grid_hyperparams[i, "mod_alpha"],
           sigma = grid_hyperparams[i, "sigma"],
-          cuts = grid_hyperparams[i, "cuts"]
+          cuts = grid_hyperparams[i, "cuts"],
+          early_stopping = grid_hyperparams[i, "early_stopping"],
+          frac = 0.3
         )
         #check test performance
         pp <-
@@ -248,7 +249,7 @@ deephit_cv <- function(df,
                         return_models = FALSE,
                         useCoxLasso = FALSE,
                         tuningparams = list(),
-                        max_grid_size =25
+                        max_grid_size = 10
 ) {
   Call <- match.call()
 
