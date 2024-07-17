@@ -68,6 +68,10 @@ deepsurv_train <-
       )
       bestparams = tuning_m$bestparams
     }
+    #!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+    print(bestparams)
+    #!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+
     deepsurvm <- deepsurv(
       data = df_train,
       x = df_train[predict.factors],
@@ -251,6 +255,11 @@ deepsurv_tune_single <-
     #progress bar
     pb <- utils::txtProgressBar(0, inner_cv * grid_size, style = 3)
     utils::setTxtProgressBar(pb, inner_cv * grid_size / 50)
+
+    #!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+    #!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+    #!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+
     # tuning cross-validation loop
     for (cv_iteration in 1:inner_cv) {
       if (!is.nan(randomseed)) {

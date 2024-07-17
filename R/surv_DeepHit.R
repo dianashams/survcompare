@@ -55,7 +55,7 @@ deephit_train <-
       bestparams = tuning_m$bestparams
     }
     print(bestparams) # !!!!!!!!!!!!!!!!!!!!!!!!!! #
-    deephitm <- deephit(
+    deephitm <- survivalmodels::deephit(
       data = df_train,
       x = df_train[predict.factors],
       y = Surv(df_train$time, df_train$event),
