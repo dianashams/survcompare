@@ -54,6 +54,7 @@ deephit_train <-
       )
       bestparams = tuning_m$bestparams
     }
+    cat("\n") # !!!!!!!!!!!!!!!!!!!!!!!!!! #
     print(bestparams) # !!!!!!!!!!!!!!!!!!!!!!!!!! #
     deephitm <- survivalmodels::deephit(
       data = df_train,
@@ -67,7 +68,9 @@ deephit_train <-
       epochs = bestparams$epochs,
       mod_alpha = bestparams$mod_alpha,
       sigma = bestparams$sigma,
-      cuts = bestparams$cuts
+      cuts = bestparams$cuts,
+      weight_decay = bestparams$weight_decay,
+      batch_norm = bestparams$batch_norm
     )
     output = list()
     output$model = deephitm
@@ -204,7 +207,8 @@ deephit_tune_single <-
           sigma = grid_hyperparams[i, "sigma"],
           cuts = grid_hyperparams[i, "cuts"],
           early_stopping = grid_hyperparams[i, "early_stopping"],
-          frac = 0.3
+          weight_decay = grid_hyperparams[i, "weight_decay"],
+          batch_norm = grid_hyperparams[i, "batch_norm"]
         )
         #check test performance
         pp <-
