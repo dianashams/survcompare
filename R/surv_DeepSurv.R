@@ -82,7 +82,9 @@ deepsurv_train <-
       learning_rate = bestparams$learning_rate,
       num_nodes = bestparams$num_nodes[[1]],
       batch_size = bestparams$batch_size,
-      epochs = bestparams$epochs
+      epochs = bestparams$epochs,
+      weight_decay = bestparams$weight_decay,
+      batch_norm = bestparams$batch_norm
     )
     output = list()
     output$model = deepsurvm
@@ -106,11 +108,12 @@ deepsurv_train <-
 #' d <-simulate_nonlinear(100),
 #' p<- names(d)[1:4]
 #' tuningparams = list(
-#'  "dropout" = c(0.1, 0.3),
-#'  "learning_rate" = c(0.001),
-#'  "num_nodes" =    list(c(8, 8), c(16, 16, 16, 4), c(32, 32, 32, 4)),
-#'  "batch_size" = min(max(64, round(dim(df_train_cv)[1]/8, 0)),256),
-#'  "epochs" = c(5, 50)
+#'  dropout = c(0.1, 0.3),
+#'  learning_rate = c(0.001),
+#'  num_nodes =    list(c(8, 8), c(16, 16, 16, 4), c(32, 32, 32, 4)),
+#'  batch_size = min(max(64, round(dim(df_train_cv)[1]/8, 0)),256),
+#'  epochs = c(5, 50),
+#'  weight_decay = 0.1
 #' )
 #' deepsurv_tune(d, p,tuningparams = tuningparams, max_grid_size = 10)
 #' @export
@@ -177,7 +180,9 @@ ml_hyperparams <- function(mlparams = list(),
       "mod_alpha" = seq(0, 1, 0.2),
       "sigma" = c(0.1, 1, 10, 100),
       "cuts" = c(10, 50, 100),
-      "early_stopping" = c(TRUE, FALSE)
+      "early_stopping" = c(TRUE, FALSE),
+      "weight_decay" = c(0, 0.1,0.3,0.5),
+      "batch_norm" = TRUE
     )
 
   if (length(mlparams) == 0) {
@@ -192,6 +197,8 @@ ml_hyperparams <- function(mlparams = list(),
     if (is.null(mlparams$sigma)) {mlparams$sigma = default_grid$sigma}
     if (is.null(mlparams$cuts)) { mlparams$cuts = default_grid$cuts}
     if (is.null(mlparams$early_stopping)) {mlparams$early_stopping = default_grid$early_stopping}
+    if (is.null(mlparams$weight_decay)) {mlparams$weight_decay = default_grid$weight_decay}
+    if (is.null(mlparams$batch_norm)) {mlparams$batch_norm = default_grid$batch_norm}
 
     grid_of_hyperparams <- expand.grid(
       "dropout" = mlparams$dropout,
@@ -202,7 +209,9 @@ ml_hyperparams <- function(mlparams = list(),
       "mod_alpha" = mlparams$mod_alpha,
       "sigma" = mlparams$sigma,
       "cuts" = mlparams$cuts,
-      "early_stopping"= mlparams$early_stopping
+      "early_stopping"= mlparams$early_stopping,
+      "weight_decay" = mlparams$weight_decay,
+      "batch_norm" = mlparams$batch_norm
     )
   }
 
@@ -283,7 +292,9 @@ deepsurv_tune_single <-
           learning_rate = grid_hyperparams[i, "learning_rate"],
           num_nodes = grid_hyperparams[i, "num_nodes"][[1]],
           batch_size = grid_hyperparams[i, "batch_size"],
-          epochs = grid_hyperparams[i, "epochs"]
+          epochs = grid_hyperparams[i, "epochs"],
+          weight_decay = grid_hyperparams[i, "weight_decay"],
+          batch_norm = grid_hyperparams[i, "batch_norm"]
         )
         #check test performance
         pp <-
