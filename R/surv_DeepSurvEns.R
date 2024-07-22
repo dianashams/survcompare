@@ -58,6 +58,7 @@ ens_deepsurv_train <-
 
     #output
     output = list()
+    output$model_name = "DeepSurv_ensemble"
     output$model <- deepsurv.ens$model
     output$model_base <- cox_base_model
     output$randomseed <- randomseed

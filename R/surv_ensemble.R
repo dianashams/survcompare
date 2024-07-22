@@ -106,6 +106,7 @@ survensemble_train <- function(df_train,
     survcox_train(df_train, predict.factors, useCoxLasso = useCoxLasso)
 
   #output
+  ensemble1_model$model_name = "SRF_ensemble"
   ensemble1_model$vimp10 <- vimp10
   ensemble1_model$model_base <- cox_base_model
   ensemble1_model$randomseed <- randomseed
@@ -253,7 +254,7 @@ summary.survensemble <- function(object, ...) {
     cat("Call:\n")
     dput(cl)
   }
-  cat("\n=> Ensemble Cox-SRF:\n")
+  cat("\n=> Ensemble", object$model$model_name,"F:\n")
   print(object$model)
   cat("\n=> Underlying CoxPH:\n")
   print(object$model_base)

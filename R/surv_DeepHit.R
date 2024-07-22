@@ -73,6 +73,7 @@ deephit_train <-
       batch_norm = bestparams$batch_norm
     )
     output = list()
+    output$model_name = "DeepHit"
     output$model = deephitm
     output$bestparams = bestparams
     return(output)

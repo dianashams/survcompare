@@ -464,6 +464,7 @@ survsrf_train <- function(df_train,
     seed = randomseed
   )
   output <- list()
+  output$model_name = "Survival Random Forest"
   output$bestparams <- best_combo_stat
   output$allstats <- modelstatsall
   output$model <- final.rfs

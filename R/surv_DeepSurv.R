@@ -87,6 +87,7 @@ deepsurv_train <-
       batch_norm = bestparams$batch_norm
     )
     output = list()
+    output$model_name = "DeepSurv"
     output$model = deepsurvm
     output$bestparams = bestparams
     return(output)

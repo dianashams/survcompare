@@ -2,7 +2,7 @@
 ################  ens_deephit_train ####################
 # Create out-of-bag Cox predictions, then train deephit
 #' @export
-ens_deephit_train <-
+stack_deephit_train <-
   function(df_train,
            predict.factors,
            fixed_time = NaN,
@@ -11,62 +11,76 @@ ens_deephit_train <-
            useCoxLasso = FALSE,
            tuningparams = list(),
            max_grid_size =10) {
-
+    
     # setting fixed_time if not given
     if (is.nan(fixed_time)| (length(fixed_time) > 1)) {
       fixed_time <-
         round(quantile(df_train[df_train$event == 1, "time"], 0.9), 1)
     }
-
-    # #creating folds
-    # if (!is.nan(randomseed)) {set.seed(randomseed)}
-    # cv_folds <-
-    #   caret::createFolds(df_train$event, k = 5, list = FALSE)
-    # cindex_train <- vector(length = 5)
-    # cindex_test <- vector(length = 5)
-    # for (cv_iteration in 1:5) {
-    #   cox_train <- df_train[cv_folds != cv_iteration, ]
-    #   cox_oob <- df_train[cv_folds == cv_iteration, ]
-    #   # train cox model on cox_train
-    #   cox_m_cv <-
-    #     survcox_train(cox_train,
-    #                   eligible_params(predict.factors, cox_train),
-    #                   useCoxLasso = useCoxLasso)
-    #   # predict for cox_oob
-    #   cox_predict_oob <-
-    #     survcox_predict(cox_m_cv, cox_oob, fixed_time)
-    #   # adding Cox prediction to the df_train in the column "cox_predict"
-    #   df_train[cv_folds == cv_iteration, "cox_predict"] <- cox_predict_oob
-    # }
-
-    cox_m <-
-      survcox_train(df_train,
-                    eligible_params(predict.factors, df_train),
-                    useCoxLasso = useCoxLasso)
-    df_train$cox_predict = survcox_predict(cox_m, df_train, fixed_time)
-
-    # adding Cox predictions as a new factor to tune SRF,
-    predict.factors.plusCox <- c(predict.factors, "cox_predict")
-
-    # train the deephit model
-    deephit.ens <-
+    
+    #base DeepHit 
+    ml_base_model <-
       deephit_train(df_train = df_train,
-                    predict.factors = predict.factors.plusCox,
+                    predict.factors = predict.factors,
                     fixed_time = fixed_time,
                     tuningparams = tuningparams,
                     max_grid_size = max_grid_size,
                     inner_cv = inner_cv,
                     randomseed = randomseed )
-
+    
     #base cox model
     cox_base_model <-
       survcox_train(df_train, predict.factors, useCoxLasso = useCoxLasso)
+    
+    #meta-learner: compute out-of-sample Cox and DeepHit predictions 
+    if (!is.nan(randomseed)) {set.seed(randomseed)}
+    tuningparams_tuned = as.list(ml_base_model$bestparams)
+    
+    cv_folds <-
+      caret::createFolds(df_train$event, k = 5, list = FALSE)
+    cindex_train <- vector(length = 5)
+    cindex_test <- vector(length = 5)
+    
+    for (cv_iteration in 1:5) {
+      cox_train <- df_train[cv_folds != cv_iteration, ]
+      cox_oob <- df_train[cv_folds == cv_iteration, ]
+      # train cox model on cox_train
+      cox_m_cv <-
+        survcox_train(cox_train,
+                      eligible_params(predict.factors, cox_train),
+                      useCoxLasso = useCoxLasso)
+      # predict for cox_oob
+      cox_predict_oob <-
+        survcox_predict(cox_m_cv, cox_oob, fixed_time)
+      # adding Cox prediction to the df_train in the column "cox_predict"
+      df_train[cv_folds == cv_iteration, "cox_predict"] <- cox_predict_oob
+      
+      #train ML model on cox_train
+      deephit.cv <-
+        deephit_train(df_train = cox_train,
+                      predict.factors = eligible_params(predict.factors, cox_train),
+                      fixed_time = fixed_time,
+                      tuningparams = tuningparams_tuned,
+                      max_grid_size = 1,
+                      inner_cv = inner_cv,
+                      randomseed = randomseed + cv_iteration)
+      # predict for cox_oob
+      ml_predict_oob <-
+        deephit_predict(trained_model = deephit.cv,
+                        newdata = cox_oob,
+                        predict.factors = eligible_params(predict.factors, cox_train),
+                        fixed_time= fixed_time)
+      # adding ML prediction to the df_train in the column "ml_predict"
+      df_train[cv_folds == cv_iteration, "ml_predict"] <- ml_predict_oob
+    }
+    df_train$ml_over_cox <- df_train$ml_predict-df_train$cox_predict
+    stack_model <- lm()
 
     #output
     output = list()
-    output$model_name = "DeepHit_ensemble"
-    output$model <- deephit.ens$model
-    output$model_base <- cox_base_model
+    output$model <- stack_model
+    output$model_base_cox <- cox_base_model
+    output$model_base_ml <- ml_base_model
     output$randomseed <- randomseed
     output$bestparams <- deephit.ens$bestparams
     output$call <-  match.call()
@@ -78,7 +92,7 @@ ens_deephit_train <-
 
 #same as deephit_predict
 #' @export
-ens_deephit_predict <-
+stack_deephit_predict <-
   function(trained_object,
            newdata,
            fixed_time,
@@ -104,24 +118,24 @@ ens_deephit_predict <-
 
 ############### ens_deephit_CV #############
 #' @export
-ens_deephit_cv <- function(df,
-                            predict.factors,
-                            fixed_time = NaN,
-                            outer_cv = 3,
-                            inner_cv = 3,
-                            repeat_cv = 2,
-                            randomseed = NaN,
-                            return_models = FALSE,
-                            useCoxLasso = FALSE,
-                            tuningparams = list(),
-                            max_grid_size =10
+stack_deephit_cv <- function(df,
+                           predict.factors,
+                           fixed_time = NaN,
+                           outer_cv = 3,
+                           inner_cv = 3,
+                           repeat_cv = 2,
+                           randomseed = NaN,
+                           return_models = FALSE,
+                           useCoxLasso = FALSE,
+                           tuningparams = list(),
+                           max_grid_size =10
 ) {
   Call <- match.call()
-
+  
   if (sum(is.na(df[c("time", "event", predict.factors)])) > 0) {
     stop("Missing data can not be handled. Please impute first.")
   }
-
+  
   output <- surv_CV(
     df = df,
     predict.factors = predict.factors,
