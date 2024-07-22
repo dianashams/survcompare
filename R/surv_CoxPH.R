@@ -22,39 +22,38 @@ survcox_train <- function(df_train,
   if (indx[1] * indx[2] == 0) {
     stop("Please supply data and predictors")
   }
-
   stopifnot(
     "The data is not a data frame" = inherits(df_train, "data.frame"),
     "Predictors are not found" = inherits(predict.factors, "character"),
     "Predictors are not in the data supplied" = predict.factors %in% colnames(df_train)
   )
-
-  # wrapper for coxph() function returning a trained Cox model
-  if (useCoxLasso == FALSE) {
-    cox.m <- NULL
-    try({
-      cox.m <- survival::coxph(as.formula(
-        paste(
-          "survival::Surv(df_train$time, df_train$event) ~",
-          paste(predict.factors, collapse = "+")
-        )
-      ),
-      data = df_train, x = TRUE)
-      # replace NA with 0 i.e. ignore params that Cox couldn't estimate
-      cox.m$coefficients[is.na(cox.m$coefficients)] <- 0
-    },
-    silent = TRUE)
-    if (is.null(cox.m)) {
-      print(paste(
-        "Warning: cox.m == NULL, N/Events=",
-        dim(df_train)[1],
-        sum(df_train$event == 1)
-      ))
-    }
-    return(cox.m)
-  } else {
-    return(survcoxlasso_train(df_train, predict.factors, inner_cv))
+  # if Lasso, then return survcoxlasso_train()
+  if (useCoxLasso){
+    return(survcoxlasso_train(df_train = df_train,
+                              predict.factors = predict.factors,
+                              inner_cv = inner_cv,
+                              retrain_cox = retrain_cox))
   }
+  # if not Lasso
+  # wrapper for coxph() function returning a trained Cox model
+  cox.m <- NULL
+  try({
+    cox.m <- survival::coxph(as.formula(
+      paste(
+        "survival::Surv(df_train$time, df_train$event) ~",
+        paste(predict.factors, collapse = "+")
+      )
+    ),
+    data = df_train, x = TRUE)
+    # replace NA with 0 i.e. ignore params that Cox couldn't estimate
+    cox.m$coefficients[is.na(cox.m$coefficients)] <- 0
+  },
+  silent = TRUE)
+  if (is.null(cox.m)) {
+    print(paste("Warning: cox.m == NULL, N/Events=",
+                dim(df_train)[1],sum(df_train$event == 1)))
+  }
+  return(cox.m)
 }
 
 
@@ -93,38 +92,35 @@ survcoxlasso_train <- function(df_train,
       rownames(coef(cv10, s = "lambda.min"))[as.matrix(coef(cv10, s = "lambda.min")) != 0]
 
     if (length(new.predictors) == 0) {
-      if (verbose) {
-        print("0 predictors in lasso!")
-      }
+      if (verbose) {print("Warning: No predictors are left in lasso.")}
       cox.m <-
         survival::coxph(
           survival::Surv(df_train$time, df_train$event) ~ 1,
           data = df_train,
           x = TRUE
         )
+      return(cox.m)
+    }
+
+    # check if non-regularized model to be re-trained
+    if (retrain_cox) {
+      # re-train cox on new.predictors
+      f <-as.formula(paste("survival::Surv(df_train$time, df_train$event) ~",
+                           paste(new.predictors, collapse = "+")))
+      cox.m <- survival::coxph(f, data = df_train, x = TRUE)
+      # replace NA  with 0 i.e. ignore params that Cox couldn't estimate
+      cox.m$coefficients[is.na(cox.m$coefficients)] <- 0
     } else {
-      # check if non-regularised model to be re-trained
-      if (retrain_cox) {
-        # re-train cox on new.predictors
-        f <-
-          as.formula(paste(
-            "survival::Surv(df_train$time, df_train$event) ~",
-            paste(new.predictors, collapse = "+")
-          ))
-        cox.m <- survival::coxph(f, data = df_train, x = TRUE)
-        # replace NA  with 0 i.e. ignore params that Cox couldn't estimate
-        cox.m$coefficients[is.na(cox.m$coefficients)] <- 0
-      } else {
-        # return coxlasso in coxph object
-        f <-
-          as.formula(paste(
-            "survival::Surv(df_train$time, df_train$event) ~",
-            paste(predict.factors, collapse = "+")
-          ))
-        cox.m <- survival::coxph(f, data = df_train, x = TRUE)
-        cox.m$coefficients <-
-          as.numeric(coef(cv10, s = "lambda.min"))
-      }
+      # return coxlasso in coxph object
+      f <-
+        as.formula(paste(
+          "survival::Surv(df_train$time, df_train$event) ~",
+          paste(predict.factors, collapse = "+")
+        ))
+      cox.m <- survival::coxph(f, data = df_train, x = TRUE)
+      temp<- as.numeric(coef(cv10, s = "lambda.min"))
+      names(temp) = predict.factors
+      cox.m$coefficients <- temp
     }
   },
   silent = TRUE)

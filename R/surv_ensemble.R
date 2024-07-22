@@ -254,10 +254,15 @@ summary.survensemble <- function(object, ...) {
     cat("Call:\n")
     dput(cl)
   }
-  cat("\n=> Ensemble", object$model$model_name,"F:\n")
+  cat("\n=> Ensemble", object$model_name,"F:\n")
   print(object$model)
   cat("\n=> Underlying CoxPH:\n")
-  print(object$model_base)
+  print(object$model_base_cox)
+  if(!is.null(object$model_base_ml)){
+    cat("\n=> Underlying ML:\n")
+    print(object$model_base_ml$model)
+  }
+
   cat("\n=> Items available as object$item are: ")
   cat(names(object), sep = ", ")
 

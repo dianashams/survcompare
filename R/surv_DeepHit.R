@@ -28,7 +28,8 @@ deephit_train <-
            tuningparams = list(),
            max_grid_size = 10,
            inner_cv = 3,
-           randomseed = NaN) {
+           randomseed = NaN,
+           verbose = TRUE) {
 
     grid_of_hyperparams <-
       ml_hyperparams(
@@ -54,8 +55,10 @@ deephit_train <-
       )
       bestparams = tuning_m$bestparams
     }
-    cat("\n") # !!!!!!!!!!!!!!!!!!!!!!!!!! #
-    print(bestparams) # !!!!!!!!!!!!!!!!!!!!!!!!!! #
+    if (verbose) {
+      cat("\n") # !!!!!!!!!!!!!!!!!!!!!!!!!! #
+      print(bestparams) # !!!!!!!!!!!!!!!!!!!!!!!!!! #
+    }
     deephitm <- survivalmodels::deephit(
       data = df_train,
       x = df_train[predict.factors],

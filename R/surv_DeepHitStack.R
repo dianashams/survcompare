@@ -1,5 +1,5 @@
 
-################  ens_deephit_train ####################
+################  stack_deephit_train ####################
 # Create out-of-bag Cox predictions, then train deephit
 #' @export
 stack_deephit_train <-
@@ -10,14 +10,15 @@ stack_deephit_train <-
            randomseed = NaN,
            useCoxLasso = FALSE,
            tuningparams = list(),
-           max_grid_size =10) {
+           max_grid_size =10,
+           verbose = FALSE) {
     
     # setting fixed_time if not given
     if (is.nan(fixed_time)| (length(fixed_time) > 1)) {
       fixed_time <-
         round(quantile(df_train[df_train$event == 1, "time"], 0.9), 1)
     }
-    
+    if(verbose) cat("\nTraining baseline learners ...\n")
     #base DeepHit 
     ml_base_model <-
       deephit_train(df_train = df_train,
@@ -32,63 +33,108 @@ stack_deephit_train <-
     cox_base_model <-
       survcox_train(df_train, predict.factors, useCoxLasso = useCoxLasso)
     
+    if(verbose) cat("\nTraining meta-learner... computing out-of-sample predictions...\t")
     #meta-learner: compute out-of-sample Cox and DeepHit predictions 
     if (!is.nan(randomseed)) {set.seed(randomseed)}
-    tuningparams_tuned = as.list(ml_base_model$bestparams)
+    tuningparams_tuned = list(learning_rate = ml_base_model$bestparams$learning_rate,
+                              dropout = ml_base_model$bestparams$dropout,
+                              num_nodes = ml_base_model$bestparams$num_nodes,
+                              batch_size = ml_base_model$bestparams$batch_size,
+                              epochs = ml_base_model$bestparams$epochs,
+                              mod_alpha = ml_base_model$bestparams$mod_alpha,
+                              sigma = ml_base_model$bestparams$sigma,
+                              batch_norm = ml_base_model$bestparams$batch_norm,
+                              cuts = ml_base_model$bestparams$cuts,
+                              weight_decay = ml_base_model$bestparams$weight_decay,
+                              early_stopping = ml_base_model$bestparams$early_stopping
+    )
+    #avoid variance in predictions for small data, use higher number of folds(10)
+    k_for_oob = ifelse(dim(df_train)[1]<=500, 5, 5) 
     
     cv_folds <-
-      caret::createFolds(df_train$event, k = 5, list = FALSE)
+      caret::createFolds(df_train$event, k = k_for_oob, list = FALSE)
     cindex_train <- vector(length = 5)
     cindex_test <- vector(length = 5)
     
-    for (cv_iteration in 1:5) {
+    for (cv_iteration in 1:k_for_oob) {
+      if(verbose) cat("\t", cv_iteration, "/", k_for_oob)
       cox_train <- df_train[cv_folds != cv_iteration, ]
       cox_oob <- df_train[cv_folds == cv_iteration, ]
       # train cox model on cox_train
       cox_m_cv <-
         survcox_train(cox_train,
-                      eligible_params(predict.factors, cox_train),
+                      predict.factors,
                       useCoxLasso = useCoxLasso)
       # predict for cox_oob
       cox_predict_oob <-
-        survcox_predict(cox_m_cv, cox_oob, fixed_time)
+        survcox_predict(cox_m_cv, cox_oob, fixed_time)[,1]
       # adding Cox prediction to the df_train in the column "cox_predict"
       df_train[cv_folds == cv_iteration, "cox_predict"] <- cox_predict_oob
       
       #train ML model on cox_train
       deephit.cv <-
         deephit_train(df_train = cox_train,
-                      predict.factors = eligible_params(predict.factors, cox_train),
+                      predict.factors = predict.factors,
                       fixed_time = fixed_time,
                       tuningparams = tuningparams_tuned,
                       max_grid_size = 1,
                       inner_cv = inner_cv,
-                      randomseed = randomseed + cv_iteration)
+                      randomseed = randomseed + cv_iteration,
+                      verbose = FALSE)
       # predict for cox_oob
       ml_predict_oob <-
         deephit_predict(trained_model = deephit.cv,
                         newdata = cox_oob,
-                        predict.factors = eligible_params(predict.factors, cox_train),
+                        predict.factors = predict.factors,
                         fixed_time= fixed_time)
       # adding ML prediction to the df_train in the column "ml_predict"
       df_train[cv_folds == cv_iteration, "ml_predict"] <- ml_predict_oob
     }
-    df_train$ml_over_cox <- df_train$ml_predict-df_train$cox_predict
-    stack_model <- lm()
+    
+    if(verbose) cat("\t training meta-learner...")
+    
+    # 1/0 by fixed_time:
+    df_train$event_t <-
+      ifelse(df_train$time <= fixed_time & df_train$event == 1, 1, 0)
+    
+    logit = function(x) {
+      log(pmax(pmin(x, 0.9999), 0.0001) / (1 - pmax(pmin(x, 0.9999), 0.0001)))
+    }
+    
+    df_train$cox_predict_logit <- logit(df_train$cox_predict)
+    df_train$ml_predict_logit <- logit(df_train$ml_predict)
+    
+    # Excluding censored observations before fixed_time, leave those with known state
+    df_train_in_scope <-
+      df_train[(df_train$time >= fixed_time) |
+                 (df_train$time < fixed_time & df_train$event == 1),]
+    
+    #1) p = 0+ p1 + b*(p2-p1), const==0  OR p=(1-b)p1 + bp2 
+    stack_model <-
+      lm(event_t ~ 0 + offset(cox_predict) + I(ml_predict - cox_predict),
+         data = df_train_in_scope)
 
+    #alt2) ln(p/1-p) = b1* ln(p1/1-p1)+b2*ln(p2/1-p2)+c
+    stack_model_2 <- 
+      glm(event_t ~ cox_predict_logit + ml_predict_logit,
+          data = df_train_in_scope,
+          family = "binomial")
     #output
     output = list()
+    output$model_name <- "Stacked_DeepHit_CoxPH"
+    output$oob_predictions <- df_train
     output$model <- stack_model
+    output$model_2 <- stack_model_2
     output$model_base_cox <- cox_base_model
     output$model_base_ml <- ml_base_model
     output$randomseed <- randomseed
-    output$bestparams <- deephit.ens$bestparams
+    output$bestparams <- ml_base_model$bestparams
     output$call <-  match.call()
     class(output) <- "survensemble"
     return(output)
   }
 
-################  ens_deephit_predict ####################
+################  stack_deephit_predict ####################
 
 #same as deephit_predict
 #' @export
@@ -96,27 +142,33 @@ stack_deephit_predict <-
   function(trained_object,
            newdata,
            fixed_time,
-           predict.factors
+           predict.factors,
+           use_alternative_model = FALSE
   ) {
     trained_model <- trained_object$model
+    if(use_alternative_model) {trained_model <- trained_object$model_2}
     predictdata <- newdata[predict.factors]
+    
     # use model_base with the base Cox model to find cox_predict
-    predictdata$cox_predict <- survcox_predict(trained_object$model_base,
-                                               newdata, fixed_time)
-    s1 <- predict(trained_model, newdata = predictdata, type = "survival")
-    ## if this failed, take Cox predictions
-    if (is.na(s1[1,1])) {
-      predict_eventprob<- predictdata$cox_predict
-    }else{
-      f <- function(i) {
-        approxfun(as.double(colnames(s1)), s1[i,], method = "linear")(fixed_time)
-      }
-      predict_eventprob <- 1 - unlist(lapply(1:dim(s1)[1], f))
+    predictdata$cox_predict <- 
+      survcox_predict(trained_model = trained_object$model_base_cox,
+                      newdata = newdata, fixed_time = fixed_time)[,1]
+    predictdata$ml_predict <- 
+      deephit_predict(trained_model = trained_object$model_base_ml,
+                      newdata = newdata, predict.factors = predict.factors,
+                      fixed_time = fixed_time)
+    logit = function(x) {
+      log(pmax(pmin(x, 0.9999), 0.0001) / (1 - pmax(pmin(x, 0.9999), 0.0001)))
     }
-    return(predict_eventprob)
+    predictdata$cox_predict_logit <- logit(predictdata$cox_predict)
+    predictdata$ml_predict_logit <- logit(predictdata$ml_predict)
+    
+    p <- predict(trained_model, newdata = predictdata)
+    return(p)
   }
 
-############### ens_deephit_CV #############
+
+############### stack_deephit_cv #############
 #' @export
 stack_deephit_cv <- function(df,
                            predict.factors,
@@ -145,14 +197,14 @@ stack_deephit_cv <- function(df,
     repeat_cv = repeat_cv,
     randomseed = randomseed,
     return_models = return_models,
-    train_function = ens_deephit_train,
-    predict_function = ens_deephit_predict,
+    train_function = stack_deephit_train,
+    predict_function = stack_deephit_predict,
     model_args = list("tuningparams" = tuningparams,
                       "useCoxLasso" = useCoxLasso,
                       "max_grid_size" = max_grid_size,
                       "randomseed" = randomseed),
     predict_args = list("predict.factors" = predict.factors),
-    model_name = "DeepHit_ensemble"
+    model_name = "Stacked_DeepHit_CoxPH"
   )
   output$call <- Call
   return(output)

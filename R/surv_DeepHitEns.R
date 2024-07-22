@@ -18,32 +18,34 @@ ens_deephit_train <-
         round(quantile(df_train[df_train$event == 1, "time"], 0.9), 1)
     }
 
-    # #creating folds
-    # if (!is.nan(randomseed)) {set.seed(randomseed)}
-    # cv_folds <-
-    #   caret::createFolds(df_train$event, k = 5, list = FALSE)
-    # cindex_train <- vector(length = 5)
-    # cindex_test <- vector(length = 5)
-    # for (cv_iteration in 1:5) {
-    #   cox_train <- df_train[cv_folds != cv_iteration, ]
-    #   cox_oob <- df_train[cv_folds == cv_iteration, ]
-    #   # train cox model on cox_train
-    #   cox_m_cv <-
-    #     survcox_train(cox_train,
-    #                   eligible_params(predict.factors, cox_train),
-    #                   useCoxLasso = useCoxLasso)
-    #   # predict for cox_oob
-    #   cox_predict_oob <-
-    #     survcox_predict(cox_m_cv, cox_oob, fixed_time)
-    #   # adding Cox prediction to the df_train in the column "cox_predict"
-    #   df_train[cv_folds == cv_iteration, "cox_predict"] <- cox_predict_oob
-    # }
+    #creating folds
+    if (!is.nan(randomseed)) {set.seed(randomseed)}
+    cv_folds <-
+      caret::createFolds(df_train$event, k = 10, list = FALSE)
+    cindex_train <- vector(length = 10)
+    cindex_test <- vector(length = 10)
+    for (cv_iteration in 1:10) {
+      cox_train <- df_train[cv_folds != cv_iteration, ]
+      cox_oob <- df_train[cv_folds == cv_iteration, ]
+      # train cox model on cox_train
+      cox_m_cv <-
+        survcox_train(cox_train,
+                      eligible_params(predict.factors, cox_train),
+                      useCoxLasso = useCoxLasso)
+      # predict for cox_oob - linear predictors, not event probabilities
+      cox_predict_oob <- predict(cox_m_cv, cox_oob, type = "lp") #beta x X
+      #event probabilities - depreciated
+      #cox_predict_oob <- survcox_predict(cox_m_cv, cox_oob, fixed_time)
 
-    cox_m <-
-      survcox_train(df_train,
-                    eligible_params(predict.factors, df_train),
-                    useCoxLasso = useCoxLasso)
-    df_train$cox_predict = survcox_predict(cox_m, df_train, fixed_time)
+      # adding Cox prediction to the df_train in the column "cox_predict"
+      df_train[cv_folds == cv_iteration, "cox_predict"] <- cox_predict_oob
+    }
+    # alternative - direct (not out-of-sample) cox predictions
+    # cox_m <-
+    #   survcox_train(df_train,
+    #                 eligible_params(predict.factors, df_train),
+    #                 useCoxLasso = useCoxLasso)
+    # df_train$cox_predict = survcox_predict(cox_m, df_train, fixed_time)
 
     # adding Cox predictions as a new factor to tune SRF,
     predict.factors.plusCox <- c(predict.factors, "cox_predict")

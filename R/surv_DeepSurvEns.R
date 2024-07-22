@@ -34,7 +34,8 @@ ens_deepsurv_train <-
                       useCoxLasso = useCoxLasso)
       # predict for cox_oob
       cox_predict_oob <-
-        survcox_predict(cox_m_cv, cox_oob, fixed_time)
+        predict(cox_m_cv, cox_oob, type = "lp") #(beta x X)
+        #survcox_predict(cox_m_cv, cox_oob, fixed_time)
       # adding Cox prediction to the df_train in the column "cox_predict"
       df_train[cv_folds == cv_iteration, "cox_predict"] <- cox_predict_oob
     }
@@ -51,11 +52,9 @@ ens_deepsurv_train <-
                     max_grid_size = max_grid_size,
                     inner_cv = inner_cv,
                     randomseed = randomseed )
-
     #base cox model
     cox_base_model <-
       survcox_train(df_train, predict.factors, useCoxLasso = useCoxLasso)
-
     #output
     output = list()
     output$model_name = "DeepSurv_ensemble"
