@@ -48,13 +48,14 @@ stack_deephit_train <-
                               weight_decay = ml_base_model$bestparams$weight_decay,
                               early_stopping = ml_base_model$bestparams$early_stopping
     )
+    bestparams_base <- ml_base_model$bestparams
     #avoid variance in predictions for small data, use higher number of folds(10)
     k_for_oob = ifelse(dim(df_train)[1]<=500, 5, 5) 
     
     cv_folds <-
       caret::createFolds(df_train$event, k = k_for_oob, list = FALSE)
-    cindex_train <- vector(length = 5)
-    cindex_test <- vector(length = 5)
+    cindex_train <- vector(length = k_for_oob)
+    cindex_test <- vector(length = k_for_oob)
     
     for (cv_iteration in 1:k_for_oob) {
       if(verbose) cat("\t", cv_iteration, "/", k_for_oob)
@@ -109,16 +110,32 @@ stack_deephit_train <-
       df_train[(df_train$time >= fixed_time) |
                  (df_train$time < fixed_time & df_train$event == 1),]
     
-    #1) p = 0+ p1 + b*(p2-p1), const==0  OR p=(1-b)p1 + bp2 
+    # p = b0 + b1*p1 + b2*p2 
     stack_model <-
-      lm(event_t ~ 0 + offset(cox_predict) + I(ml_predict - cox_predict),
+      lm(event_t ~ cox_predict + ml_predict,
          data = df_train_in_scope)
-
+    
     #alt2) ln(p/1-p) = b1* ln(p1/1-p1)+b2*ln(p2/1-p2)+c
     stack_model_2 <- 
       glm(event_t ~ cox_predict_logit + ml_predict_logit,
           data = df_train_in_scope,
           family = "binomial")
+    
+    #alt3) p = 0+ p1 + b*(p2-p1), const==0  OR p=(1-b)p1 + bp2 
+    stack_model_3 <-
+      lm(event_t ~ 0 + offset(cox_predict) + I(ml_predict - cox_predict),
+         data = df_train_in_scope)
+    
+    bestparams_meta <-
+      c(stack_model$coefficients[1],
+        stack_model$coefficients[2],
+        stack_model$coefficients[3],
+        stack_model_3$coefficients[1],
+        stack_model_2$coefficients[1],
+        stack_model_2$coefficients[2],
+        stack_model_2$coefficients[3]
+      )
+    
     #output
     output = list()
     output$model_name <- "Stacked_DeepHit_CoxPH"
@@ -128,7 +145,7 @@ stack_deephit_train <-
     output$model_base_cox <- cox_base_model
     output$model_base_ml <- ml_base_model
     output$randomseed <- randomseed
-    output$bestparams <- ml_base_model$bestparams
+    output$bestparams <- c(bestparams_base, bestparams_meta)
     output$call <-  match.call()
     class(output) <- "survensemble"
     return(output)
