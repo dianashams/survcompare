@@ -6,7 +6,7 @@
 #' The function uses IPCW (inverse probability of censoring weights), computed using the Kaplan-Meier
 #' survival function, where events are censored events from train data
 #'
-#' @param y_predicted_newdata computed event probabilities
+#' @param y_predicted_newdata computed event probabilities (! not survival probabilities)
 #' @param df_brier_train train data
 #' @param df_newdata test data for which brier score is computed
 #' @param time_points times at which BS calculated
@@ -81,7 +81,7 @@ surv_brierscore <-
 #' @param estimate_censoring FALSE by default, if TRUE, event and censoring is reversed (for IPCW calculations)
 #' @return vector of survival probabilities for time_points
 survival_prob_km <-
-  function(df_km_train, times, estimate_censoring = FALSE) {
+  function(df_km_train, times, estimate_censoring = FALSE, polynomial_extrap = FALSE) {
     if (estimate_censoring == FALSE) {
       km <-
         survival::survfit(survival::Surv(time, event) ~ 1, data = df_km_train)
@@ -104,7 +104,8 @@ survival_prob_km <-
         (cbind(1, x, x ** 2, x ** 3) %*% extrap$coefficients[1:4])
       }
     }
-    return(km_extrap(times))
+    if (polynomial_extrap) return(km_extrap(times))
+    return(kmf(times))
   }
 
 

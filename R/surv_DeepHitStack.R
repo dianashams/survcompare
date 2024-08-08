@@ -12,14 +12,14 @@ stack_deephit_train <-
            tuningparams = list(),
            max_grid_size =10,
            verbose = FALSE) {
-    
+
     # setting fixed_time if not given
     if (is.nan(fixed_time)| (length(fixed_time) > 1)) {
       fixed_time <-
         round(quantile(df_train[df_train$event == 1, "time"], 0.9), 1)
     }
     if(verbose) cat("\nTraining baseline learners ...\n")
-    #base DeepHit 
+    #base DeepHit
     ml_base_model <-
       deephit_train(df_train = df_train,
                     predict.factors = predict.factors,
@@ -28,13 +28,19 @@ stack_deephit_train <-
                     max_grid_size = max_grid_size,
                     inner_cv = inner_cv,
                     randomseed = randomseed )
-    
+
     #base cox model
     cox_base_model <-
       survcox_train(df_train, predict.factors, useCoxLasso = useCoxLasso)
-    
+
+    #------ Computationally demanding fit of the stack model:---
+    #first, using k-fold CV, underlying models are trained (using already tuned parameters though)
+    #and out-of-sample predictions for Cox and ML are computed
+    #then, a regression (outcome ~ cox_predictions + ml_predictions)
+    #constitutes the meta-learner
+    #meta-learner: compute out-of-sample Cox and ML (DeepHit) predictions
     if(verbose) cat("\nTraining meta-learner... computing out-of-sample predictions...\t")
-    #meta-learner: compute out-of-sample Cox and DeepHit predictions 
+
     if (!is.nan(randomseed)) {set.seed(randomseed)}
     tuningparams_tuned = list(learning_rate = ml_base_model$bestparams$learning_rate,
                               dropout = ml_base_model$bestparams$dropout,
@@ -49,32 +55,33 @@ stack_deephit_train <-
                               early_stopping = ml_base_model$bestparams$early_stopping
     )
     bestparams_base <- ml_base_model$bestparams
+
     #avoid variance in predictions for small data, use higher number of folds(10)
-    k_for_oob = ifelse(dim(df_train)[1]<=500, 5, 5) 
-    
+    k_for_oob = ifelse(dim(df_train)[1]<=350, 10, 5)
+
     cv_folds <-
       caret::createFolds(df_train$event, k = k_for_oob, list = FALSE)
     cindex_train <- vector(length = k_for_oob)
     cindex_test <- vector(length = k_for_oob)
-    
+
     for (cv_iteration in 1:k_for_oob) {
       if(verbose) cat("\t", cv_iteration, "/", k_for_oob)
-      cox_train <- df_train[cv_folds != cv_iteration, ]
-      cox_oob <- df_train[cv_folds == cv_iteration, ]
-      # train cox model on cox_train
+      data_train <- df_train[cv_folds != cv_iteration, ]
+      data_oob <- df_train[cv_folds == cv_iteration, ]
+      # train cox model on data_train
       cox_m_cv <-
-        survcox_train(cox_train,
+        survcox_train(data_train,
                       predict.factors,
                       useCoxLasso = useCoxLasso)
-      # predict for cox_oob
+      # predict for data_oob
       cox_predict_oob <-
-        survcox_predict(cox_m_cv, cox_oob, fixed_time)[,1]
+        survcox_predict(cox_m_cv, data_oob, fixed_time)[,1]
       # adding Cox prediction to the df_train in the column "cox_predict"
       df_train[cv_folds == cv_iteration, "cox_predict"] <- cox_predict_oob
-      
-      #train ML model on cox_train
+
+      #train ML model on data_train
       deephit.cv <-
-        deephit_train(df_train = cox_train,
+        deephit_train(df_train = data_train,
                       predict.factors = predict.factors,
                       fixed_time = fixed_time,
                       tuningparams = tuningparams_tuned,
@@ -82,60 +89,62 @@ stack_deephit_train <-
                       inner_cv = inner_cv,
                       randomseed = randomseed + cv_iteration,
                       verbose = FALSE)
-      # predict for cox_oob
+      # predict for data_oob
       ml_predict_oob <-
         deephit_predict(trained_model = deephit.cv,
-                        newdata = cox_oob,
+                        newdata = data_oob,
                         predict.factors = predict.factors,
                         fixed_time= fixed_time)
       # adding ML prediction to the df_train in the column "ml_predict"
       df_train[cv_folds == cv_iteration, "ml_predict"] <- ml_predict_oob
+
     }
-    
-    if(verbose) cat("\t training meta-learner...")
-    
+
+    if(verbose) cat("\t computing meta-learner's weights ...")
+
     # 1/0 by fixed_time:
     df_train$event_t <-
       ifelse(df_train$time <= fixed_time & df_train$event == 1, 1, 0)
-    
-    logit = function(x) {
-      log(pmax(pmin(x, 0.9999), 0.0001) / (1 - pmax(pmin(x, 0.9999), 0.0001)))
-    }
-    
-    df_train$cox_predict_logit <- logit(df_train$cox_predict)
-    df_train$ml_predict_logit <- logit(df_train$ml_predict)
-    
+
     # Excluding censored observations before fixed_time, leave those with known state
     df_train_in_scope <-
       df_train[(df_train$time >= fixed_time) |
                  (df_train$time < fixed_time & df_train$event == 1),]
-    
-    # p = b0 + b1*p1 + b2*p2 
+
+    # p = 0+ p1 + lambda*(p2-p1), const==0  OR p=(1-lambda)p1 + lambda*p2
     stack_model <-
-      lm(event_t ~ cox_predict + ml_predict,
-         data = df_train_in_scope)
-    
-    #alt2) ln(p/1-p) = b1* ln(p1/1-p1)+b2*ln(p2/1-p2)+c
-    stack_model_2 <- 
-      glm(event_t ~ cox_predict_logit + ml_predict_logit,
-          data = df_train_in_scope,
-          family = "binomial")
-    
-    #alt3) p = 0+ p1 + b*(p2-p1), const==0  OR p=(1-b)p1 + bp2 
-    stack_model_3 <-
       lm(event_t ~ 0 + offset(cox_predict) + I(ml_predict - cox_predict),
          data = df_train_in_scope)
-    
+
+    # same, different fitting for lambda
+
+
+    #alt1) p = b0 + b1*p1 + b2*p2
+    stack_model_2 <-
+      lm(event_t ~ cox_predict + ml_predict,
+         data = df_train_in_scope)
+
+
+    #alt2) ln(p/1-p) = b1* ln(p1/1-p1)+b2*ln(p2/1-p2)+c
+    # logit = function(x) {
+    #   log(pmax(pmin(x, 0.9999), 0.0001) / (1 - pmax(pmin(x, 0.9999), 0.0001)))
+    # }
+    # df_train$cox_predict_logit <- logit(df_train$cox_predict)
+    # df_train$ml_predict_logit <- logit(df_train$ml_predict)
+    # stack_model_2 <-
+    #   glm(event_t ~ cox_predict_logit + ml_predict_logit,
+    #       data = df_train_in_scope,
+    #       family = "binomial")
+
     bestparams_meta <-
       c(stack_model$coefficients[1],
         stack_model$coefficients[2],
         stack_model$coefficients[3],
-        stack_model_3$coefficients[1],
         stack_model_2$coefficients[1],
         stack_model_2$coefficients[2],
         stack_model_2$coefficients[3]
       )
-    
+
     #output
     output = list()
     output$model_name <- "Stacked_DeepHit_CoxPH"
@@ -165,12 +174,12 @@ stack_deephit_predict <-
     trained_model <- trained_object$model
     if(use_alternative_model) {trained_model <- trained_object$model_2}
     predictdata <- newdata[predict.factors]
-    
+
     # use model_base with the base Cox model to find cox_predict
-    predictdata$cox_predict <- 
+    predictdata$cox_predict <-
       survcox_predict(trained_model = trained_object$model_base_cox,
                       newdata = newdata, fixed_time = fixed_time)[,1]
-    predictdata$ml_predict <- 
+    predictdata$ml_predict <-
       deephit_predict(trained_model = trained_object$model_base_ml,
                       newdata = newdata, predict.factors = predict.factors,
                       fixed_time = fixed_time)
@@ -179,7 +188,7 @@ stack_deephit_predict <-
     }
     predictdata$cox_predict_logit <- logit(predictdata$cox_predict)
     predictdata$ml_predict_logit <- logit(predictdata$ml_predict)
-    
+
     p <- predict(trained_model, newdata = predictdata)
     return(p)
   }
@@ -200,11 +209,11 @@ stack_deephit_cv <- function(df,
                            max_grid_size =10
 ) {
   Call <- match.call()
-  
+
   if (sum(is.na(df[c("time", "event", predict.factors)])) > 0) {
     stop("Missing data can not be handled. Please impute first.")
   }
-  
+
   output <- surv_CV(
     df = df,
     predict.factors = predict.factors,
