@@ -81,30 +81,16 @@ surv_brierscore <-
 #' @param estimate_censoring FALSE by default, if TRUE, event and censoring is reversed (for IPCW calculations)
 #' @return vector of survival probabilities for time_points
 survival_prob_km <-
-  function(df_km_train, times, estimate_censoring = FALSE, polynomial_extrap = FALSE) {
+  function(df_km_train, times, estimate_censoring = FALSE) {
     if (estimate_censoring == FALSE) {
       km <-
         survival::survfit(survival::Surv(time, event) ~ 1, data = df_km_train)
-      kmf <- stats::approxfun(km$time, km$surv, method = "constant")
-      kmdf <- data.frame(cbind("time" = km$time, "surv" = km$surv))
-      extrap <-
-        stats::lm(surv ~ poly(time, 3, raw = TRUE), data = kmdf)
-      km_extrap <- function(x) {
-        (cbind(1, x, x ** 2, x ** 3) %*% extrap$coefficients[1:4])
-      }
     } else {
       df_km_train$censor_as_event <- 1 - df_km_train$event
       km <-
         survival::survfit(survival::Surv(time, censor_as_event) ~ 1, data = df_km_train)
-      kmdf <- data.frame(cbind("time" = km$time, "surv" = km$surv))
-      kmf <- stats::approxfun(km$time, km$surv, method = "constant")
-      extrap <-
-        stats::lm(surv ~ poly(time, 3, raw = TRUE), data = kmdf)
-      km_extrap <- function(x) {
-        (cbind(1, x, x ** 2, x ** 3) %*% extrap$coefficients[1:4])
-      }
     }
-    if (polynomial_extrap) return(km_extrap(times))
+    kmf <- stats::approxfun(km$time, km$surv, method = "constant")
     return(kmf(times))
   }
 
