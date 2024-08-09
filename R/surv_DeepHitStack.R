@@ -18,6 +18,7 @@ stack_deephit_train <-
       fixed_time <-
         round(quantile(df_train[df_train$event == 1, "time"], 0.9), 1)
     }
+    if (!is.nan(randomseed)) {set.seed(randomseed)}
     if(verbose) cat("\nTraining baseline learners ...\n")
     #base DeepHit
     ml_base_model <-
@@ -41,7 +42,6 @@ stack_deephit_train <-
     #meta-learner: compute out-of-sample Cox and ML (DeepHit) predictions
     if(verbose) cat("\nTraining meta-learner... computing out-of-sample predictions...\t")
 
-    if (!is.nan(randomseed)) {set.seed(randomseed)}
     tuningparams_tuned = list(learning_rate = ml_base_model$bestparams$learning_rate,
                               dropout = ml_base_model$bestparams$dropout,
                               num_nodes = ml_base_model$bestparams$num_nodes,
@@ -69,16 +69,12 @@ stack_deephit_train <-
       data_train <- df_train[cv_folds != cv_iteration, ]
       data_oob <- df_train[cv_folds == cv_iteration, ]
       # train cox model on data_train
-      cox_m_cv <-
-        survcox_train(data_train,
-                      predict.factors,
-                      useCoxLasso = useCoxLasso)
+      cox_m_cv <- survcox_train(data_train,predict.factors,useCoxLasso = useCoxLasso)
       # predict for data_oob
       cox_predict_oob <-
         survcox_predict(cox_m_cv, data_oob, fixed_time)[,1]
       # adding Cox prediction to the df_train in the column "cox_predict"
       df_train[cv_folds == cv_iteration, "cox_predict"] <- cox_predict_oob
-
       #train ML model on data_train
       deephit.cv <-
         deephit_train(df_train = data_train,
@@ -97,60 +93,57 @@ stack_deephit_train <-
                         fixed_time= fixed_time)
       # adding ML prediction to the df_train in the column "ml_predict"
       df_train[cv_folds == cv_iteration, "ml_predict"] <- ml_predict_oob
-
     }
 
-    if(verbose) cat("\t computing meta-learner's weights ...")
+    if(verbose) cat("\t calibrating meta-learner ...")
+    # find lambda that gives highest c-score using oob cox and ml predictions
+    c_score <- c()
+    lambdas <- seq(0,1,0.01)
+    for (i in 1:length(lambdas)){
+      y_hat <- with(df_train, cox_predict + lambdas[i]*(ml_predict - cox_predict))
+      temp <-try(survival::concordancefit(
+        survival::Surv(df_train$time, df_train$event),-1 * y_hat),
+        silent = TRUE)
+      c_score[i] <-
+        ifelse((inherits(temp, "try-error")) |
+               is.null(temp$concordance), NaN, temp$concordance)
+    }
 
+    best_i = ifelse(sum(is.nan(lambdas))== 0, 1, which.max(c_score))
+    worst_i = ifelse(sum(is.nan(lambdas))== 0, 1, which.min(c_score))
+    bestparams_meta <-
+      c("lambda" = lambdas[best_i],
+        "c_score" = c_score[best_i],
+        "lambda_worst" = lambdas[worst_i],
+        "c_score_worst" = c_score[worst_i]
+      )
+    if(verbose) cat("\t Lambda = ", lambdas[best_i],", in Cox + lambda * (ML - Cox).")
+
+    # alternative stacked model (unrestricted to lambda in 0-1)
     # 1/0 by fixed_time:
     df_train$event_t <-
       ifelse(df_train$time <= fixed_time & df_train$event == 1, 1, 0)
-
+    logit = function(x) {
+      log(pmax(pmin(x, 0.9999), 0.0001) / (1 - pmax(pmin(x, 0.9999), 0.0001)))
+    }
+    df_train$cox_predict_logit <- logit(df_train$cox_predict)
+    df_train$ml_predict_logit <- logit(df_train$ml_predict)
     # Excluding censored observations before fixed_time, leave those with known state
     df_train_in_scope <-
       df_train[(df_train$time >= fixed_time) |
                  (df_train$time < fixed_time & df_train$event == 1),]
 
-    # p = 0+ p1 + lambda*(p2-p1), const==0  OR p=(1-lambda)p1 + lambda*p2
-    stack_model <-
-      lm(event_t ~ 0 + offset(cox_predict) + I(ml_predict - cox_predict),
-         data = df_train_in_scope)
-
-    # same, different fitting for lambda
-
-
-    #alt1) p = b0 + b1*p1 + b2*p2
-    stack_model_2 <-
-      lm(event_t ~ cox_predict + ml_predict,
-         data = df_train_in_scope)
-
-
-    #alt2) ln(p/1-p) = b1* ln(p1/1-p1)+b2*ln(p2/1-p2)+c
-    # logit = function(x) {
-    #   log(pmax(pmin(x, 0.9999), 0.0001) / (1 - pmax(pmin(x, 0.9999), 0.0001)))
-    # }
-    # df_train$cox_predict_logit <- logit(df_train$cox_predict)
-    # df_train$ml_predict_logit <- logit(df_train$ml_predict)
-    # stack_model_2 <-
-    #   glm(event_t ~ cox_predict_logit + ml_predict_logit,
-    #       data = df_train_in_scope,
-    #       family = "binomial")
-
-    bestparams_meta <-
-      c(stack_model$coefficients[1],
-        stack_model$coefficients[2],
-        stack_model$coefficients[3],
-        stack_model_2$coefficients[1],
-        stack_model_2$coefficients[2],
-        stack_model_2$coefficients[3]
-      )
+    model_meta_alternative <-
+      glm(event_t ~ cox_predict_logit + ml_predict_logit,
+          data = df_train_in_scope,
+          family = "binomial")
 
     #output
     output = list()
     output$model_name <- "Stacked_DeepHit_CoxPH"
     output$oob_predictions <- df_train
-    output$model <- stack_model
-    output$model_2 <- stack_model_2
+    output$lambda <- lambdas[best_i]
+    output$model_meta_alternative <- model_meta_alternative
     output$model_base_cox <- cox_base_model
     output$model_base_ml <- ml_base_model
     output$randomseed <- randomseed
@@ -171,25 +164,35 @@ stack_deephit_predict <-
            predict.factors,
            use_alternative_model = FALSE
   ) {
-    trained_model <- trained_object$model
-    if(use_alternative_model) {trained_model <- trained_object$model_2}
     predictdata <- newdata[predict.factors]
+    l <- trained_object$lambda
 
     # use model_base with the base Cox model to find cox_predict
     predictdata$cox_predict <-
       survcox_predict(trained_model = trained_object$model_base_cox,
                       newdata = newdata, fixed_time = fixed_time)[,1]
+    # if it is just Cox model, i.e. lambda = 0, return Cox predictions
+    if ((!use_alternative_model) & (l==0)) {return (predictdata$cox_predict)}
+    # otherwise compute ML predictions
     predictdata$ml_predict <-
       deephit_predict(trained_model = trained_object$model_base_ml,
                       newdata = newdata, predict.factors = predict.factors,
                       fixed_time = fixed_time)
-    logit = function(x) {
-      log(pmax(pmin(x, 0.9999), 0.0001) / (1 - pmax(pmin(x, 0.9999), 0.0001)))
-    }
-    predictdata$cox_predict_logit <- logit(predictdata$cox_predict)
-    predictdata$ml_predict_logit <- logit(predictdata$ml_predict)
+    #weighted sum
+    p <- predictdata$cox_predict +
+      l * (predictdata$ml_predict- predictdata$cox_predict)
 
-    p <- predict(trained_model, newdata = predictdata)
+    # alternative_model = logistic regression of Cox and ML predictions,
+    if(use_alternative_model) {
+      m <- trained_object$model_meta_alternative
+      logit = function(x) {
+        log(pmax(pmin(x, 0.9999), 0.0001) / (1 - pmax(pmin(x, 0.9999), 0.0001)))
+      }
+      predictdata$cox_predict_logit <- logit(predictdata$cox_predict)
+      predictdata$ml_predict_logit <- logit(predictdata$ml_predict)
+      return (predict(m, newdata = predictdata))
+    }
+    # return weighted sum
     return(p)
   }
 
