@@ -249,23 +249,16 @@ summary.survensemble <- function(object, ...) {
   if (!inherits(object, "survensemble")) {
     stop("Not a \"survensemble\" object")
   }
-  cat("Survival ensemble of Cox PH and Survival Random Forest.\n")
+  cat("Survival ensemble", object$model_name ,"\n")
   if (!is.null(cl <- object$call)) {
     cat("Call:\n")
     dput(cl)
   }
-  cat("\n=> Ensemble", object$model_name,"F:\n")
-  print(object$model)
-  cat("\n=> Underlying CoxPH:\n")
-  print(object$model_base_cox)
-  if(!is.null(object$model_base_ml)){
-    cat("\n=> Underlying ML:\n")
-    print(object$model_base_ml$model)
+  if(!is.null(object$lambda)){
+    cat("\n=> Lambda (ML contribution share) :", object$lambda, "\n")
   }
-
   cat("\n=> Items available as object$item are: ")
   cat(names(object), sep = ", ")
-
 }
 
 ##################################################################
