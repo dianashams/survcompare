@@ -287,7 +287,7 @@ summary.survensemble_cv <- function(object, ...) {
     stop("Not a \"survensemble_cv\" object")
   }
   cat("Cross-validation results. Computation time:",
-      round(object$time,2), "sec. \n")
+      round(object$time,2), "min. \n")
 
   if (!is.null(cl <- object$call)) {
     cat("Call:\n")
