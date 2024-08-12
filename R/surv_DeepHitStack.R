@@ -56,8 +56,8 @@ stack_deephit_train <-
     )
     bestparams_base <- ml_base_model$bestparams
 
-    #avoid variance in predictions for small data, use higher number of folds(10)
-    k_for_oob = ifelse(dim(df_train)[1]<=350, 10, 5)
+    #avoid variance in predictions for small data, use higher number of folds(not activated)
+    k_for_oob = ifelse(dim(df_train)[1]<=250, 5, 5)
 
     cv_folds <-
       caret::createFolds(df_train$event, k = k_for_oob, list = FALSE)
@@ -108,9 +108,8 @@ stack_deephit_train <-
         ifelse((inherits(temp, "try-error")) |
                is.null(temp$concordance), NaN, temp$concordance)
     }
-
-    best_i = ifelse(sum(is.nan(lambdas))== 0, 1, which.max(c_score))
-    worst_i = ifelse(sum(is.nan(lambdas))== 0, 1, which.min(c_score))
+    best_i = ifelse(sum(!is.nan(lambdas))==0, 1, which.max(c_score))
+    worst_i = ifelse(sum(!is.nan(lambdas))== 0, 1, which.min(c_score))
     bestparams_meta <-
       c("lambda" = lambdas[best_i],
         "c_score" = c_score[best_i],
