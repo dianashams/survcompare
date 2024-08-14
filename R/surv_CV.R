@@ -66,22 +66,17 @@ surv_CV <-
 
     # repeat_cv loop
     for (rep_cv in 1:repeat_cv) {
-
       print(paste("Repeated CV", rep_cv, "/", repeat_cv))
-
       set.seed(randomseed + rep_cv)
-
       if (rep_cv != 1) {
         df <- df[sample(1:nrow(df)), ]
       }
       cv_folds <-
         caret::createFolds(df$event, k = outer_cv, list = FALSE)
+
       # cross-validation loop:
-      # progress bar
-      pb <- utils::txtProgressBar(0, outer_cv, style = 3)
-
+      pb <- utils::txtProgressBar(0, outer_cv, style = 3)# progress bar
       for (cv_iteration in 1:outer_cv) {
-
         utils::setTxtProgressBar(pb, cv_iteration) #progress bar update
         df_train_cv <- df[cv_folds != cv_iteration,]
         df_test_cv <- df[cv_folds == cv_iteration,]

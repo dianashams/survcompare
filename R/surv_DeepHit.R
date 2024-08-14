@@ -6,8 +6,9 @@
 deephit_predict <-
   function(trained_model,
            newdata,
-           predict.factors,
-           fixed_time)
+           fixed_time,
+           predict.factors
+           )
   {
     if (inherits(trained_model, "list")) {trained_model <- trained_model$model}
     s1 <- predict(trained_model, newdata[predict.factors], type = "survival")
