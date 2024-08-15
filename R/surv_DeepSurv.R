@@ -9,9 +9,7 @@ deepsurv_predict <-
            fixed_time,
            predict.factors)
   {
-    if (inherits(trained_model, "list")) {
-      trained_model <- trained_model$model
-    }
+    if (inherits(trained_model, "list")) {trained_model <- trained_model$model}
     if (class(try(
       predict(trained_model, newdata[predict.factors], type = "survival"),
       silent= TRUE))[1]=="try-error"){

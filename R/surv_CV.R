@@ -113,7 +113,6 @@ surv_CV <-
                         df_train_cv,
                         df_train_cv,
                         weighted = 1)
-
         if (return_models) {
           models_for_each_cv[[cv_iteration + (rep_cv - 1) * outer_cv]] <-
             trained_model
@@ -149,11 +148,11 @@ surv_CV <-
       x = x[, 1:(dim(x)[2] - 1)]
       as.data.frame(round(
         cbind(
-          "mean" = apply(x, 2, mean, na.rm = 1),
-          "sd" = apply(x, 2, sd, na.rm = 1),
-          "95CILow" = apply(x, 2, quantile, 0.025, na.rm = 1),
-          "95CIHigh" = apply(x, 2, quantile, 0.975, na.rm = 1),
-          "median" = apply(x, 2, median, na.rm = 1)
+          "mean" = apply(x, 2, mean, na.rm = TRUE),
+          "sd" = apply(x, 2, sd, na.rm = TRUE),
+          "95CILow" = apply(x, 2, quantile, 0.025, na.rm = TRUE),
+          "95CIHigh" = apply(x, 2, quantile, 0.975, na.rm = TRUE),
+          "median" = apply(x, 2, median, na.rm = TRUE)
         ),4))
     }
     #if CV was repeated many times, get pooled CV stats too
@@ -198,11 +197,11 @@ surv_CV <-
     output$train <- df_modelstats_train
     output$test_pooled <- pooled_test(df_modelstats_test)
     output$testaverage <-
-      sapply(df_modelstats_test, mean, na.rm = 1)
+      sapply(df_modelstats_test, mean, na.rm = TRUE)
     output$testmedian <-
-      sapply(df_modelstats_test, median, na.rm = 1)
+      sapply(df_modelstats_test, median, na.rm = TRUE)
     output$trainaverage <-
-      sapply(df_modelstats_train, mean, na.rm = 1)
+      sapply(df_modelstats_train, mean, na.rm = TRUE)
     output$tuned_cv_models <- models_for_each_cv
     output$randomseed <- randomseed
     output$bestparams<- bp

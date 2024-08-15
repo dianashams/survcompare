@@ -39,12 +39,12 @@ surv_brierscore <-
       if (length(time_points) == 1) {
         # only 1 time
         t_point <- time_points
-        ppp <- pmax(pmin(y_predicted_newdata, 0.99999), 0.00001)
+        ppp <- pmax(pmin(y_predicted_newdata, 0.9999), 0.0001)
       } else {
         # many times
         t_point <- time_points[j]
         ppp <-
-          pmax(pmin(y_predicted_newdata[, j], 0.99999), 0.00001)
+          pmax(pmin(y_predicted_newdata[, j], 0.9999), 0.0001)
       }
       # cases and controls by time t_point
       id_case <-
@@ -59,14 +59,14 @@ surv_brierscore <-
           (
             sum(
               as.numeric(id_case) * (1 - ppp) ^ 2 * 1 / df_newdata$p_km_obs,
-              na.rm = 1
+              na.rm = 0
             ) +
-              sum(id_control * (0 - ppp) ^ 2 * 1 / p_km_t[j], na.rm = 1)
+              sum(id_control * (0 - ppp) ^ 2 * 1 / p_km_t[j], na.rm = 0)
           ) / dim(df_newdata)[1]
-      } else {
-        # unweighted BS
+        } else {
+        # un-weighted BS
         bs[j] <-
-          sum(id_case * (1 - ppp) ^ 2 + id_control * (0 - ppp) ^ 2, na.rm = 1) / dim(df_newdata)[1]
+          sum(id_case * (1 - ppp) ^ 2 + id_control * (0 - ppp) ^ 2, na.rm = 0) / dim(df_newdata)[1]
       }
     }
     names(bs) <- round(time_points, 6)

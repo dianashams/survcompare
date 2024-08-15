@@ -86,21 +86,10 @@ ens_deephit_predict <-
            fixed_time,
            predict.factors
   ) {
-    trained_model <- trained_object$model
-    predictdata <- newdata[predict.factors]
     # use model_base with the base Cox model to find cox_predict
-    predictdata$cox_predict <- survcox_predict(trained_object$model_base,
-                                               newdata, fixed_time)
-    s1 <- predict(trained_model, newdata = predictdata, type = "survival")
-    ## if this failed, take Cox predictions
-    if (is.na(s1[1,1])) {
-      predict_eventprob<- predictdata$cox_predict
-    }else{
-      f <- function(i) {
-        approxfun(as.double(colnames(s1)), s1[i,], method = "linear")(fixed_time)
-      }
-      predict_eventprob <- 1 - unlist(lapply(1:dim(s1)[1], f))
-    }
+    newdata$cox_predict <- survcox_predict(trained_object$model_base, newdata, fixed_time)
+    # use deephit_predict()
+    predict_eventprob <- deephit_predict(trained_object$model, newdata, fixed_time, predict.factors)
     return(predict_eventprob)
   }
 

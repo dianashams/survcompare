@@ -38,8 +38,8 @@ survcompare2 <- function(cv1, cv2) {
   stats_ci <- function(x, col = "C_score") {
     temp <- x[, col]
     c(
-      "mean" = mean(temp, na.rm = 1),
-      "sd" = sd(temp, na.rm = 1),
+      "mean" = mean(temp, na.rm = TRUE),
+      "sd" = sd(temp, na.rm = TRUE),
       "95CILow" = unname(quantile(temp, 0.025,na.rm = TRUE)),
       "95CIHigh" = unname(quantile(temp, 0.975, na.rm=TRUE))
     )
