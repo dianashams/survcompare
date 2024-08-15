@@ -144,8 +144,8 @@ predict.survensemble <- function(object,
   # use model_base with the base Cox model to find cox_predict
   newdata$cox_predict <- survcox_predict(object$model_base,
                                          newdata, fixed_time)
-  # now use "model" which is SRF which needs additional risk factor
-  # "cox_predict" which was created in the previous row
+  # now use SRF prediction function
+  # the object$model will use the additional factor "cox_predict" in newdata
   predicted_event_prob <-
     1 - srf_survival_prob_for_time(object$model, newdata, fixed_time, oob = oob)
   return(predicted_event_prob)

@@ -42,7 +42,8 @@ deepsurv_train <-
            tuningparams = list(),
            max_grid_size = 10,
            inner_cv = 3,
-           randomseed = NaN) {
+           randomseed = NaN,
+           verbose = TRUE) {
 
     grid_of_hyperparams <-
       ml_hyperparams(
@@ -68,16 +69,15 @@ deepsurv_train <-
       )
       bestparams = tuning_m$bestparams
     }
-    #!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-    print(bestparams)
-    #!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-
+    if (verbose) {
+      cat("\n") # !!!!!!!!!!!!!!!!!!!!!!!!!! #
+      print(bestparams) # !!!!!!!!!!!!!!!!!!!!!!!!!! #
+    }
     deepsurvm <- deepsurv(
       data = df_train,
       x = df_train[predict.factors],
       y = Surv(df_train$time, df_train$event),
       early_stopping = bestparams$early_stopping,
-      frac = 0.3,
       dropout = bestparams$dropout,
       learning_rate = bestparams$learning_rate,
       num_nodes = bestparams$num_nodes[[1]],
@@ -177,7 +177,7 @@ ml_hyperparams <- function(mlparams = list(),
       ),
       "batch_size" =
         seq(min(64, round(dftune_size/ 8)), 256, 64),
-      "epochs" = c(10, 50, 100, 200, 300),
+      "epochs" = c(10, 50, 100, 200),
       "mod_alpha" = seq(0, 1, 0.2),
       "sigma" = c(0.1, 1, 10, 100),
       "cuts" = c(10, 50, 100),
@@ -263,12 +263,8 @@ deepsurv_tune_single <-
     #placeholder for c-index
     cind = matrix(NA, nrow = grid_size, ncol = inner_cv)
     #progress bar
-    pb <- utils::txtProgressBar(0, inner_cv * grid_size, style = 3)
-    utils::setTxtProgressBar(pb, inner_cv * grid_size / 50)
-
-    #!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-    #!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-    #!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+    pb0 <- utils::txtProgressBar(0, inner_cv * grid_size, style = 3)
+    utils::setTxtProgressBar(pb0, inner_cv * grid_size / 50)
 
     # tuning cross-validation loop
     for (cv_iteration in 1:inner_cv) {
@@ -309,11 +305,11 @@ deepsurv_tune_single <-
           surv_validate(pp, fixed_time, df_train_cv, df_test_cv)[1, "C_score"]
         #cind[i, cv_iteration] =
         #  concordance(Surv(df_test_cv$time, df_test_cv$event) ~ pp)$concordance
-        utils::setTxtProgressBar(pb, grid_size + (i - 1) * cv_iteration)
+        utils::setTxtProgressBar(pb0, grid_size + (i - 1) * cv_iteration)
       } # here we already have cindex for allgrid for cv_iteration
     }
-    utils::setTxtProgressBar(pb, inner_cv * grid_size)
-    close(pb)
+    utils::setTxtProgressBar(pb0, inner_cv * grid_size)
+    close(pb0)
     remove(deepsurvm)
     cindex_mean <- apply(cind, 1, mean)
     output = list()

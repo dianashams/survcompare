@@ -62,7 +62,7 @@ summary.survcompare <-
       t2 <-
         "The difference is not statistically significant with the p-value = "
       t3 <-
-        paste(". \nThe data may NOT contain considerable non-linear or cross-term dependencies,\nthat could be captured by ",
+        paste(". \nThe data may NOT contain considerable non-linear or cross-term dependencies\nthat could be captured by ",
               mlmodel, ".\n", sep="")
     }
     # print the output message

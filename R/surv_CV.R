@@ -94,6 +94,7 @@ surv_CV <-
                     list(trained_model, df_test_cv, fixed_time),
                     predict_args
                   ))
+
         y_predict_train <-
           do.call(predict_function,
                   append(
@@ -112,6 +113,7 @@ surv_CV <-
                         df_train_cv,
                         df_train_cv,
                         weighted = 1)
+
         if (return_models) {
           models_for_each_cv[[cv_iteration + (rep_cv - 1) * outer_cv]] <-
             trained_model
