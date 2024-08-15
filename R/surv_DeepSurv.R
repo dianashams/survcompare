@@ -44,7 +44,7 @@ deepsurv_train <-
            verbose = TRUE) {
 
     grid_of_hyperparams <-
-      ml_hyperparams(
+      ml_hyperparams_deepsurv(
         mlparams = tuningparams,
         dftune_size = dim(df_train)[1],
         max_grid_size = max_grid_size
@@ -127,7 +127,7 @@ deepsurv_tune <-
            randomseed = NaN) {
 
     deepsurvgrid <-
-      ml_hyperparams(
+      ml_hyperparams_deepsurv(
         mlparams = tuningparams,
         dftune_size = dim(df_tune)[1],
         max_grid_size = max_grid_size,
@@ -160,27 +160,22 @@ deepsurv_tune <-
 #' Internal function for getting grid of hyperparameters
 #' for random or grid search of size = max_grid_size
 #' @export
-ml_hyperparams <- function(mlparams = list(),
+ml_hyperparams_deepsurv <- function(mlparams = list(),
                            max_grid_size = 10,
                            dftune_size = 1000,
                            randomseed = NaN) {
   default_grid <- list(
-      "dropout" = c(0.1,0.2,0.3,0.5,0.7),
+      "dropout" = c(0.01,0.1,0.2,0.3,0.4,0.5,0.6,0.7,0.8),
       "learning_rate" = c(0.001,0.01,0.1),
       "num_nodes" = list(
-        c(16, 16),  c(32, 32),  c(64, 64),
-        c(8, 8, 8),  c(16, 16, 16), c(32,32,32),
-        c(16, 16, 16, 16), c(32, 32, 32, 32),
-        c(64, 64, 64, 64),c(64, 64, 16, 8)
-      ),
+        c(16, 16),  c(32, 32),  c(64, 64), c(128,128),
+        c(8, 8, 8),  c(16, 16, 16), c(32,32,32),c(64,64,64),
+        c(16, 16, 16, 16), c(32, 32, 32, 32), c(64, 64, 64, 64)),
       "batch_size" =
         seq(min(64, round(dftune_size/ 8)), 256, 64),
       "epochs" = c(10, 50, 100, 200),
-      "mod_alpha" = seq(0, 1, 0.2),
-      "sigma" = c(0.1, 1, 10, 100),
-      "cuts" = c(10, 50, 100),
       "early_stopping" = c(TRUE, FALSE),
-      "weight_decay" = c(0, 0.1,0.3,0.5),
+      "weight_decay" = c(0,0.1,0.2,0.3,0.4,0.5),
       "batch_norm" = TRUE
     )
 
@@ -192,9 +187,6 @@ ml_hyperparams <- function(mlparams = list(),
     if (is.null(mlparams$num_nodes)) {mlparams$num_nodes = default_grid$num_nodes}
     if (is.null(mlparams$batch_size)) {mlparams$batch_size = default_grid$batch_size}
     if (is.null(mlparams$epochs)) {mlparams$epochs = default_grid$epochs}
-    if (is.null(mlparams$mod_alpha)) {mlparams$mod_alpha = default_grid$mod_alpha}
-    if (is.null(mlparams$sigma)) {mlparams$sigma = default_grid$sigma}
-    if (is.null(mlparams$cuts)) { mlparams$cuts = default_grid$cuts}
     if (is.null(mlparams$early_stopping)) {mlparams$early_stopping = default_grid$early_stopping}
     if (is.null(mlparams$weight_decay)) {mlparams$weight_decay = default_grid$weight_decay}
     if (is.null(mlparams$batch_norm)) {mlparams$batch_norm = default_grid$batch_norm}
@@ -205,9 +197,6 @@ ml_hyperparams <- function(mlparams = list(),
       "num_nodes" = mlparams$num_nodes,
       "batch_size" = mlparams$batch_size,
       "epochs" = mlparams$epochs,
-      "mod_alpha" = mlparams$mod_alpha,
-      "sigma" = mlparams$sigma,
-      "cuts" = mlparams$cuts,
       "early_stopping"= mlparams$early_stopping,
       "weight_decay" = mlparams$weight_decay,
       "batch_norm" = mlparams$batch_norm
@@ -254,7 +243,7 @@ deepsurv_tune_single <-
     }
     if (length(grid_hyperparams) == 0) {
       grid_hyperparams <-
-        ml_hyperparams(mlparams = list(),
+        ml_hyperparams_deepsurv(mlparams = list(),
                        dftune_size = dim(df_tune)[1])
     }
     grid_size <- dim(grid_hyperparams)[1]
@@ -282,7 +271,6 @@ deepsurv_tune_single <-
           y = Surv(df_train_cv$time, df_train_cv$event),
           shuffle = TRUE,
           early_stopping = grid_hyperparams[i, "early_stopping"],
-          frac= 0.3,
           dropout = grid_hyperparams[i, "dropout"],
           learning_rate = grid_hyperparams[i, "learning_rate"],
           num_nodes = grid_hyperparams[i, "num_nodes"][[1]],
