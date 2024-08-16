@@ -113,6 +113,7 @@ surv_CV <-
                         df_train_cv,
                         df_train_cv,
                         weighted = 1)
+
         if (return_models) {
           models_for_each_cv[[cv_iteration + (rep_cv - 1) * outer_cv]] <-
             trained_model
