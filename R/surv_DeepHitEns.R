@@ -84,15 +84,22 @@ ens_deephit_predict <-
   function(trained_object,
            newdata,
            fixed_time,
-           predict.factors
-  ) {
+           predict.factors) {
     # use model_base with the base Cox model to find cox_predict
-    newdata$cox_predict <- survcox_predict(trained_object$model_base, newdata, fixed_time)
+    newdata$cox_predict <-
+      survcox_predict(
+        trained_model = trained_object$model_base,
+        newdata = newdata,
+        fixed_time = fixed_time
+      )
     # use deephit_predict()
-    predict_eventprob <- deephit_predict(trained_object$model,
-                                         newdata,
-                                         fixed_time,
-                                         c(predict.factors, "cox_predict"))
+    predict_eventprob <-
+      deephit_predict(
+        trained_model = trained_object$model,
+        newdata = newdata,
+        fixed_time = fixed_time,
+        predict.factors = c(predict.factors, "cox_predict")
+      )
     return(predict_eventprob)
   }
 
