@@ -170,8 +170,7 @@ survcox_predict <- function(trained_model,
     predicted_event_prob <-
       matrix(nrow = dim(newdata)[1], ncol = length(fixed_time))
     for (i in seq(length(fixed_time))) {
-      predicted_event_prob[, i] <- 1 -
-        exp(-bh[i] * explp)
+      predicted_event_prob[, i] <- 1 - exp(-bh[i] * explp)
     }
     colnames(predicted_event_prob) <- round(fixed_time, 6)
     return(predicted_event_prob)
@@ -184,28 +183,14 @@ survcox_predict <- function(trained_model,
   bh_approx <-
     stats::approxfun(bh[, "time"], bh[, "hazard"], method = interpolation)
 
-  # define bh_extrap how to extrapolate outside of training data times
-  # although this is not recommended, it is necessary to make code work when
-  # training data is by chance (durgin cross-validation train-test split)
-  # has limited time range
-  temp <-
-    try(stats::lm(hazard ~ poly(time, 3, raw = TRUE), data = bh), silent = TRUE)
+  min_bh <- min(bh[, "hazard"], na.rm = 1)
+  l <- dim(bh)[1]
+  bh[1, c("hazard", "time")] <- c(0.0000001, min_bh)
+  bh[l + 1, c("hazard", "time")] <-
+    c(bh[l, "time"] + 100000, max_bh)
+  bh_extrap <-
+    stats::approxfun(bh[, "time"], bh[, "hazard"], method = "constant")
 
-  if (!inherits(temp, "try-error")) {
-    extrap <- temp
-    bh_extrap <- function(x) {
-      sum(c(1, x, x ** 2, x ** 3) * extrap$coefficients[1:4])
-    }
-  } else {
-    min_bh <- min(bh[, "hazard"], na.rm = 1)
-    max_bh <- max(bh[, "hazard"], na.rm = 1)
-    l <- dim(bh)[1]
-    bh[1, c("hazard", "time")] <- c(0.0000001, min_bh)
-    bh[l + 1, c("hazard", "time")] <-
-      c(bh[l, "time"] + 100000, max_bh)
-    bh_extrap <-
-      stats::approxfun(bh[, "time"], bh[, "hazard"], method = "constant")
-  }
   # compute event probability for fixed_time:
   # create placeholder
   predicted_event_prob <-

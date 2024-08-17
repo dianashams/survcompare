@@ -121,6 +121,7 @@ surv_validate <- function(y_predict,
   calibration_slope <- c()
   calibration_alpha <- c()
 
+  #loop over times
   for (i in 1:length(predict_time)) {
     t_i <- predict_time[i]
     if (length(predict_time) > 1) {
@@ -128,78 +129,55 @@ surv_validate <- function(y_predict,
     } else {
       y_hat <- unlist(y_predict)
     }
-
-    temp <-
-      try(timeROC::timeROC(
-        T = df_test$time,
-        delta = df_test$event,
-        marker = y_hat,
-        times = t_i * 0.9999999,
-        cause = 1,
-        weighting = "marginal"
-      ),
+    # 1) Concordance
+    # time-dependent in a sense that a predictor is event prob @ t_i.
+    # For Cox model it is the same for each time
+    # (probabilities are always ordered as linear predictors for each t)
+    temp <- try(survival::concordancefit(
+      survival::Surv(df_test$time, df_test$event),-1 * y_hat),
       silent = TRUE)
-    # time dependent AUC
-    auc_score[i] <-
-      ifelse(inherits(temp, "try-error"), NaN, temp$AUC[2])
+    c_score[i] <- ifelse((inherits(temp, "try-error")) |is.null(temp$concordance),
+                         NaN, temp$concordance)
 
-    # compute time-dependent Brier score:
-    temp <-
-      try(surv_brierscore(y_hat, df_train, df_test, t_i, weighted = weighted),
-          silent = TRUE)
+    # 2) time dependent AUC
+    temp <-  try(timeROC::timeROC(
+      T = df_test$time,delta = df_test$event,
+      marker = y_hat,times = t_i,cause = 1,weighting = "marginal"),
+      silent = TRUE)
+    auc_score[i] <- ifelse(inherits(temp, "try-error"), NaN, temp$AUC[2])
+
+    # 3) time-dependent Brier score:
+    temp <- try(surv_brierscore(
+      y_hat, df_train, df_test, t_i, weighted = weighted),silent = TRUE)
     brier_score_scaled[i] <- NaN
     brier_score[i] <- NaN
-
     if (!inherits(temp, "try-error")) {
       brier_score[i] <- temp
       bs_base <-
-        surv_brierscore(rep(mean((df_test$event) * (df_test$time <= t_i)
-        ), dim(df_test)[1]),
-        df_train, df_test, t_i, weighted = weighted)
+        surv_brierscore(
+          y_predicted_newdata = rep(mean((df_test$event) * (df_test$time <= t_i)), dim(df_test)[1]),
+          df_brier_train = df_train, df_newdata = df_test,
+          time_points = t_i, weighted = weighted)
       brier_score_scaled[i] <- 1 - brier_score[i] / bs_base
     }
 
-    remove(temp)
-
-    # compute concordance - time-dependent in a sense that a predictor is
-    # event probability at t_i. For Cox model it is the same for each time
-    # (probabilities are always ordered according to linear predictors for any t)
-    temp <-
-      try(survival::concordancefit(survival::Surv(df_test$time, df_test$event),-1 * y_hat),
-          silent = TRUE)
-
-    c_score[i] <-
-      ifelse((inherits(temp, "try-error")) |
-               is.null(temp$concordance),
-             NaN,
-             temp$concordance)
-
-    # compute calibration slope and alpha:
+    # 4) Calibration slope and alpha:
     # 1/0 by t_i:
-    df_test$event_ti <-
-      ifelse(df_test$time <= t_i & df_test$event == 1, 1, 0)
-
+    df_test$event_ti <- ifelse(df_test$time <= t_i & df_test$event == 1, 1, 0)
     # cut 0 and 1 predicted probabilities for the logit to work:
     df_test$predict_ti <- pmax(pmin(y_hat, 0.99999), 0.00001)
-
-    # Excluding censored observations before t_i, leave those with known state
+    # Exclude censored observations before t_i, leave those with known state
     df_test_in_scope <-
-      df_test[(df_test$time >= t_i) |
-                (df_test$time < t_i & df_test$event == 1),]
+      df_test[(df_test$time >= t_i) |(df_test$time < t_i & df_test$event == 1),]
 
-    # Calibration slope and alpha.
-    y_hat_hat <-
-      log(df_test_in_scope$predict_ti / (1 - df_test_in_scope$predict_ti))
+    # 4) Calibration slope and alpha.
+    y_hat_hat <- log(df_test_in_scope$predict_ti / (1 - df_test_in_scope$predict_ti))
     y_actual_i <- df_test_in_scope$event_ti
-
-    temp <-
-      try(stats::glm(y_actual_i ~ y_hat_hat, family = binomial(link = "logit")),
-          silent = TRUE)
-
-    if (inherits(temp, "try-error")) {
-      calibration_slope[i] <- NaN
-      calibration_alpha[i] <- NaN
-    } else {
+    temp <- try(stats::glm(
+      y_actual_i ~ y_hat_hat, family = binomial(link = "logit")),silent = TRUE)
+    calibration_slope[i] <- NaN
+    calibration_alpha[i] <- NaN
+    if (!inherits(temp, "try-error")) {
       calibration_slope[i] <- temp$coefficients[2]
       if (alpha == "logit") {
         # take alpha from alpha: logit(y)~ logit(y_hat) + alpha
@@ -210,10 +188,11 @@ surv_validate <- function(y_predict,
         # take alpha as alpha= mean(y) - mean(y_hat)
         calibration_alpha[i] <-
           mean(y_actual_i) - mean(df_test_in_scope$predict_ti)
-      }
-    } # end "else"
-  } # end "for"
+      }# end "else"
+    } # end if try-error
 
+  } # end "for"
+  remove(temp)
   output <- data.frame(
     "T" = predict_time,
     "AUCROC" = auc_score,

@@ -75,9 +75,7 @@ survcompare2 <- function(cv1, cv2) {
         stats_ci(cv2$test_pooled, "AUCROC")
       ))
   }
-
   # results_mean and results_mean_train row and col names
-
   col_order <-  c("T", "C_score", "AUCROC", "BS", "BS_scaled",
                   "Calib_slope", "Calib_alpha", "sec")
   row.names(results_mean_train) <- modelnames

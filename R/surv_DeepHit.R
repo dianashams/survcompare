@@ -1,5 +1,4 @@
 
-
 ################## deephit_predict ##################
 # The function to predict event probability by a trained deephitmodel
 #' @export
@@ -12,8 +11,10 @@ deephit_predict <-
   {
     if (inherits(trained_model, "list")) {trained_model <- trained_model$model}
     s1 <- predict(trained_model, newdata[predict.factors], type = "survival")
+    train_times<- as.double(colnames(s1))
+    if(fixed_time > max(train_times)) {return(rep(NaN, dim(newdata)[1]))}
     f <- function(i) {
-      approxfun(as.double(colnames(s1)), s1[i, ], method = "linear")(fixed_time)
+      approxfun(as.double(colnames(s1)), s1[i, ], method = "linear")(predict_time)
     }
     predict_eventprob <- 1 - unlist(lapply(1:dim(s1)[1], f))
     return(predict_eventprob)

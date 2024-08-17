@@ -213,7 +213,7 @@ surv_CV <-
     output$model_name <- model_name
     class(output) <- "survensemble_cv"
     time_1 <- Sys.time()
-    output$time <- time_1 - time_0
+    output$time <- difftime(time_1, time_0, units = "secs")
     print(time_1 - time_0)
     return(output)
   }
