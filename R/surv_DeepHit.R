@@ -14,7 +14,7 @@ deephit_predict <-
     train_times<- as.double(colnames(s1))
     if(fixed_time > max(train_times)) {return(rep(NaN, dim(newdata)[1]))}
     f <- function(i) {
-      approxfun(as.double(colnames(s1)), s1[i, ], method = "linear")(predict_time)
+      approxfun(as.double(colnames(s1)), s1[i, ], method = "linear")(fixed_time)
     }
     predict_eventprob <- 1 - unlist(lapply(1:dim(s1)[1], f))
     return(predict_eventprob)

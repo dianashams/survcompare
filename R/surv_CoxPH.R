@@ -183,13 +183,13 @@ survcox_predict <- function(trained_model,
   bh_approx <-
     stats::approxfun(bh[, "time"], bh[, "hazard"], method = interpolation)
 
-  min_bh <- min(bh[, "hazard"], na.rm = 1)
-  l <- dim(bh)[1]
-  bh[1, c("hazard", "time")] <- c(0.0000001, min_bh)
-  bh[l + 1, c("hazard", "time")] <-
-    c(bh[l, "time"] + 100000, max_bh)
-  bh_extrap <-
-    stats::approxfun(bh[, "time"], bh[, "hazard"], method = "constant")
+  # min_bh <- min(bh[, "hazard"], na.rm = 1)
+  # l <- dim(bh)[1]
+  # bh[1, c("hazard", "time")] <- c(0.0000001, min_bh)
+  # bh[l + 1, c("hazard", "time")] <-
+  #   c(bh[l, "time"] + 100000, max_bh)
+  # bh_extrap <-
+  #   stats::approxfun(bh[, "time"], bh[, "hazard"], method = "constant")
 
   # compute event probability for fixed_time:
   # create placeholder
@@ -199,10 +199,7 @@ survcox_predict <- function(trained_model,
   for (i in seq(length(fixed_time))) {
     if (is.na(bh_approx(fixed_time))) {
       # if interpolation doesn't work, take extrapolated value
-      bh_time <- bh_extrap(fixed_time[i])
-      if (is.na(bh_time)) {
-        bh_time <- mean(bh[, "hazard"], na.rm = TRUE)
-      }
+      bh_time <- bh(max(bh[, "time"]))
     } else {
       bh_time <- bh_approx(fixed_time[i])
     }
