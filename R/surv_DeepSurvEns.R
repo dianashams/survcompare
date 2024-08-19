@@ -107,7 +107,8 @@ ens_deepsurv_cv <- function(df,
                            return_models = FALSE,
                            useCoxLasso = FALSE,
                            tuningparams = list(),
-                           max_grid_size = 10
+                           max_grid_size = 10,
+                           parallel = FALSE
 ) {
   Call <- match.call()
 
@@ -131,7 +132,8 @@ ens_deepsurv_cv <- function(df,
                       "max_grid_size" = max_grid_size,
                       "randomseed" = randomseed),
     predict_args = list("predict.factors" = predict.factors),
-    model_name = "DeepSurv_ensemble"
+    model_name = "DeepSurv_ensemble",
+    parallel = parallel
   )
   output$call <- Call
   return(output)

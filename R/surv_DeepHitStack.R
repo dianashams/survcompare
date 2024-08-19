@@ -208,7 +208,8 @@ stack_deephit_cv <- function(df,
                            return_models = FALSE,
                            useCoxLasso = FALSE,
                            tuningparams = list(),
-                           max_grid_size =10
+                           max_grid_size =10,
+                           parallel = FALSE
 ) {
   Call <- match.call()
 
@@ -232,7 +233,8 @@ stack_deephit_cv <- function(df,
                       "max_grid_size" = max_grid_size,
                       "randomseed" = randomseed),
     predict_args = list("predict.factors" = predict.factors),
-    model_name = "Stacked_DeepHit_CoxPH"
+    model_name = "Stacked_DeepHit_CoxPH",
+    parallel = parallel
   )
   output$call <- Call
   return(output)

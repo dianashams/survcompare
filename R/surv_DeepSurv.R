@@ -322,7 +322,8 @@ deepsurv_cv <- function(df,
                        return_models = FALSE,
                        useCoxLasso = FALSE,
                        tuningparams = list(),
-                       max_grid_size = 10
+                       max_grid_size = 10,
+                       parallel = FALSE
 ) {
   Call <- match.call()
 
@@ -344,7 +345,8 @@ deepsurv_cv <- function(df,
     model_args = list("tuningparams" = tuningparams,
                       "max_grid_size"= max_grid_size),
     predict_args = list("predict.factors" = predict.factors),
-    model_name = "DeepSurv"
+    model_name = "DeepSurv",
+    parallel = parallel
   )
   output$call <- Call
   return(output)

@@ -106,16 +106,17 @@ ens_deephit_predict <-
 ############### ens_deephit_CV #############
 #' @export
 ens_deephit_cv <- function(df,
-                            predict.factors,
-                            fixed_time = NaN,
-                            outer_cv = 3,
-                            inner_cv = 3,
-                            repeat_cv = 2,
-                            randomseed = NaN,
-                            return_models = FALSE,
-                            useCoxLasso = FALSE,
-                            tuningparams = list(),
-                            max_grid_size =10
+                           predict.factors,
+                           fixed_time = NaN,
+                           outer_cv = 3,
+                           inner_cv = 3,
+                           repeat_cv = 2,
+                           randomseed = NaN,
+                           return_models = FALSE,
+                           useCoxLasso = FALSE,
+                           tuningparams = list(),
+                           max_grid_size =10,
+                           parallel = FALSE
 ) {
   Call <- match.call()
 
@@ -139,7 +140,8 @@ ens_deephit_cv <- function(df,
                       "max_grid_size" = max_grid_size,
                       "randomseed" = randomseed),
     predict_args = list("predict.factors" = predict.factors),
-    model_name = "DeepHit_ensemble"
+    model_name = "DeepHit_ensemble",
+    parallel = parallel
   )
   output$call <- Call
   return(output)

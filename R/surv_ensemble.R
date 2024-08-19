@@ -295,8 +295,7 @@ summary.survensemble_cv <- function(object, ...) {
   }
   print(round(object$testaverage,4))
 
-  cat("\nThe stats are computed from the ",
-      dim(object$test)[1],
-      " data splits.\n")
-  print(object$summarydf)
+  cat("\nThe stats are computed from the ", dim(object$test)[1]," data splits.\n")
+  print(
+    object$summarydf[!rownames(object$summarydf) %in% c("repeat_cv", "outer_cv"), ])
 }

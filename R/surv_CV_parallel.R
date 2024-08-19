@@ -1,4 +1,4 @@
-surv_CV <-
+surv_CV_parallel =
   function(df,
            predict.factors,
            fixed_time = NaN,
@@ -11,29 +11,15 @@ surv_CV <-
            predict_function,
            model_args = list(),
            predict_args = list(),
-           model_name = "my model",
-           parallel = FALSE) {
-
-    if (parallel) {
-      return(surv_CV_parallel(df,
-                              predict.factors,
-                              fixed_time,
-                              outer_cv,
-                              inner_cv,
-                              repeat_cv,
-                              randomseed,
-                              return_models,
-                              train_function,
-                              predict_function,
-                              model_args,
-                              predict_args,
-                              model_name))
-      }
+           model_name = "my model") {
 
     time_0 <- Sys.time()
-    if (is.nan(randomseed)) {
-      randomseed <- round(stats::runif(1) * 1e9, 0)
-    }
+
+    # Make parallel cluster, use all but 2 cores for parallel CV
+    num_cores <- parallel::detectCores()
+    `%dopar%` <- foreach::`%dopar%`
+
+    if (is.nan(randomseed)) {randomseed <- round(stats::runif(1) * 1e9, 0)}
 
     if (!any(
       is.data.frame(df),
@@ -72,14 +58,15 @@ surv_CV <-
       model_name == "Survival Random Forest",
       "For SRF inner CV is not used if oob = TRUE (default)",
       "")
-    print(paste("Cross-validating ",model_name," using ",repeat_cv,
-        " repeat(s), ",outer_cv," outer, ",inner_cv," inner loops).",
-        note_srf,sep = ""))
+    print(paste("Cross-validating with doParallel",model_name," using ",repeat_cv,
+                " repeat(s), ",outer_cv," outer, ",inner_cv," inner loops).",
+                note_srf,sep = ""))
 
     modelstats_train <- list()
     modelstats_test <- list()
     models_for_each_cv <- list()
     params_for_each_cv <- list()
+    #modelstats_train[[cv_iteration + (rep_cv - 1) * outer_cv]]
 
     # repeat_cv loop
     for (rep_cv in 1:repeat_cv) {
@@ -91,72 +78,73 @@ surv_CV <-
       cv_folds <-
         caret::createFolds(df$event, k = outer_cv, list = FALSE)
 
+      ############################################################
+      # parallel cluster-register
+      cl= parallel::makeCluster(num_cores-2)
+      doParallel::registerDoParallel(cl)
+
       # cross-validation loop:
-      pb <- utils::txtProgressBar(0, outer_cv, style = 3)# progress bar
-      for (cv_iteration in 1:outer_cv) {
-        utils::setTxtProgressBar(pb, cv_iteration) #progress bar update
+      results <- foreach::foreach(cv_iteration = 1:outer_cv) %dopar% {
+
         df_train_cv <- df[cv_folds != cv_iteration,]
         df_test_cv <- df[cv_folds == cv_iteration,]
         predict.factors.cv <- eligible_params(predict.factors, df_train_cv)
 
         # tune the model using train_function
         trained_model <-
-          do.call(train_function,
-                  append(list(df_train_cv, predict.factors.cv), model_args))
+          do.call(
+            train_function,
+            append(list(df_train_cv, predict.factors.cv), model_args))
 
         # compute event probability predictions for given times
         y_predict_test <-
-          do.call(predict_function,
-                  append(
-                    list(trained_model, df_test_cv, fixed_time),
-                    predict_args
-                  ))
-
+          do.call(
+            predict_function,
+            append(list(trained_model, df_test_cv, fixed_time),predict_args))
         y_predict_train <-
-          do.call(predict_function,
-                  append(
-                    list(trained_model, df_train_cv, fixed_time),
-                    predict_args
-                  ))
-        modelstats_test[[cv_iteration + (rep_cv - 1) * outer_cv]] <-
-          surv_validate(y_predict_test,
-                        fixed_time,
-                        df_train_cv,
-                        df_test_cv,
-                        weighted = 1)
-        modelstats_train[[cv_iteration + (rep_cv - 1) * outer_cv]] <-
-          surv_validate(y_predict_train,
-                        fixed_time,
-                        df_train_cv,
-                        df_train_cv,
-                        weighted = 1)
+          do.call(
+            predict_function,
+            append(list(trained_model, df_train_cv, fixed_time),predict_args))
 
-        if (return_models) {
-          models_for_each_cv[[cv_iteration + (rep_cv - 1) * outer_cv]] <-
-            trained_model
-          if(!is.null(trained_model$bestparams)){
-          params_for_each_cv[[cv_iteration + (rep_cv - 1) * outer_cv]]<-
-            trained_model$bestparams}
-        }else{
-          # save tuned parameters
-          if(!is.null(trained_model$bestparams))
-            {params_for_each_cv[[cv_iteration + (rep_cv - 1) * outer_cv]]<-
-              trained_model$bestparams}#end if
-          }#end else
+        modelstats_test <-
+          surv_validate(y_predict_test,fixed_time,df_train_cv,df_test_cv)
+        modelstats_train <-
+          surv_validate(y_predict_train,fixed_time,df_train_cv,df_train_cv)
+
+        # save models and tuned parameters
+        if (return_models) {  models_for_each_cv <- trained_model}
+        if(!is.null(trained_model$bestparams)){
+          params_for_each_cv<-trained_model$bestparams
+          }else{params_for_each_cv<-NaN}
+
+        # return from each parallel run of CV fold
+        list(modelstats_train=modelstats_train,
+             modelstats_test=modelstats_test,
+             models_for_each_cv=models_for_each_cv,
+             params_for_each_cv=params_for_each_cv)
+
       } #end of cv loop
-      close(pb) #close progress bar to start new one
+
+      for (i in 1:length(results)){
+        modelstats_train[[i + (rep_cv - 1) * outer_cv]] = results[[i]]$modelstats_train
+        modelstats_train[[i + (rep_cv - 1) * outer_cv]][, "repeat_cv"] = rep_cv
+        modelstats_train[[i + (rep_cv - 1) * outer_cv]][, "outer_cv"] = i
+        modelstats_test[[i + (rep_cv - 1) * outer_cv]] = results[[i]]$modelstats_test
+        modelstats_test[[i + (rep_cv - 1) * outer_cv]][, "repeat_cv"] = rep_cv
+        modelstats_test[[i + (rep_cv - 1) * outer_cv]][, "outer_cv"] = i
+        models_for_each_cv[[i + (rep_cv - 1) * outer_cv]] = results[[i]]$models_for_each_cv
+        params_for_each_cv[[i + (rep_cv - 1) * outer_cv]] = results[[i]]$params_for_each_cv
+      }
+      parallel::stopCluster(cl)
+
     }#end of repeat loop
 
-    df_modelstats_test <- data.frame(modelstats_test[[1]])
-    df_modelstats_train <- data.frame(modelstats_train[[1]])
-
-    for (i in 2:(outer_cv * repeat_cv)) {
-      df_modelstats_test[i, ] <- modelstats_test[[i]]
-      df_modelstats_train[i, ] <- modelstats_train[[i]]
-    }
+    # glue the list into a data frame
+    bp = as.data.frame(do.call(rbind, params_for_each_cv))
+    df_modelstats_test = as.data.frame(do.call(rbind, modelstats_test))
+    df_modelstats_train = as.data.frame(do.call(rbind, modelstats_train))
     row.names(df_modelstats_train) <- 1:(outer_cv * repeat_cv)
     row.names(df_modelstats_test) <- 1:(outer_cv * repeat_cv)
-
     df_modelstats_test$test <- 1
     df_modelstats_train$test <- 0
 
@@ -197,18 +185,7 @@ surv_CV <-
         "test" = stats_summary(pooled_test(df_modelstats_test)),
         "train" = stats_summary(pooled_test(df_modelstats_train))
       ))
-    }else{
-      summarydf_pooled = summarydf}
-
-    # tuned params from list to dataframe
-    if (length(params_for_each_cv)>1) {
-      bp <- params_for_each_cv[[1]]
-      for (i in 2:length(params_for_each_cv)) {
-        bp <- rbind(bp, params_for_each_cv[[i]])
-      }
-    }else{
-      bp <- params_for_each_cv
-    }
+    }else{summarydf_pooled = summarydf}
 
     output <- list()
     output$test <- df_modelstats_test

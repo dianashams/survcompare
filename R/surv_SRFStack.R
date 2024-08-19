@@ -12,7 +12,7 @@ stack_srf_train <-
            tuningparams = list(),
            max_grid_size =10,
            verbose = FALSE) {
-    
+
     # setting fixed_time if not given
     if (is.nan(fixed_time)| (length(fixed_time) > 1)) {
       fixed_time <-
@@ -29,11 +29,11 @@ stack_srf_train <-
                     #max_grid_size = max_grid_size,
                     inner_cv = inner_cv,
                     randomseed = randomseed )
-    
+
     #base cox model
     cox_base_model <-
       survcox_train(df_train, predict.factors, useCoxLasso = useCoxLasso)
-    
+
     #------ Computationally demanding fit of the stack model:---
     #first, using k-fold CV, underlying models are trained (using already tuned parameters though)
     #and out-of-sample predictions for Cox and ML are computed
@@ -41,20 +41,20 @@ stack_srf_train <-
     #constitutes the meta-learner
     #meta-learner: compute out-of-sample Cox and ML (srf) predictions
     if(verbose) cat("\nTraining meta-learner... computing out-of-sample predictions...\t")
-    
+
     tuningparams_tuned = list(mtry = ml_base_model$bestparams$mtry,
                               nodesize = ml_base_model$bestparams$nodesize,
                               nodedepth = ml_base_model$bestparams$nodedepth)
     bestparams_base <- ml_base_model$bestparams
-    
+
     #avoid variance in predictions for small data, use higher number of folds(not activated)
     k_for_oob = ifelse(dim(df_train)[1]<=250, 5, 5)
-    
+
     cv_folds <-
       caret::createFolds(df_train$event, k = k_for_oob, list = FALSE)
     cindex_train <- vector(length = k_for_oob)
     cindex_test <- vector(length = k_for_oob)
-    
+
     for (cv_iteration in 1:k_for_oob) {
       if(verbose) cat("\t", cv_iteration, "/", k_for_oob)
       data_train <- df_train[cv_folds != cv_iteration, ]
@@ -84,7 +84,7 @@ stack_srf_train <-
       # adding ML prediction to the df_train in the column "ml_predict"
       df_train[cv_folds == cv_iteration, "ml_predict"] <- ml_predict_oob
     }
-    
+
     if(verbose) cat("\t calibrating meta-learner ...")
     # find lambda that gives highest c-score using oob cox and ml predictions
     c_score <- c()
@@ -107,7 +107,7 @@ stack_srf_train <-
         "c_score_worst" = c_score[worst_i]
       )
     if(verbose) cat("\t Lambda = ", lambdas[best_i],", in Cox + lambda * (ML - Cox).")
-    
+
     # alternative stacked model (unrestricted to lambda in 0-1)
     # 1/0 by fixed_time:
     df_train$event_t <-
@@ -121,12 +121,12 @@ stack_srf_train <-
     df_train_in_scope <-
       df_train[(df_train$time >= fixed_time) |
                  (df_train$time < fixed_time & df_train$event == 1),]
-    
+
     model_meta_alternative <-
       glm(event_t ~ cox_predict_logit + ml_predict_logit,
           data = df_train_in_scope,
           family = "binomial")
-    
+
     #output
     output = list()
     output$model_name <- "Stacked_SRF_CoxPH"
@@ -155,7 +155,7 @@ stack_srf_predict <-
   ) {
     predictdata <- newdata[predict.factors]
     l <- trained_object$lambda
-    
+
     # use model_base with the base Cox model to find cox_predict
     predictdata$cox_predict <-
       survcox_predict(trained_model = trained_object$model_base_cox,
@@ -165,12 +165,12 @@ stack_srf_predict <-
     # otherwise compute ML predictions
     predictdata$ml_predict <-
       survsrf_predict(trained_model = trained_object$model_base_ml,
-                      newdata = newdata, 
+                      newdata = newdata,
                       fixed_time = fixed_time)
     #weighted sum
     p <- predictdata$cox_predict +
       l * (predictdata$ml_predict- predictdata$cox_predict)
-    
+
     # alternative_model = logistic regression of Cox and ML predictions,
     if(use_alternative_model) {
       m <- trained_object$model_meta_alternative
@@ -189,23 +189,24 @@ stack_srf_predict <-
 ############### stack_srf_cv #############
 #' @export
 stack_srf_cv <- function(df,
-                             predict.factors,
-                             fixed_time = NaN,
-                             outer_cv = 3,
-                             inner_cv = 3,
-                             repeat_cv = 2,
-                             randomseed = NaN,
-                             return_models = FALSE,
-                             useCoxLasso = FALSE,
-                             tuningparams = list(),
-                             max_grid_size =10
+                         predict.factors,
+                         fixed_time = NaN,
+                         outer_cv = 3,
+                         inner_cv = 3,
+                         repeat_cv = 2,
+                         randomseed = NaN,
+                         return_models = FALSE,
+                         useCoxLasso = FALSE,
+                         tuningparams = list(),
+                         max_grid_size =10,
+                         parallel = FALSE
 ) {
   Call <- match.call()
-  
+
   if (sum(is.na(df[c("time", "event", predict.factors)])) > 0) {
     stop("Missing data can not be handled. Please impute first.")
   }
-  
+
   output <- surv_CV(
     df = df,
     predict.factors = predict.factors,
@@ -222,7 +223,8 @@ stack_srf_cv <- function(df,
                       "max_grid_size" = max_grid_size,
                       "randomseed" = randomseed),
     predict_args = list("predict.factors" = predict.factors),
-    model_name = "Stacked_SRF_CoxPH"
+    model_name = "Stacked_SRF_CoxPH",
+    parallel = parallel
   )
   output$call <- Call
   return(output)

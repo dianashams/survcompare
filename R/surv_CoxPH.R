@@ -249,7 +249,8 @@ survcox_cv <- function(df,
                        randomseed = NaN,
                        return_models = FALSE,
                        inner_cv = 3,
-                       useCoxLasso = FALSE) {
+                       useCoxLasso = FALSE,
+                       parallel = FALSE) {
   Call <- match.call()
   inputs <- list(df , predict.factors, fixed_time,
                  outer_cv,inner_cv, repeat_cv,
@@ -278,7 +279,8 @@ survcox_cv <- function(df,
     train_function = survcox_train,
     predict_function = survcox_predict,
     model_args = list("useCoxLasso" = useCoxLasso),
-    model_name = ifelse(!useCoxLasso, "CoxPH", "CoxLasso")
+    model_name = ifelse(!useCoxLasso, "CoxPH", "CoxLasso"),
+    parallel = parallel
   )
   output$call <- Call
   return(output)

@@ -321,16 +321,17 @@ ml_hyperparams_deephit <- function(mlparams = list(),
 # The function trains deephit model with given params
 #' @export
 deephit_cv <- function(df,
-                        predict.factors,
-                        fixed_time = NaN,
-                        outer_cv = 3,
-                        inner_cv = 3,
-                        repeat_cv = 2,
-                        randomseed = NaN,
-                        return_models = FALSE,
-                        useCoxLasso = FALSE,
-                        tuningparams = list(),
-                        max_grid_size = 10
+                       predict.factors,
+                       fixed_time = NaN,
+                       outer_cv = 3,
+                       inner_cv = 3,
+                       repeat_cv = 2,
+                       randomseed = NaN,
+                       return_models = FALSE,
+                       useCoxLasso = FALSE,
+                       tuningparams = list(),
+                       max_grid_size = 10,
+                       parallel = FALSE
 ) {
   Call <- match.call()
 
@@ -352,7 +353,8 @@ deephit_cv <- function(df,
     model_args = list("tuningparams" = tuningparams,
                       "max_grid_size"= max_grid_size),
     predict_args = list("predict.factors" = predict.factors),
-    model_name = "DeepHit"
+    model_name = "DeepHit",
+    parallel = parallel
   )
   output$call <- Call
   return(output)
