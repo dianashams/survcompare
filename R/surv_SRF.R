@@ -541,7 +541,8 @@ survsrf_cv <- function(df,
                        return_models = FALSE,
                        inner_cv = 3,
                        tuningparams = list(),
-                       oob = TRUE) {
+                       oob = TRUE,
+                       parallel = FALSE) {
   Call <- match.call()
   inputs <- list(df,
                  predict.factors,
@@ -582,7 +583,8 @@ survsrf_cv <- function(df,
     train_function = survsrf_train,
     predict_function = survsrf_predict,
     model_args = list("tuningparams" = tuningparams, "oob" = oob),
-    model_name = "Survival Random Forest"
+    model_name = "Survival Random Forest",
+    parallel = parallel
   )
   output$call <- Call
   return(output)

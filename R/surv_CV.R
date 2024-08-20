@@ -124,12 +124,18 @@ surv_CV <-
                         df_train_cv,
                         df_test_cv,
                         weighted = 1)
+
         modelstats_train[[cv_iteration + (rep_cv - 1) * outer_cv]] <-
           surv_validate(y_predict_train,
                         fixed_time,
                         df_train_cv,
                         df_train_cv,
                         weighted = 1)
+
+        modelstats_train[[cv_iteration + (rep_cv - 1) * outer_cv]][, "repeat_cv"] = rep_cv
+        modelstats_train[[cv_iteration + (rep_cv - 1) * outer_cv]][, "outer_cv"] = cv_iteration
+        modelstats_test[[cv_iteration + (rep_cv - 1) * outer_cv]][, "repeat_cv"] = rep_cv
+        modelstats_test[[cv_iteration + (rep_cv - 1) * outer_cv]][, "outer_cv"] = cv_iteration
 
         if (return_models) {
           models_for_each_cv[[cv_iteration + (rep_cv - 1) * outer_cv]] <-
@@ -143,22 +149,21 @@ surv_CV <-
             {params_for_each_cv[[cv_iteration + (rep_cv - 1) * outer_cv]]<-
               trained_model$bestparams}#end if
           }#end else
+
       } #end of cv loop
       close(pb) #close progress bar to start new one
     }#end of repeat loop
 
-    df_modelstats_test <- data.frame(modelstats_test[[1]])
-    df_modelstats_train <- data.frame(modelstats_train[[1]])
-
-    for (i in 2:(outer_cv * repeat_cv)) {
-      df_modelstats_test[i, ] <- modelstats_test[[i]]
-      df_modelstats_train[i, ] <- modelstats_train[[i]]
-    }
+    # glue the list into a data frame
+    df_modelstats_test = as.data.frame(do.call(rbind, modelstats_test))
+    df_modelstats_train = as.data.frame(do.call(rbind, modelstats_train))
     row.names(df_modelstats_train) <- 1:(outer_cv * repeat_cv)
     row.names(df_modelstats_test) <- 1:(outer_cv * repeat_cv)
-
     df_modelstats_test$test <- 1
     df_modelstats_train$test <- 0
+
+    bestparams = as.data.frame(do.call(rbind, params_for_each_cv))
+    if (dim(bestparams)[1]==outer_cv*repeat_cv) {bestparams$C_score_outer = df_modelstats_test$C_score}
 
     #summary for printing and summary(obj)
     stats_summary <- function(x) {
@@ -197,18 +202,7 @@ surv_CV <-
         "test" = stats_summary(pooled_test(df_modelstats_test)),
         "train" = stats_summary(pooled_test(df_modelstats_train))
       ))
-    }else{
-      summarydf_pooled = summarydf}
-
-    # tuned params from list to dataframe
-    if (length(params_for_each_cv)>1) {
-      bp <- params_for_each_cv[[1]]
-      for (i in 2:length(params_for_each_cv)) {
-        bp <- rbind(bp, params_for_each_cv[[i]])
-      }
-    }else{
-      bp <- params_for_each_cv
-    }
+    }else{summarydf_pooled = summarydf}
 
     output <- list()
     output$test <- df_modelstats_test
@@ -222,7 +216,7 @@ surv_CV <-
       sapply(df_modelstats_train, mean, na.rm = TRUE)
     output$tuned_cv_models <- models_for_each_cv
     output$randomseed <- randomseed
-    output$bestparams<- bp
+    output$bestparams<- bestparams
     output$call <- Call
     output$cv <- c(outer_cv, inner_cv, repeat_cv)
     output$summarydf <- summarydf

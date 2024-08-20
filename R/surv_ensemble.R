@@ -184,7 +184,8 @@ survensemble_cv <- function(df,
                             return_models = FALSE,
                             useCoxLasso = FALSE,
                             tuningparams = list(),
-                            oob = TRUE) {
+                            oob = TRUE,
+                            parallel = FALSE) {
   Call <- match.call()
   inputs <- list(df , predict.factors, fixed_time,
                  outer_cv,inner_cv, repeat_cv,
@@ -218,7 +219,8 @@ survensemble_cv <- function(df,
       "tuningparams" = tuningparams,
       "oob" = oob
     ),
-    model_name = "SRF_ensemble"
+    model_name = "SRF_ensemble",
+    parallel= parallel
   )
   output$call <- Call
   return(output)

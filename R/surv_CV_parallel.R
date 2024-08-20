@@ -54,19 +54,19 @@ surv_CV_parallel =
       repeat_cv = 1
     }
 
-    note_srf = ifelse(
-      model_name == "Survival Random Forest",
-      "For SRF inner CV is not used if oob = TRUE (default)",
-      "")
-    print(paste("Cross-validating with doParallel",model_name," using ",repeat_cv,
-                " repeat(s), ",outer_cv," outer, ",inner_cv," inner loops).",
+    note_srf = ifelse(model_name == "Survival Random Forest",
+      "For SRF inner CV is not used if oob = TRUE (default)","")
+    print(paste("Cross-validating with doParallel,",
+                model_name," using ",
+                repeat_cv," repeat(s), ",
+                outer_cv," outer, ",
+                inner_cv," inner loops).",
                 note_srf,sep = ""))
 
     modelstats_train <- list()
     modelstats_test <- list()
     models_for_each_cv <- list()
     params_for_each_cv <- list()
-    #modelstats_train[[cv_iteration + (rep_cv - 1) * outer_cv]]
 
     # repeat_cv loop
     for (rep_cv in 1:repeat_cv) {
@@ -84,7 +84,11 @@ surv_CV_parallel =
       doParallel::registerDoParallel(cl)
 
       # cross-validation loop:
-      results <- foreach::foreach(cv_iteration = 1:outer_cv) %dopar% {
+      results <- foreach::foreach(
+        cv_iteration = 1:outer_cv
+        ) %dopar% {
+        devtools::load_all("C:/Users/dinab/Desktop/PhD Projects/Ensemble methods/GitHub_App/survcompare")
+        reticulate::use_python("C:/Users/dinab/anaconda3")
 
         df_train_cv <- df[cv_folds != cv_iteration,]
         df_test_cv <- df[cv_folds == cv_iteration,]
@@ -140,13 +144,15 @@ surv_CV_parallel =
     }#end of repeat loop
 
     # glue the list into a data frame
-    bp = as.data.frame(do.call(rbind, params_for_each_cv))
     df_modelstats_test = as.data.frame(do.call(rbind, modelstats_test))
     df_modelstats_train = as.data.frame(do.call(rbind, modelstats_train))
     row.names(df_modelstats_train) <- 1:(outer_cv * repeat_cv)
     row.names(df_modelstats_test) <- 1:(outer_cv * repeat_cv)
     df_modelstats_test$test <- 1
     df_modelstats_train$test <- 0
+
+    bestparams = as.data.frame(do.call(rbind, params_for_each_cv))
+    if (dim(bestparams)[1]==outer_cv*repeat_cv) {bestparams$C_score_outer = df_modelstats_test$C_score}
 
     #summary for printing and summary(obj)
     stats_summary <- function(x) {
@@ -199,7 +205,7 @@ surv_CV_parallel =
       sapply(df_modelstats_train, mean, na.rm = TRUE)
     output$tuned_cv_models <- models_for_each_cv
     output$randomseed <- randomseed
-    output$bestparams<- bp
+    output$bestparams<- bestparams
     output$call <- Call
     output$cv <- c(outer_cv, inner_cv, repeat_cv)
     output$summarydf <- summarydf
