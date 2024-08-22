@@ -140,84 +140,51 @@ survcox_predict <- function(trained_model,
                             fixed_time,
                             interpolation = "constant") {
   # returns event probability from trained cox model trained_model
-
   #checks
   if (!inherits(trained_model, "coxph")) {
-    stop("Supply coxph model.")
-    return(NULL)
+    stop("Supply coxph model.");    return(NULL)
   }
-  if (!inherits(newdata, "data.frame"))
-    stop("Supply newdata as data.frame.")
+  if (!inherits(newdata, "data.frame"))   stop("Supply newdata as data.frame.")
   if (!inherits(fixed_time, "numeric"))
     stop("Supply fixed_time as a non-empty numeric list.")
   if (length(fixed_time) == 0)
     stop("Supply fixed_time as a non-empty numeric list.")
-  if (is.null(newdata) |
-      dim(newdata)[1] == 0 |
-      dim(newdata)[2] == 0)
+  if (is.null(newdata) |  dim(newdata)[1] == 0 |  dim(newdata)[2] == 0)
     stop("Empty or NULL data is supplied.")
 
-  # define bh - baseline hazard as dataframe with "time" and "hazard"
-  # if baseline hazard can't be calibrated, # return mean(y) for all fixed_time
-  # we take baseline hazard from K-M estimate and lp from Cox !!!! :((
+  # compute baseline hazard function
   temp <- try(survival::basehaz(trained_model), silent = TRUE)
-  explp <-
-    predict(trained_model, newdata, type = "risk") #exp(beta x X)
 
-  if (inherits(temp, "try-error")) {
-    bh <-
-      summary(survival::survfit(trained_model$y ~ 1), fixed_time)$cumhaz
-    predicted_event_prob <-
-      matrix(nrow = dim(newdata)[1], ncol = length(fixed_time))
-    for (i in seq(length(fixed_time))) {
-      predicted_event_prob[, i] <- 1 - exp(-bh[i] * explp)
-    }
-    colnames(predicted_event_prob) <- round(fixed_time, 6)
-    return(predicted_event_prob)
-  } else {
-    bh <- temp
-  }
+  #compute exponentiated linear predictors
+  explp <- predict(trained_model, newdata, type = "risk") #exp(beta x X)
+
+  # if baseline hazard can't be calibrated, return NaNs
+  if (inherits(temp, "try-error")) {return(rep(NaN, dim(newdata)[1]))   }
   remove(temp)
 
-  # define bh as function to compute bh for any time
+  # define bh as function to compute bh for variable time points
+  bh <- survival::basehaz(trained_model)
   bh_approx <-
     stats::approxfun(bh[, "time"], bh[, "hazard"], method = interpolation)
 
-  # min_bh <- min(bh[, "hazard"], na.rm = 1)
-  # l <- dim(bh)[1]
-  # bh[1, c("hazard", "time")] <- c(0.0000001, min_bh)
-  # bh[l + 1, c("hazard", "time")] <-
-  #   c(bh[l, "time"] + 100000, max_bh)
-  # bh_extrap <-
-  #   stats::approxfun(bh[, "time"], bh[, "hazard"], method = "constant")
+  # compute event probability if possible
+  # this would not work for the times outside of training data, return NaN
+  if (is.na(bh_approx(fixed_time))) {
+      return(rep(NaN, dim(newdata)[1]))
+    } else {
+      bh_t <- bh_approx(fixed_time)
+    }
+  # if baseline cumulative hazard == Inf, event probability is 1
+  # if  == 0, event prob is 0 for all with survival==1
+  # (somehow "survival" calculates even with bh==0)
+  if (bh_t == Inf) {
+      predicted_event_prob <- rep(1, dim(newdata)[1])
+    } else if (bh_t == 0) {
+      predicted_event_prob <- rep(0, dim(newdata)[1])
+    } else {
+      predicted_event_prob <- 1 - exp(-bh_t * explp)
+    }
 
-  # compute event probability for fixed_time:
-  # create placeholder
-  predicted_event_prob <-
-    matrix(nrow = dim(newdata)[1], ncol = length(fixed_time))
-  # go over each time in fixed_time
-  for (i in seq(length(fixed_time))) {
-    if (is.na(bh_approx(fixed_time))) {
-      # if interpolation doesn't work, take extrapolated value
-      bh_time <- bh(max(bh[, "time"]))
-    } else {
-      bh_time <- bh_approx(fixed_time[i])
-    }
-    # if baseline hazard is infinite, event probability is 1
-    if (bh_time == Inf) {
-      predicted_event_prob[, i] <- 1
-      # if baseline hazard is ==0, event prob is 0 for all with survival==1
-      # (somehow "survival" calculates even with bh==0)
-    } else if (bh_time == 0) {
-      predicted_event_prob[, i] <- 0
-      # if baseline hazard is a number, use the survival formula
-    } else {
-      predicted_event_prob[, i] <-
-        1 - exp(-bh_time * explp)
-    }
-  }
-  # name columns by the time for which it predicts event prob
-  colnames(predicted_event_prob) <- round(fixed_time, 6)
   return(predicted_event_prob)
 }
 

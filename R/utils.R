@@ -142,7 +142,7 @@ surv_validate <- function(y_predict,
     # 2) time dependent AUC
     temp <-  try(timeROC::timeROC(
       T = df_test$time,delta = df_test$event,
-      marker = y_hat,times = t_i,cause = 1,weighting = "marginal"),
+      marker = y_hat,times = t_i,cause = 1),
       silent = TRUE)
     auc_score[i] <- ifelse(inherits(temp, "try-error"), NaN, temp$AUC[2])
 
