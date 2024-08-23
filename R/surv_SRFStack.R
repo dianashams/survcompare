@@ -63,7 +63,7 @@ stack_srf_train <-
       cox_m_cv <- survcox_train(data_train,predict.factors,useCoxLasso = useCoxLasso)
       # predict for data_oob
       cox_predict_oob <-
-        survcox_predict(cox_m_cv, data_oob, fixed_time)[,1]
+        survcox_predict(cox_m_cv, data_oob, fixed_time)
       # adding Cox prediction to the df_train in the column "cox_predict"
       df_train[cv_folds == cv_iteration, "cox_predict"] <- cox_predict_oob
       #train ML model on data_train
@@ -98,8 +98,8 @@ stack_srf_train <-
         ifelse((inherits(temp, "try-error")) |
                  is.null(temp$concordance), NaN, temp$concordance)
     }
-    best_i = ifelse(sum(!is.nan(lambdas))==0, 1, which.max(c_score))
-    worst_i = ifelse(sum(!is.nan(lambdas))== 0, 1, which.min(c_score))
+    best_i = ifelse(sum(!is.nan(c_score))==0, 1, which.max(c_score))
+    worst_i = ifelse(sum(!is.nan(c_score))== 0, 1, which.min(c_score))
     bestparams_meta <-
       c("lambda" = lambdas[best_i],
         "c_score" = c_score[best_i],
@@ -107,7 +107,6 @@ stack_srf_train <-
         "c_score_worst" = c_score[worst_i]
       )
     if(verbose) cat("\t Lambda = ", lambdas[best_i],", in Cox + lambda * (ML - Cox).")
-
     # alternative stacked model (unrestricted to lambda in 0-1)
     # 1/0 by fixed_time:
     df_train$event_t <-
@@ -121,12 +120,10 @@ stack_srf_train <-
     df_train_in_scope <-
       df_train[(df_train$time >= fixed_time) |
                  (df_train$time < fixed_time & df_train$event == 1),]
-
     model_meta_alternative <-
       glm(event_t ~ cox_predict_logit + ml_predict_logit,
           data = df_train_in_scope,
           family = "binomial")
-
     #output
     output = list()
     output$model_name <- "Stacked_SRF_CoxPH"
@@ -159,7 +156,7 @@ stack_srf_predict <-
     # use model_base with the base Cox model to find cox_predict
     predictdata$cox_predict <-
       survcox_predict(trained_model = trained_object$model_base_cox,
-                      newdata = newdata, fixed_time = fixed_time)[,1]
+                      newdata = newdata, fixed_time = fixed_time)
     # if it is just Cox model, i.e. lambda = 0, return Cox predictions
     if ((!use_alternative_model) & (l==0)) {return (predictdata$cox_predict)}
     # otherwise compute ML predictions
@@ -184,7 +181,6 @@ stack_srf_predict <-
     # return weighted sum
     return(p)
   }
-
 
 ############### stack_srf_cv #############
 #' @export
@@ -221,7 +217,8 @@ stack_srf_cv <- function(df,
     model_args = list("tuningparams" = tuningparams,
                       "useCoxLasso" = useCoxLasso,
                       "max_grid_size" = max_grid_size,
-                      "randomseed" = randomseed),
+                      "randomseed" = randomseed,
+                      "fixed_time" = fixed_time),
     predict_args = list("predict.factors" = predict.factors),
     model_name = "Stacked_SRF_CoxPH",
     parallel = parallel
