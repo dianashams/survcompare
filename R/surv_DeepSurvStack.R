@@ -57,7 +57,7 @@ stack_deepsurv_train <-
     bestparams_base <- ml_base_model$bestparams
 
     #avoid variance in predictions for small data, use higher number of folds(not activated)
-    k_for_oob = ifelse(dim(df_train)[1]<=250, 5, 5)
+    k_for_oob =5
 
     cv_folds <-
       caret::createFolds(df_train$event, k = k_for_oob, list = FALSE)
@@ -72,7 +72,7 @@ stack_deepsurv_train <-
       cox_m_cv <- survcox_train(data_train,predict.factors,useCoxLasso = useCoxLasso)
       # predict for data_oob
       cox_predict_oob <-
-        survcox_predict(cox_m_cv, data_oob, fixed_time)[,1]
+        survcox_predict(cox_m_cv, data_oob, fixed_time)
       # adding Cox prediction to the df_train in the column "cox_predict"
       df_train[cv_folds == cv_iteration, "cox_predict"] <- cox_predict_oob
       #train ML model on data_train
@@ -108,8 +108,8 @@ stack_deepsurv_train <-
         ifelse((inherits(temp, "try-error")) |
                  is.null(temp$concordance), NaN, temp$concordance)
     }
-    best_i = ifelse(sum(!is.nan(lambdas))==0, 1, which.max(c_score))
-    worst_i = ifelse(sum(!is.nan(lambdas))== 0, 1, which.min(c_score))
+    best_i = ifelse(sum(!is.nan(c_score))==0, 1, which.max(c_score))
+    worst_i = ifelse(sum(!is.nan(c_score))== 0, 1, which.min(c_score))
     bestparams_meta <-
       c("lambda" = lambdas[best_i],
         "c_score" = c_score[best_i],
@@ -169,7 +169,7 @@ stack_deepsurv_predict <-
     # use model_base with the base Cox model to find cox_predict
     predictdata$cox_predict <-
       survcox_predict(trained_model = trained_object$model_base_cox,
-                      newdata = newdata, fixed_time = fixed_time)[,1]
+                      newdata = newdata, fixed_time = fixed_time)
     # if it is just Cox model, i.e. lambda = 0, return Cox predictions
     if ((!use_alternative_model) & (l==0)) {return (predictdata$cox_predict)}
     # otherwise compute ML predictions
@@ -231,7 +231,8 @@ stack_deepsurv_cv <- function(df,
     model_args = list("tuningparams" = tuningparams,
                       "useCoxLasso" = useCoxLasso,
                       "max_grid_size" = max_grid_size,
-                      "randomseed" = randomseed),
+                      "randomseed" = randomseed,
+                      "fixed_time" = fixed_time),
     predict_args = list("predict.factors" = predict.factors),
     model_name = "Stacked_DeepSurv_CoxPH",
     parallel = parallel

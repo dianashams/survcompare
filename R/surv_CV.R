@@ -31,47 +31,34 @@ surv_CV <-
       }
 
     time_0 <- Sys.time()
-    if (is.nan(randomseed)) {
-      randomseed <- round(stats::runif(1) * 1e9, 0)
-    }
-
-    if (!any(
-      is.data.frame(df),
+    if (is.nan(randomseed)) {randomseed <- round(stats::runif(1) * 1e9, 0)}
+    if (!any(is.data.frame(df),
       predict.factors %in% colnames(df),
       c("time", "event") %in% colnames(df)
     )) {
-      stop("Data should be a data frame, predictors should correspond to the columns.")
+      stop("Data should be a data frame, predictors
+           should correspond to the columns.")
     }
-
     if (sum(is.na(df[c("time", "event", predict.factors)])) > 0) {
       stop("Missing data can not be handled. Please impute first.")
     }
-
     if (sum(is.nan(fixed_time)) > 0) {
       fixed_time <- round(quantile(df[df$event == 1, "time"], 0.9), 1)
     }
     predict.factors <- eligible_params(predict.factors, df)
-
     if (length(predict.factors) == 0) {
       print("No eligible params")
       return(NULL)
     }
     Call <- match.call()
-
     #defining number of repeated cv
-    if (is.null(repeat_cv)) {
-      repeat_cv = 1
-    }
+    if (is.null(repeat_cv)) {      repeat_cv = 1    }
     if (is.numeric(repeat_cv) & repeat_cv > 1) {
-      repeat_cv = round(repeat_cv, 0)
-    } else{
-      repeat_cv = 1
-    }
+      repeat_cv = round(repeat_cv, 0)    } else{      repeat_cv = 1    }
 
     note_srf = ifelse(
       model_name == "Survival Random Forest",
-      "For SRF inner CV is not used if oob = TRUE (default)",
-      "")
+      "For SRF inner CV is not used if oob = TRUE (default)",  "")
     print(paste("Cross-validating ",model_name," using ",repeat_cv,
         " repeat(s), ",outer_cv," outer, ",inner_cv," inner loops).",
         note_srf,sep = ""))
@@ -85,11 +72,8 @@ surv_CV <-
     for (rep_cv in 1:repeat_cv) {
       print(paste("Repeated CV", rep_cv, "/", repeat_cv))
       set.seed(randomseed + rep_cv)
-      if (rep_cv != 1) {
-        df <- df[sample(1:nrow(df)), ]
-      }
-      cv_folds <-
-        caret::createFolds(df$event, k = outer_cv, list = FALSE)
+      if (rep_cv != 1) {  df <- df[sample(1:nrow(df)), ]}
+      cv_folds <- caret::createFolds(df$event, k = outer_cv, list = FALSE)
 
       # cross-validation loop:
       pb <- utils::txtProgressBar(0, outer_cv, style = 3)# progress bar
@@ -111,7 +95,6 @@ surv_CV <-
                     list(trained_model, df_test_cv, fixed_time),
                     predict_args
                   ))
-
         y_predict_train <-
           do.call(predict_function,
                   append(
@@ -124,7 +107,6 @@ surv_CV <-
                         df_train_cv,
                         df_test_cv,
                         weighted = 1)
-
         modelstats_train[[cv_iteration + (rep_cv - 1) * outer_cv]] <-
           surv_validate(y_predict_train,
                         fixed_time,
@@ -132,10 +114,14 @@ surv_CV <-
                         df_train_cv,
                         weighted = 1)
 
-        modelstats_train[[cv_iteration + (rep_cv - 1) * outer_cv]][, "repeat_cv"] = rep_cv
-        modelstats_train[[cv_iteration + (rep_cv - 1) * outer_cv]][, "outer_cv"] = cv_iteration
-        modelstats_test[[cv_iteration + (rep_cv - 1) * outer_cv]][, "repeat_cv"] = rep_cv
-        modelstats_test[[cv_iteration + (rep_cv - 1) * outer_cv]][, "outer_cv"] = cv_iteration
+        modelstats_train[[
+          cv_iteration + (rep_cv - 1) * outer_cv]][, "repeat_cv"] = rep_cv
+        modelstats_train[[
+          cv_iteration + (rep_cv - 1) * outer_cv]][, "outer_cv"] = cv_iteration
+        modelstats_test[[
+          cv_iteration + (rep_cv - 1) * outer_cv]][, "repeat_cv"] = rep_cv
+        modelstats_test[[
+          cv_iteration + (rep_cv - 1) * outer_cv]][, "outer_cv"] = cv_iteration
 
         if (return_models) {
           models_for_each_cv[[cv_iteration + (rep_cv - 1) * outer_cv]] <-
@@ -149,7 +135,6 @@ surv_CV <-
             {params_for_each_cv[[cv_iteration + (rep_cv - 1) * outer_cv]]<-
               trained_model$bestparams}#end if
           }#end else
-
       } #end of cv loop
       close(pb) #close progress bar to start new one
     }#end of repeat loop
@@ -163,7 +148,8 @@ surv_CV <-
     df_modelstats_train$test <- 0
 
     bestparams = as.data.frame(do.call(rbind, params_for_each_cv))
-    if (dim(bestparams)[1]==outer_cv*repeat_cv) {bestparams$C_score_outer = df_modelstats_test$C_score}
+    if (dim(bestparams)[1]==outer_cv*repeat_cv) {
+      bestparams$C_score_outer = df_modelstats_test$C_score}
 
     #summary for printing and summary(obj)
     stats_summary <- function(x) {
@@ -189,13 +175,11 @@ surv_CV <-
       names(temp2) = names(x)
       return(temp2)
     }
-
     #mean, sd and confidence intervals for all test and train datasets
     summarydf <- as.data.frame(cbind(
       "test" = stats_summary(df_modelstats_test),
       "train" = stats_summary(df_modelstats_train)
     ))
-
     #Same for the pooled results over CV repetitions (if >1)
     if (repeat_cv>1){
       summarydf_pooled <- as.data.frame(cbind(

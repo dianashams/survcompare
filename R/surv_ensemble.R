@@ -15,8 +15,6 @@
 #' @param inner_cv  number of inner cycles for model tuning
 #' @param randomseed  random seed
 #' @param tuningparams list of mtry, nodedepth and nodesize, to use default supply empty list()
-#' @param fast_version  TRUE/FALSE, TRUE by default
-#' @param oob FALSE/TRUE, TRUE by default
 #' @param useCoxLasso FALSE/TRUE, FALSE by default
 #' @param var_importance_calc FALSE/TRUE, TRUE by default
 #' @return trained object of class survensemble
@@ -27,10 +25,9 @@ survensemble_train <- function(df_train,
                                inner_cv = 3,
                                randomseed = NULL,
                                tuningparams = list(),
-                               fast_version = TRUE,
-                               oob = TRUE,
                                useCoxLasso = FALSE,
-                               var_importance_calc = 1) {
+                               max_grid_size =10,
+                               var_importance_calc = FALSE) {
   # the function trains Cox model, then adds its predictions
   # into Survival Random Forest model
   # to mimic stacking procedure and reduce overfitting,
@@ -38,25 +35,25 @@ survensemble_train <- function(df_train,
   # on the rest 0.1 for each 1/10s fold
   # so we pass out-of-the-bag prediction to SRF
 
-  Call <- match.call()
-
-  predict.factors <- eligible_params(predict.factors, df_train)
-  if (length(predict.factors) == 0) {
+  if (length(eligible_params(predict.factors, df_train)) == 0) {
     print("No eliible params")
     return(NULL)
   }
 
   # defining output for fixed_time
-  if (sum(is.nan(fixed_time)) > 0) {
+  # setting fixed_time if not given
+  if (is.nan(fixed_time)| (length(fixed_time) > 1)) {
     fixed_time <-
       round(quantile(df_train[df_train$event == 1, "time"], 0.9), 1)
   }
+
   #setting random seed
   if (is.null(randomseed)) {
     randomseed <- round(stats::runif(1) * 1e9, 0)
   }
   set.seed(randomseed)
-  #creating folds
+
+  #out-of-sample Cox predictions
   cv_folds <-
     caret::createFolds(df_train$event, k = 10, list = FALSE)
   cindex_train <- vector(length = 10)
@@ -69,50 +66,48 @@ survensemble_train <- function(df_train,
       survcox_train(cox_train,
                     eligible_params(predict.factors, cox_train),
                     useCoxLasso = useCoxLasso)
-    # predict for cox_oob
-    cox_predict_oob <-
-      survcox_predict(cox_m_cv, cox_oob, fixed_time)
+    # predict for cox_oob - linear predictors, not event probabilities
+    cox_predict_oob <- predict(cox_m_cv, cox_oob, type = "lp") #beta x X
+
     # adding Cox prediction to the df_train in the column "cox_predict"
-    df_train[cv_folds == cv_iteration, "cox_predict"] <-
-      cox_predict_oob
+    df_train[cv_folds == cv_iteration, "cox_predict"] <- cox_predict_oob
   }
 
-  # adding Cox predictions as a new factor to tune SRF
-  predict.factors.1A <- c(predict.factors, "cox_predict")
-  ensemble1_model <-
+  predict.factors.plusCox <- c(predict.factors, "cox_predict")
+
+  srf.ens <-
     survsrf_train(
       df_train = df_train,
-      predict.factors = predict.factors.1A,
+      predict.factors = predict.factors.plusCox,
       fixed_time = fixed_time,
+      max_grid_size = max_grid_size,
       inner_cv = inner_cv,
       randomseed = randomseed,
-      tuningparams = tuningparams,
-      fast_version = fast_version,
-      oob = oob
+      tuningparams = tuningparams
     )
 
   if (var_importance_calc) {
-    v <- randomForestSRC::vimp(ensemble1_model$model,
-                               importance = "permute",
-                               seed = randomseed)
+    v <- randomForestSRC::vimp(
+      srf.ens$model,importance = "permute",seed = randomseed)
     var_importance <- sort(v$importance, decreasing = TRUE)
     vimp10 <- var_importance[1:min(length(var_importance), 20)]
-  } else {
-    vimp10 <- c(NaN)
-  }
+  } else { vimp10 <- c(NaN)  }
 
   #base cox model
   cox_base_model <-
     survcox_train(df_train, predict.factors, useCoxLasso = useCoxLasso)
 
   #output
-  ensemble1_model$model_name = "SRF_ensemble"
-  ensemble1_model$vimp10 <- vimp10
-  ensemble1_model$model_base <- cox_base_model
-  ensemble1_model$randomseed <- randomseed
-  ensemble1_model$call <- Call
-  class(ensemble1_model) <- "survensemble"
-  return(ensemble1_model)
+  output = list()
+  output$model_name = "SRF_ensemble"
+  output$model <- srf.ens$model
+  output$model_base <- cox_base_model
+  output$randomseed <- randomseed
+  output$bestparams <- srf.ens$bestparams
+  output$call <-  match.call()
+  class(output) <- "survensemble"
+  output$vimp10 <- vimp10
+  return(output)
 }
 
 
@@ -122,20 +117,15 @@ survensemble_train <- function(df_train,
 #' @param object trained survensemble model
 #' @param newdata test data
 #' @param fixed_time  time for which probabilities are computed
-#' @param oob TRUE/FALSE , default is FALSE, if out of bag predictions are to be made from SRF
 #' @param ... other parameters to pass
 #' @return matrix of predictions for observations in newdata by times
 #' @export
 predict.survensemble <- function(object,
                                  newdata,
                                  fixed_time,
-                                 oob = FALSE,
                                  ...) {
   if (!inherits(object, "survensemble")) {
     stop("Not a \"survensemble\" object")
-  }
-  if (is.null(newdata)) {
-    stop("The data for predictions is not supplied")
   }
   if (!inherits(newdata, "data.frame")) {
     stop("The data should be a data frame")
@@ -146,8 +136,7 @@ predict.survensemble <- function(object,
                                          newdata, fixed_time)
   # now use SRF prediction function
   # the object$model will use the additional factor "cox_predict" in newdata
-  predicted_event_prob <-
-    1 - srf_survival_prob_for_time(object$model, newdata, fixed_time, oob = oob)
+  predicted_event_prob <- survsrf_predict(object$model, newdata, fixed_time)
   return(predicted_event_prob)
 }
 
@@ -164,7 +153,6 @@ predict.survensemble <- function(object,
 #' @param return_models TRUE/FALSE, if TRUE returns all CV objects
 #' @param useCoxLasso TRUE/FALSE, default is FALSE
 #' @param tuningparams list of tuning parameters for random forest: 1) NULL for using a default tuning grid, or 2) a list("mtry"=c(...), "nodedepth" = c(...), "nodesize" = c(...))
-#' @param oob TRUE/FALSE use out-of-bag predictions while tuning instead of cross-validation, TRUE by default
 #' @examples \donttest{
 #' \dontshow{rfcores_old <- options()$rf.cores; options(rf.cores=1)}
 #' df <- simulate_nonlinear()
@@ -184,17 +172,19 @@ survensemble_cv <- function(df,
                             return_models = FALSE,
                             useCoxLasso = FALSE,
                             tuningparams = list(),
-                            oob = TRUE,
+                            max_grid_size = 10,
                             parallel = FALSE) {
   Call <- match.call()
   inputs <- list(df , predict.factors, fixed_time,
                  outer_cv,inner_cv, repeat_cv,
                  randomseed, return_models,
-                 useCoxLasso,tuningparams, oob)
-  inputclass<- list(df = "data.frame", predict.factors = "character", fixed_time = "numeric",
-                    outer_cv = "numeric",inner_cv = "numeric", repeat_cv = "numeric",
+                 useCoxLasso,tuningparams, parallel)
+  inputclass<- list(df = "data.frame", predict.factors = "character",
+                    fixed_time = "numeric",outer_cv = "numeric",
+                    inner_cv = "numeric", repeat_cv = "numeric",
                     randomseed = "numeric",return_models = "logical",
-                    useCoxLasso="logical", tuningparams = "list", oob = "logical")
+                    useCoxLasso="logical", tuningparams = "list",
+                   parallel = "logical")
 
   cp<- check_call(inputs, inputclass, Call)
   if (cp$anyerror) stop (paste(cp$msg[cp$msg!=""], sep=""))
@@ -217,7 +207,9 @@ survensemble_cv <- function(df,
     model_args = list(
       "useCoxLasso" = useCoxLasso,
       "tuningparams" = tuningparams,
-      "oob" = oob
+      "fixed_time" = fixed_time,
+      "max_grid_size" = max_grid_size,
+      "randomseed" = randomseed
     ),
     model_name = "SRF_ensemble",
     parallel= parallel

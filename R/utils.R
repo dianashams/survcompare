@@ -121,77 +121,94 @@ surv_validate <- function(y_predict,
   calibration_slope <- c()
   calibration_alpha <- c()
 
-  #loop over times
-  for (i in 1:length(predict_time)) {
-    t_i <- predict_time[i]
-    if (length(predict_time) > 1) {
-      y_hat <- y_predict[, i]
-    } else {
-      y_hat <- unlist(y_predict)
-    }
-    # 1) Concordance
-    # time-dependent in a sense that a predictor is event prob @ t_i.
-    # For Cox model it is the same for each time
-    # (probabilities are always ordered as linear predictors for each t)
-    temp <- try(survival::concordancefit(
-      survival::Surv(df_test$time, df_test$event),-1 * y_hat),
+  #if all NaNs, return NaNs
+  if (sum(is.na(y_predict))==length(y_predict)){
+    output <- data.frame(
+      "T" = predict_time,
+      "AUCROC" = NaN,
+      "BS" = NaN,
+      "BS_scaled" = NaN,
+      "C_score" = NaN,
+      "Calib_slope" = NaN,
+      "Calib_alpha" = NaN
+    )
+    return(output)
+  }
+
+  # 1) Concordance
+  # time-dependent in a sense that a predictor is event prob @ predict_time.
+  # For Cox model it is the same for each time
+  # (probabilities are always ordered as linear predictors for each t)
+  temp <- try(survival::concordancefit(
+      survival::Surv(df_test$time, df_test$event),-1 * y_predict),
       silent = TRUE)
-    c_score[i] <- ifelse((inherits(temp, "try-error")) |is.null(temp$concordance),
+  c_score <- ifelse((inherits(temp, "try-error")) |
+                           inherits(try(temp$concordance, silent = TRUE), "try-error"),
                          NaN, temp$concordance)
 
-    # 2) time dependent AUC
-    temp <-  try(timeROC::timeROC(
+  # 2) time dependent AUC
+  temp <-  try(timeROC::timeROC(
       T = df_test$time,delta = df_test$event,
-      marker = y_hat,times = t_i,cause = 1),
+      marker = y_predict,times = predict_time,cause = 1),
       silent = TRUE)
-    auc_score[i] <- ifelse(inherits(temp, "try-error"), NaN, temp$AUC[2])
+  auc_score <- ifelse(inherits(temp, "try-error"), NaN, temp$AUC[2])
 
-    # 3) time-dependent Brier score:
-    temp <- try(surv_brierscore(
-      y_hat, df_train, df_test, t_i, weighted = weighted),silent = TRUE)
-    brier_score_scaled[i] <- NaN
-    brier_score[i] <- NaN
-    if (!inherits(temp, "try-error")) {
-      brier_score[i] <- temp
-      bs_base <-
-        surv_brierscore(
-          y_predicted_newdata = rep(mean((df_test$event) * (df_test$time <= t_i)), dim(df_test)[1]),
-          df_brier_train = df_train, df_newdata = df_test,
-          time_points = t_i, weighted = weighted)
-      brier_score_scaled[i] <- 1 - brier_score[i] / bs_base
-    }
+  # 3) time-dependent Brier score:
+  temp <- try(
+    surv_brierscore(y_predict, df_train, df_test, predict_time, weighted = weighted),
+    silent = TRUE)
+  brier_score_scaled <- NaN
+  brier_score <- NaN
+  if (!inherits(temp, "try-error")) {
+    brier_score <- temp
+    bs_base <-
+      surv_brierscore(
+        y_predicted_newdata =
+          rep(mean((df_test$event) * (df_test$time <= predict_time)),
+              dim(df_test)[1]),
+        df_brier_train = df_train,
+        df_newdata = df_test,
+        time_points = predict_time,
+        weighted = weighted
+      )
+    brier_score_scaled <- 1 - brier_score / bs_base
+  }
 
-    # 4) Calibration slope and alpha:
-    # 1/0 by t_i:
-    df_test$event_ti <- ifelse(df_test$time <= t_i & df_test$event == 1, 1, 0)
-    # cut 0 and 1 predicted probabilities for the logit to work:
-    df_test$predict_ti <- pmax(pmin(y_hat, 0.99999), 0.00001)
-    # Exclude censored observations before t_i, leave those with known state
-    df_test_in_scope <-
-      df_test[(df_test$time >= t_i) |(df_test$time < t_i & df_test$event == 1),]
+  # 4) Calibration slope and alpha:
+  # 1/0 by predict_time:
+  df_test$event_ti <-
+    ifelse(df_test$time <= predict_time & df_test$event == 1, 1, 0)
+  # cut 0 and 1 predicted probabilities for the logit to work:
+  df_test$predict_ti <- pmax(pmin(y_predict, 0.9999), 0.0001)
 
-    # 4) Calibration slope and alpha.
-    y_hat_hat <- log(df_test_in_scope$predict_ti / (1 - df_test_in_scope$predict_ti))
-    y_actual_i <- df_test_in_scope$event_ti
-    temp <- try(stats::glm(
-      y_actual_i ~ y_hat_hat, family = binomial(link = "logit")),silent = TRUE)
-    calibration_slope[i] <- NaN
-    calibration_alpha[i] <- NaN
-    if (!inherits(temp, "try-error")) {
-      calibration_slope[i] <- temp$coefficients[2]
-      if (alpha == "logit") {
-        # take alpha from alpha: logit(y)~ logit(y_hat) + alpha
-        calibration_alpha[i] <-
-          stats::glm(y_actual_i ~ offset(y_hat_hat),
-                     family = binomial(link = "logit"))$coefficients[1]
-      } else {
-        # take alpha as alpha= mean(y) - mean(y_hat)
-        calibration_alpha[i] <-
-          mean(y_actual_i) - mean(df_test_in_scope$predict_ti)
-      }# end "else"
-    } # end if try-error
+  # Exclude censored observations before predict_time, leave those with known state
+  df_test_in_scope <-
+    df_test[(df_test$time >= y_predict) |
+              (df_test$time < y_predict & df_test$event == 1), ]
 
-  } # end "for"
+  # 4) Calibration slope and alpha.
+  y_predict_hat <-
+    log(df_test_in_scope$predict_ti / (1 - df_test_in_scope$predict_ti))
+  y_actual_i <- df_test_in_scope$event_ti
+  temp <- try(stats::glm(y_actual_i ~ y_predict_hat,
+                         family = binomial(link = "logit")),
+              silent = TRUE)
+  calibration_slope <- NaN
+  calibration_alpha <- NaN
+  if (!inherits(temp, "try-error")) {
+    calibration_slope <- temp$coefficients[2]
+    if (alpha == "logit") {
+      # take alpha from alpha: logit(y)~ logit(y_predict) + alpha
+      calibration_alpha <-
+        stats::glm(y_actual_i ~ offset(y_predict_hat),
+                   family = binomial(link = "logit"))$coefficients[1]
+    } else {
+      # take alpha as alpha= mean(y) - mean(y_predict)
+      calibration_alpha <-
+        mean(y_actual_i) - mean(df_test_in_scope$predict_ti)
+    }# end "else"
+  } # end if try-error
+
   remove(temp)
   output <- data.frame(
     "T" = predict_time,

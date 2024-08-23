@@ -14,7 +14,7 @@ deephit_predict <-
     train_times<- as.double(colnames(s1))
     if(fixed_time > max(train_times)) {return(rep(NaN, dim(newdata)[1]))}
     f <- function(i) {
-      approxfun(as.double(colnames(s1)), s1[i, ], method = "linear")(fixed_time)
+      approxfun(as.double(colnames(s1)), s1[i, ], method = "constant")(fixed_time)
     }
     predict_eventprob <- 1 - unlist(lapply(1:dim(s1)[1], f))
     return(predict_eventprob)
@@ -57,10 +57,8 @@ deephit_train <-
       )
       bestparams = tuning_m$bestparams
     }
-    if (verbose) {
-      cat("\n") # !!!!!!!!!!!!!!!!!!!!!!!!!! #
-      print(bestparams) # !!!!!!!!!!!!!!!!!!!!!!!!!! #
-    }
+    if (verbose) {print(bestparams)}
+
     deephitm <- survivalmodels::deephit(
       data = df_train,
       x = df_train[predict.factors],
@@ -168,7 +166,8 @@ deephit_tune_single <-
            fixed_time = NaN,
            grid_hyperparams=c(),
            inner_cv = 3,
-           randomseed = NaN) {
+           randomseed = NaN,
+           progressbar = FALSE) {
 
     #fixed_time
     if (is.nan(fixed_time) | length(fixed_time) > 1) {
@@ -185,8 +184,10 @@ deephit_tune_single <-
     #placeholder for c-index
     cind = matrix(NA, nrow = grid_size, ncol = inner_cv)
     #progress bar
-    pb <- utils::txtProgressBar(0, inner_cv * grid_size, style = 3)
-    utils::setTxtProgressBar(pb, inner_cv * grid_size / 50)
+    if (progressbar) {
+      pb <- utils::txtProgressBar(0, inner_cv * grid_size, style = 3)
+     utils::setTxtProgressBar(pb, inner_cv * grid_size / 50)
+    }
     # tuning cross-validation loop
     for (cv_iteration in 1:inner_cv) {
       if (!is.nan(randomseed)) {
@@ -228,11 +229,16 @@ deephit_tune_single <-
           surv_validate(pp, fixed_time, df_train_cv, df_test_cv)[1, "C_score"]
         #cind[i, cv_iteration] =
         #  concordance(Surv(df_test_cv$time, df_test_cv$event) ~ pp)$concordance
-        utils::setTxtProgressBar(pb, grid_size + (i - 1) * cv_iteration)
+        if (progressbar) {
+          utils::setTxtProgressBar(pb, grid_size + (i - 1) * cv_iteration)
+        }
       } # here we already have cindex for allgrid for cv_iteration
     }
-    utils::setTxtProgressBar(pb, inner_cv * grid_size)
-    close(pb)
+
+    if(progressbar) {
+      utils::setTxtProgressBar(pb, inner_cv * grid_size)
+      close(pb)
+    }
     remove(deephitm)
     cindex_mean <- apply(cind, 1, mean)
     output = list()
@@ -328,7 +334,6 @@ deephit_cv <- function(df,
                        repeat_cv = 2,
                        randomseed = NaN,
                        return_models = FALSE,
-                       useCoxLasso = FALSE,
                        tuningparams = list(),
                        max_grid_size = 10,
                        parallel = FALSE
@@ -351,7 +356,8 @@ deephit_cv <- function(df,
     train_function = deephit_train,
     predict_function = deephit_predict,
     model_args = list("tuningparams" = tuningparams,
-                      "max_grid_size"= max_grid_size),
+                      "max_grid_size"= max_grid_size,
+                      "fixed_time" = fixed_time),
     predict_args = list("predict.factors" = predict.factors),
     model_name = "DeepHit",
     parallel = parallel

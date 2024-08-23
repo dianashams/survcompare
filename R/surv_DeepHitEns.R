@@ -12,14 +12,26 @@ ens_deephit_train <-
            tuningparams = list(),
            max_grid_size =10) {
 
+    Call <- match.call()
+
+    if (length(eligible_params(predict.factors, df_train)) == 0) {
+      print("No eliible params")
+      return(NULL)
+    }
+
     # setting fixed_time if not given
     if (is.nan(fixed_time)| (length(fixed_time) > 1)) {
       fixed_time <-
         round(quantile(df_train[df_train$event == 1, "time"], 0.9), 1)
     }
 
-    #creating folds
-    if (!is.nan(randomseed)) {set.seed(randomseed)}
+    #setting random seed
+    if (is.null(randomseed)) {
+      randomseed <- round(stats::runif(1) * 1e9, 0)
+    }
+    set.seed(randomseed)
+
+    #out-of-sample Cox predictions
     cv_folds <-
       caret::createFolds(df_train$event, k = 10, list = FALSE)
     cindex_train <- vector(length = 10)
@@ -34,18 +46,10 @@ ens_deephit_train <-
                       useCoxLasso = useCoxLasso)
       # predict for cox_oob - linear predictors, not event probabilities
       cox_predict_oob <- predict(cox_m_cv, cox_oob, type = "lp") #beta x X
-      #event probabilities - depreciated
-      #cox_predict_oob <- survcox_predict(cox_m_cv, cox_oob, fixed_time)
 
       # adding Cox prediction to the df_train in the column "cox_predict"
       df_train[cv_folds == cv_iteration, "cox_predict"] <- cox_predict_oob
     }
-    # alternative - direct (not out-of-sample) cox predictions
-    # cox_m <-
-    #   survcox_train(df_train,
-    #                 eligible_params(predict.factors, df_train),
-    #                 useCoxLasso = useCoxLasso)
-    # df_train$cox_predict = survcox_predict(cox_m, df_train, fixed_time)
 
     # adding Cox predictions as a new factor to tune SRF,
     predict.factors.plusCox <- c(predict.factors, "cox_predict")
@@ -85,19 +89,19 @@ ens_deephit_predict <-
            newdata,
            fixed_time,
            predict.factors) {
+
+    if (!inherits(trained_object, "survensemble")) {
+      stop("Not a \"survensemble\" object")
+    }
+    if (!inherits(newdata, "data.frame")) {
+      stop("The data should be a data frame")
+    }
     # use model_base with the base Cox model to find cox_predict
-    newdata$cox_predict <-
-      survcox_predict(
-        trained_model = trained_object$model_base,
-        newdata = newdata,
-        fixed_time = fixed_time
-      )
+    newdata$cox_predict <- survcox_predict(trained_object$model_base,
+        newdata = newdata,fixed_time = fixed_time)
     # use deephit_predict()
     predict_eventprob <-
-      deephit_predict(
-        trained_model = trained_object$model,
-        newdata = newdata,
-        fixed_time = fixed_time,
+      deephit_predict(trained_object$model,newdata, fixed_time,
         predict.factors = c(predict.factors, "cox_predict")
       )
     return(predict_eventprob)
@@ -138,7 +142,8 @@ ens_deephit_cv <- function(df,
     model_args = list("tuningparams" = tuningparams,
                       "useCoxLasso" = useCoxLasso,
                       "max_grid_size" = max_grid_size,
-                      "randomseed" = randomseed),
+                      "randomseed" = randomseed,
+                      "fixed_time" = fixed_time),
     predict_args = list("predict.factors" = predict.factors),
     model_name = "DeepHit_ensemble",
     parallel = parallel
