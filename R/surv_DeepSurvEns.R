@@ -12,6 +12,10 @@ ens_deepsurv_train <-
            tuningparams = list(),
            max_grid_size = 10) {
 
+    if (is.nan(randomseed)) {
+      randomseed <- round(stats::runif(1) * 1e9, 0)
+    }
+
     # setting fixed_time if not given
     if (is.nan(fixed_time)| (length(fixed_time) > 1)) {
       fixed_time <-
@@ -19,7 +23,7 @@ ens_deepsurv_train <-
     }
 
     #creating folds
-    if (!is.nan(randomseed)) {set.seed(randomseed)}
+    set.seed(randomseed)
     cv_folds <-
       caret::createFolds(df_train$event, k = 5, list = FALSE)
     cindex_train <- vector(length = 5)

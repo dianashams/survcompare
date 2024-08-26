@@ -48,7 +48,7 @@ survensemble_train <- function(df_train,
   }
 
   #setting random seed
-  if (is.null(randomseed)) {
+  if (is.nan(randomseed)) {
     randomseed <- round(stats::runif(1) * 1e9, 0)
   }
   set.seed(randomseed)

@@ -114,6 +114,7 @@ surv_validate <- function(y_predict,
   # The function computes auc, brier score, c-index,
   # calibration slope and alpha for df_test
   # for apparent statistics use test  = train
+
   auc_score <- c()
   brier_score <- c()
   brier_score_scaled <- c()
@@ -173,7 +174,6 @@ surv_validate <- function(y_predict,
       )
     brier_score_scaled <- 1 - brier_score / bs_base
   }
-
   # 4) Calibration slope and alpha:
   # 1/0 by predict_time:
   df_test$event_ti <-
@@ -199,16 +199,19 @@ surv_validate <- function(y_predict,
     calibration_slope <- temp$coefficients[2]
     if (alpha == "logit") {
       # take alpha from alpha: logit(y)~ logit(y_predict) + alpha
-      calibration_alpha <-
+      temp2 <- try(stats::glm(y_actual_i ~ y_predict_hat,
+                             family = binomial(link = "logit")),
+                   silent=TRUE)
+      if(!inherits(temp2, "try-error")){
+        calibration_alpha <-
         stats::glm(y_actual_i ~ offset(y_predict_hat),
-                   family = binomial(link = "logit"))$coefficients[1]
+                   family = binomial(link = "logit"))$coefficients[1]}
     } else {
       # take alpha as alpha= mean(y) - mean(y_predict)
       calibration_alpha <-
         mean(y_actual_i) - mean(df_test_in_scope$predict_ti)
     }# end "else"
   } # end if try-error
-
   remove(temp)
   output <- data.frame(
     "T" = predict_time,

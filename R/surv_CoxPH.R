@@ -140,6 +140,7 @@ survcox_predict <- function(trained_model,
                             fixed_time,
                             interpolation = "constant") {
   # returns event probability from trained cox model trained_model
+
   #checks
   if (!inherits(trained_model, "coxph")) {
     stop("Supply coxph model.");    return(NULL)
@@ -170,8 +171,9 @@ survcox_predict <- function(trained_model,
   # compute event probability if possible
   # this would not work for the times outside of training data, return NaN
   if (is.na(bh_approx(fixed_time))) {
-      return(rep(NaN, dim(newdata)[1]))
+    return(rep(NaN, dim(newdata)[1]))
     } else {
+      if(fixed_time > max(bh[,"time"])) {return(rep(NaN, dim(newdata)[1]))}
       bh_t <- bh_approx(fixed_time)
     }
   # if baseline cumulative hazard == Inf, event probability is 1

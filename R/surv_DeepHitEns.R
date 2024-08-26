@@ -14,6 +14,9 @@ ens_deephit_train <-
 
     Call <- match.call()
 
+    if (is.nan(randomseed)) {
+      randomseed <- round(stats::runif(1) * 1e9, 0)
+    }
     if (length(eligible_params(predict.factors, df_train)) == 0) {
       print("No eliible params")
       return(NULL)
@@ -25,13 +28,8 @@ ens_deephit_train <-
         round(quantile(df_train[df_train$event == 1, "time"], 0.9), 1)
     }
 
-    #setting random seed
-    if (is.null(randomseed)) {
-      randomseed <- round(stats::runif(1) * 1e9, 0)
-    }
-    set.seed(randomseed)
-
     #out-of-sample Cox predictions
+    set.seed(randomseed)
     cv_folds <-
       caret::createFolds(df_train$event, k = 10, list = FALSE)
     cindex_train <- vector(length = 10)
@@ -120,7 +118,8 @@ ens_deephit_cv <- function(df,
                            useCoxLasso = FALSE,
                            tuningparams = list(),
                            max_grid_size =10,
-                           parallel = FALSE
+                           parallel = FALSE,
+                           verbose = FALSE
 ) {
   Call <- match.call()
 

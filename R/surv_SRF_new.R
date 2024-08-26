@@ -12,7 +12,8 @@ survsrf_predict <-
     predictions <- predict(trained_model, newdata = newdata)
     train_times <- predictions$time.interest
     s1 <- predictions$survival
-    if(fixed_time > max(train_times)) {return(rep(NaN, dim(newdata)[1]))}
+    if(fixed_time > max(train_times)) {
+      return(rep(NaN, dim(newdata)[1]))}
     f <- function(i) {
       approxfun(train_times, s1[i, ], method = "constant")(fixed_time)}
     predict_eventprob <- 1 - unlist(lapply(1:dim(s1)[1], f))
@@ -32,6 +33,9 @@ survsrf_train <-
            randomseed = NaN,
            verbose = TRUE) {
     
+    if (is.nan(randomseed)) {
+      randomseed <- round(stats::runif(1) * 1e9, 0)
+    }
     grid_of_hyperparams <-
       ml_hyperparams_srf(
         mlparams = tuningparams,
@@ -58,22 +62,18 @@ survsrf_train <-
       bestparams = tuning_m$bestparams
     }
     if (verbose) {print(bestparams)}
-    
     srfm <- randomForestSRC::rfsrc(
-      as.formula(
-        paste("Surv(time, event) ~",
-              paste(predict.factors, collapse = "+"))),
+      as.formula(paste("Surv(time, event) ~",paste(predict.factors, collapse = "+"))),
       data = df_train,
-      nodesize = as.integer(bestparams$nodesize),
-      #  AVERAGE size, so we want this to be quite high
-      ntree = 500,
-      mtry = as.integer(bestparams$mtry),
-      nodedepth = as.integer(bestparams$nodedepth),
+      nodesize = bestparams$nodesize, #AVERAGE size, so needs to be large 
+      ntree = 300,
+      mtry = bestparams$mtry,
+      nodedepth = bestparams$nodedepth,
       nsplit = 50,
       splitrule = "logrank",
       statistics = FALSE,
       membership = TRUE,
-      importance = "none",# speed up, switching off VIMP calculations
+      importance = "none", # to speed up
       seed = randomseed
     )
     output = list()
@@ -99,14 +99,9 @@ survsrf_train <-
 #' d <-simulate_nonlinear(100),
 #' p<- names(d)[1:4]
 #' tuningparams = list(
-#'  "dropout" = c(0.1, 0.3),
-#'  "learning_rate" = c(0.001),
-#'  "num_nodes" =    list(c(8, 8), c(16, 16, 16, 4), c(32, 32, 32, 4)),
-#'  "batch_size" = min(max(64, round(dim(df_train_cv)[1]/8, 0)),256),
-#'  "epochs" = c(5, 50),
-#'  "mod_alpha" = 0.2,
-#'  "sigma" = 0.1,
-#'  "cuts" = 10
+#'  "mtry" = c(5,10,15),
+#'  "nodedepth" = c(5,10,15,20),
+#'  "nodesize" =    c(20,30,50)
 #' )
 #' srf_tune(d, p,tuningparams = tuningparams, max_grid_size = 10)
 #' @export
@@ -119,7 +114,6 @@ survsrf_tune <-
            max_grid_size = 10,
            inner_cv = 3,
            randomseed = NaN) {
-    
     srfgrid <-
       ml_hyperparams_srf(
         mlparams = tuningparams,
@@ -130,7 +124,7 @@ survsrf_tune <-
       )
     means = c()
     for (i in (1:repeat_tune)) {
-      ds_tune_fus <-
+      srf_tune_fus <-
         survsrf_tune_single(
           df_tune = df_tune,
           predict.factors =  predict.factors,
@@ -139,10 +133,9 @@ survsrf_tune <-
           inner_cv = inner_cv,
           randomseed=randomseed
         )
-      means <- cbind(means, ds_tune_fus$cindex_mean)
-      remove(ds_tune_fus)
+      means <- cbind(means, srf_tune_fus$cindex_mean)
+      remove(srf_tune_fus)
     }
-
     allmeans <- apply(means, 1, mean)
     # grid and average cindex ordered by cindex (highest first)
     output = list()
@@ -176,6 +169,8 @@ survsrf_tune_single <-
       fixed_time <-
         round(quantile(df_tune[df_tune$event == 1, "time"], 0.9), 2)
     }
+    grid_size <- dim(grid_hyperparams)[1]
+    
     if (length(grid_hyperparams) == 0) {
       grid_hyperparams <-
         ml_hyperparams_srf(mlparams = list(),
@@ -183,10 +178,9 @@ survsrf_tune_single <-
                            p = length(predict.factors),
                            randomseed = randomseed)
     }
-    grid_size <- dim(grid_hyperparams)[1]
     #placeholder for c-index
     cind = matrix(NA, nrow = grid_size, ncol = inner_cv)
-    #progress bar
+      #progress bar
     if(progressbar) {
       pb <- utils::txtProgressBar(0, inner_cv * grid_size, style = 3)
       utils::setTxtProgressBar(pb, inner_cv * grid_size / 50)
@@ -196,7 +190,6 @@ survsrf_tune_single <-
       if (!is.nan(randomseed)) {
         set.seed(randomseed + 123 + cv_iteration)
       }
-
       cv_folds <-
         caret::createFolds(df_tune$event, k = inner_cv, list = FALSE)
       df_train_cv <- df_tune[cv_folds != cv_iteration,]
@@ -230,6 +223,7 @@ survsrf_tune_single <-
           )
         cind[i, cv_iteration] =
           surv_validate(pp, fixed_time, df_train_cv, df_test_cv)[1, "C_score"]
+        
         if (progressbar) {
           utils::setTxtProgressBar(pb, grid_size + (i - 1) * cv_iteration)
         }
@@ -260,11 +254,10 @@ ml_hyperparams_srf <- function(mlparams = list(),
                               max_grid_size = 10,
                               dftune_size = 1000,
                               randomseed = NaN) {
-  mtry = ifelse(
-      p <= 10, c(2, 3, 4, 5),
-      ifelse(p <= 25, c(3, 5, 7, 10, 15),
-             round(c(p/10, p/5, p/3, p/2, 
-                     max(1, round(sqrt(p), 0))), 0)))
+  if (p<=10) {mtry = c(2,3,4,5)
+  }else{
+    mtry = round(c(p/10, p/5, p/3, p/2, max(1, sqrt(p))),0)
+  }
   nodesize <- seq(5, 50, 10)
   nodedepth <- c(5, 25)
   default_grid <- list(mtry = mtry, nodesize = nodesize, nodedepth = nodedepth)
@@ -280,9 +273,9 @@ ml_hyperparams_srf <- function(mlparams = list(),
     if (length(mlparams$mtry)==0 ) {mlparams$mtry <- c(max(1,round(sqrt(p),0)))}
 
     grid_of_hyperparams <- expand.grid(
-      "mtry" = mlparams$dropout,
-      "nodesize" = mlparams$learning_rate,
-      "nodedepth" = mlparams$num_nodes
+      "mtry" = mlparams$mtry,
+      "nodesize" = mlparams$nodesize,
+      "nodedepth" = mlparams$nodedepth
       )
   }
   grid_size <- dim(grid_of_hyperparams)[1]
@@ -330,7 +323,8 @@ survsrf_cv <- function(df,
                        return_models = FALSE,
                        tuningparams = list(),
                        max_grid_size = 10,
-                       parallel = FALSE) {
+                       parallel = FALSE,
+                       verbose = FALSE) {
   
   Call <- match.call()
   inputs <- list(df,
@@ -343,7 +337,8 @@ survsrf_cv <- function(df,
                  return_models,
                  tuningparams,
                  max_grid_size,
-                 parallel
+                 parallel,
+                 verbose
                  )
   inputclass<- list(df = "data.frame",
                     predict.factors = "character",
@@ -355,7 +350,8 @@ survsrf_cv <- function(df,
                     return_models = "logical",
                     tuningparams = "list",
                     max_grid_size = "list",
-                    parallel = "logical")
+                    parallel = "logical",
+                    verbose = "logical")
   
   cp<- check_call(inputs, inputclass, Call)
   if (cp$anyerror) stop (paste(cp$msg[cp$msg!=""], sep=""))
@@ -378,7 +374,8 @@ survsrf_cv <- function(df,
     model_args = list(tuningparams = tuningparams,
                       max_grid_size= max_grid_size,
                       fixed_time = fixed_time,
-                      randomseed = randomseed),
+                      randomseed = randomseed,
+                      verbose = verbose),
     model_name = "Survival Random Forest",
     parallel = parallel
   )

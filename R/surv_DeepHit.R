@@ -33,6 +33,10 @@ deephit_train <-
            randomseed = NaN,
            verbose = TRUE) {
 
+    if (is.nan(randomseed)) {
+      randomseed <- round(stats::runif(1) * 1e9, 0)
+    }
+
     grid_of_hyperparams <-
       ml_hyperparams_deephit(
         mlparams = tuningparams,
@@ -336,7 +340,8 @@ deephit_cv <- function(df,
                        return_models = FALSE,
                        tuningparams = list(),
                        max_grid_size = 10,
-                       parallel = FALSE
+                       parallel = FALSE,
+                       verbose = FALSE
 ) {
   Call <- match.call()
 
