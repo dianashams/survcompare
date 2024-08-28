@@ -6,13 +6,19 @@ deephit_predict <-
   function(trained_model,
            newdata,
            fixed_time,
-           predict.factors
+           predict.factors,
+           extrapsurvival = TRUE
            )
   {
     if (inherits(trained_model, "list")) {trained_model <- trained_model$model}
     s1 <- predict(trained_model, newdata[predict.factors], type = "survival")
     train_times<- as.double(colnames(s1))
-    if(fixed_time > max(train_times)) {return(rep(NaN, dim(newdata)[1]))}
+    if(fixed_time > max(train_times)) {
+      if(!extrapsurvival) {return(rep(NaN, dim(newdata)[1]))
+      }else{
+        fixed_time = max(train_times)
+      }
+    }
     f <- function(i) {
       approxfun(as.double(colnames(s1)), s1[i, ], method = "constant")(fixed_time)
     }

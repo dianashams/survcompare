@@ -22,7 +22,7 @@ stack_srf_train <-
         round(quantile(df_train[df_train$event == 1, "time"], 0.9), 1)
     }
     # if fixed_time is outside of the event times, we return an error -
-    # we do not support extrapolation
+    #  extrapolation is not supproted
     if (fixed_time > max(df_train$time)) {
       print ("The calibration time given is outside of the train data.")
       return (NULL)
@@ -103,12 +103,7 @@ stack_srf_train <-
       # adding Cox prediction to the df_train in the column "cox_predict"
       df_train[cv_folds == cv_iteration, "cox_predict"] <- cox_predict_oob
 
-      #train ML model on data_cvtrain
-      if (max(df_train[df_train$event ==1, "time"])<fixed_time){
-        # SRF predictions will be NaNs anyway, so we can skip the training
-        ml_predict_oob <- rep(NaN, dim(data_oob)[1])
-      }else{
-        srf.cv <-
+      srf.cv <-
           survsrf_train(df_train = data_cvtrain,
                       predict.factors = predict.factors,
                       fixed_time = fixed_time,
@@ -117,12 +112,12 @@ stack_srf_train <-
                       inner_cv = inner_cv,
                       randomseed = randomseed + cv_iteration,
                       verbose = FALSE)
-        # predict for data_oob
-        ml_predict_oob <-
-          survsrf_predict(trained_model = srf.cv,
-                          newdata = data_oob,
-                          fixed_time= fixed_time)
-      }
+
+      # predict for data_oob
+      ml_predict_oob <-
+        survsrf_predict(trained_model = srf.cv,
+                        newdata = data_oob,
+                        fixed_time= fixed_time)
       # adding ML prediction to the df_train in the column "ml_predict"
       df_train[cv_folds == cv_iteration, "ml_predict"] <- ml_predict_oob
       remove(cox_m_cv)

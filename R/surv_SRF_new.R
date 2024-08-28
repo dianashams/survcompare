@@ -5,15 +5,21 @@
 survsrf_predict <-
   function(trained_model,
            newdata,
-           fixed_time
+           fixed_time,
+           extrapsurvival = TRUE
   )
   {
     if (inherits(trained_model, "list")) {trained_model <- trained_model$model}
     predictions <- predict(trained_model, newdata = newdata)
     train_times <- predictions$time.interest
     s1 <- predictions$survival
-    if(fixed_time > max(train_times)) {
-      return(rep(NaN, dim(newdata)[1]))}
+    if(fixed_time > max(train_times)) { 
+      if(!extrapsurvival) {return(rep(NaN, dim(newdata)[1]))
+      }else{
+        fixed_time = max(train_times)    
+      }
+    }
+    
     f <- function(i) {
       approxfun(train_times, s1[i, ], method = "constant")(fixed_time)}
     predict_eventprob <- 1 - unlist(lapply(1:dim(s1)[1], f))
