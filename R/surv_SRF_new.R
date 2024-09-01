@@ -13,13 +13,13 @@ survsrf_predict <-
     predictions <- predict(trained_model, newdata = newdata)
     train_times <- predictions$time.interest
     s1 <- predictions$survival
-    if(fixed_time > max(train_times)) { 
+    if(fixed_time > max(train_times)) {
       if(!extrapsurvival) {return(rep(NaN, dim(newdata)[1]))
       }else{
-        fixed_time = max(train_times)    
+        fixed_time = max(train_times)
       }
     }
-    
+
     f <- function(i) {
       approxfun(train_times, s1[i, ], method = "constant")(fixed_time)}
     predict_eventprob <- 1 - unlist(lapply(1:dim(s1)[1], f))
@@ -38,7 +38,7 @@ survsrf_train <-
            inner_cv = 3,
            randomseed = NaN,
            verbose = TRUE) {
-    
+
     if (is.nan(randomseed)) {
       randomseed <- round(stats::runif(1) * 1e9, 0)
     }
@@ -71,7 +71,7 @@ survsrf_train <-
     srfm <- randomForestSRC::rfsrc(
       as.formula(paste("Surv(time, event) ~",paste(predict.factors, collapse = "+"))),
       data = df_train,
-      nodesize = bestparams$nodesize, #AVERAGE size, so needs to be large 
+      nodesize = bestparams$nodesize, #AVERAGE size, so needs to be large
       ntree = 300,
       mtry = bestparams$mtry,
       nodedepth = bestparams$nodedepth,
@@ -176,7 +176,7 @@ survsrf_tune_single <-
         round(quantile(df_tune[df_tune$event == 1, "time"], 0.9), 2)
     }
     grid_size <- dim(grid_hyperparams)[1]
-    
+
     if (length(grid_hyperparams) == 0) {
       grid_hyperparams <-
         ml_hyperparams_srf(mlparams = list(),
@@ -202,7 +202,7 @@ survsrf_tune_single <-
       df_test_cv <- df_tune[cv_folds == cv_iteration,]
       #Grid search
       for (i in 1:grid_size) {
-        srfm <- 
+        srfm <-
           randomForestSRC::rfsrc(
             as.formula(paste(
               "Surv(time, event) ~",
@@ -229,7 +229,7 @@ survsrf_tune_single <-
           )
         cind[i, cv_iteration] =
           surv_validate(pp, fixed_time, df_train_cv, df_test_cv)[1, "C_score"]
-        
+
         if (progressbar) {
           utils::setTxtProgressBar(pb, grid_size + (i - 1) * cv_iteration)
         }
@@ -267,14 +267,14 @@ ml_hyperparams_srf <- function(mlparams = list(),
   nodesize <- seq(5, 50, 10)
   nodedepth <- c(5, 25)
   default_grid <- list(mtry = mtry, nodesize = nodesize, nodedepth = nodedepth)
-  
+
   if (length(mlparams) == 0) {
     grid_of_hyperparams <- expand.grid(default_grid)
   } else{
     if (is.null(mlparams$mtry)) {mlparams$mtry = default_grid$mtry}
     if (is.null(mlparams$nodesize)) {mlparams$nodesize = default_grid$nodesize}
     if (is.null(mlparams$nodedepth)) {mlparams$nodedepth = default_grid$nodedepth}
-    
+
     mlparams$mtry <- mlparams$mtry[mlparams$mtry <= p]
     if (length(mlparams$mtry)==0 ) {mlparams$mtry <- c(max(1,round(sqrt(p),0)))}
 
@@ -331,7 +331,7 @@ survsrf_cv <- function(df,
                        max_grid_size = 10,
                        parallel = FALSE,
                        verbose = FALSE) {
-  
+
   Call <- match.call()
   inputs <- list(df,
                  predict.factors,
@@ -350,22 +350,22 @@ survsrf_cv <- function(df,
                     predict.factors = "character",
                     fixed_time = "numeric",
                     outer_cv = "numeric",
-                    inner_cv = "numeric", 
+                    inner_cv = "numeric",
                     repeat_cv = "numeric",
                     randomseed = "numeric",
                     return_models = "logical",
                     tuningparams = "list",
-                    max_grid_size = "list",
+                    max_grid_size = "numeric",
                     parallel = "logical",
                     verbose = "logical")
-  
+
   cp<- check_call(inputs, inputclass, Call)
   if (cp$anyerror) stop (paste(cp$msg[cp$msg!=""], sep=""))
-  
+
   if (sum(is.na(df[c("time", "event", predict.factors)])) > 0) {
     stop("Missing data can not be handled. Please impute first.")
   }
-  
+
   output <- surv_CV(
     df = df,
     predict.factors = predict.factors,

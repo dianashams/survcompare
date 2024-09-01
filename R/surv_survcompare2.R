@@ -1,37 +1,39 @@
-#' survcompare2() compares if model evaluated in the second object (cv2) outperforms the first one (cv1)
+#' survcompare2() compares if model evaluated in the second object (alternative) outperforms the first one (base)
 #' it assumes that the same CV folds were used in each CV (if the repeated CV),
-#' i.e. the same randomseed were used while performing cv1 and cv2
+#' i.e. the same randomseed were used while performing base and alternative
 #'
-#' @param cv1 an object of type "survensemble_cv", an outcome of survcv1, survsrf_cv, deephit_cv and other "_cv" functions of 'survcompare' packge
-#' @param cv2 an object of type "survensemble_cv", the outcome of survcv1, survsrf_cv, deephit_cv and other "_cv" functions of 'survcompare' packge
+#' @param base an object of type "survensemble_cv", an outcome of survcox_cv, survsrf_cv, deephit_cv and other "_cv" functions of 'survcompare' packge
+#' @param alternative an object of type "survensemble_cv", the outcome of survcox_cv, survsrf_cv, deephit_cv and other "_cv" functions of 'survcompare' packge
 #' @return outcome = list(data frame with performance results, fitted Cox models, fitted DeespSurv)
 #' @examples
 #' df <-simulate_nonlinear(100)
 #' params <- names(df)[1:4]
-#' cv1 <- survcv1(df, params, randomseed = 42)
-#' cv1 <- survsrf_cv(df, params, randomseed = 42)
-#' survcompare2(cv1, cv2)
+#' mybase <- survcv1(df, params, randomseed = 42)
+#' mysrf <- survsrf_cv(df, params, randomseed = 42)
+#' survcompare2(mybase, mysrf)
 #' @export
-survcompare2 <- function(cv1, cv2) {
-  name1 <- cv1$model_name
-  name2 <- cv2$model_name
+survcompare2 <- function(base, alternative) {
 
   Call <- match.call()
-  inputs <- list(cv1, cv2)
+
+  name1 <- base$model_name
+  name2 <- alternative$model_name
+
+  inputs <- list(base, alternative)
   inputclass <-
-    list(cv1 = "survensemble_cv", cv2 = "survensemble_cv")
+    list(base = "survensemble_cv", alternative = "survensemble_cv")
   cp <- check_call(inputs, inputclass, Call)
 
   if (cp$anyerror)
-    stop (paste(cp$msg[cp$msg != ""], sep = ""))
+    stop (paste("Error: Objects class is not 'survensemble_cv'"))
 
-  if (sum(cv1$cv != cv2$cv) >0)
+  if (sum(base$cv != alternative$cv) >0)
     stop (paste(
-      "Error: cross-validation parameters differ (cv1$cv != cv2$cv)."
+      "Error: cross-validation parameters differ (base$cv != alternative$cv)."
     ))
-  if (cv1$randomseed != cv2$randomseed)
+  if (base$randomseed != alternative$randomseed)
     stop (paste(
-      "Error: different randomseeds (cv1$randomseed!= cv2$randomseed)."
+      "Error: different randomseeds (base$randomseed!= alternative$randomseed)."
     ))
 
   # gathering the output: test&train performance
@@ -45,34 +47,34 @@ survcompare2 <- function(cv1, cv2) {
     )
   }
 
-  repeat_cv <- cv1$cv[1]
+  repeat_cv <- base$cv[1]
   # combined results, if ML was trained (train_ml = TRUE), and then if only the Ensemble (FALSE)
 
   modelnames <- c(name1, name2)
   results_mean <-
-    as.data.frame(rbind(cv1$testaverage, cv2$testaverage))
+    as.data.frame(rbind(base$testaverage, alternative$testaverage))
   results_mean_train <-
-    as.data.frame(rbind(cv1$trainaverage, cv2$trainaverage))
-  results_mean$sec <- round(as.numeric(c(cv1$time, cv2$time)), 2)
+    as.data.frame(rbind(base$trainaverage, alternative$trainaverage))
+  results_mean$sec <- round(as.numeric(c(base$time, alternative$time)), 2)
   results_median <-
-    as.data.frame(rbind(cv1$testmedian, cv2$testmedian))
-  results_median$sec <- round(as.numeric(c(cv1$time, cv2$time)), 2)
+    as.data.frame(rbind(base$testmedian, alternative$testmedian))
+  results_median$sec <- round(as.numeric(c(base$time, alternative$time)), 2)
   results_mean_train$sec <- results_mean$sec
   auc_c_stats <- as.data.frame(rbind(
-    stats_ci(cv1$test,  "C_score"),
-    stats_ci(cv2$test, "C_score"),
-    stats_ci(cv1$test,  "AUCROC"),
-    stats_ci(cv2$test, "AUCROC")
+    stats_ci(base$test,  "C_score"),
+    stats_ci(alternative$test, "C_score"),
+    stats_ci(base$test,  "AUCROC"),
+    stats_ci(alternative$test, "AUCROC")
   ))
   if (repeat_cv == 1) {
     auc_c_stats_pooled = auc_c_stats
   } else{
     auc_c_stats_pooled =
       as.data.frame(rbind(
-        stats_ci(cv1$test_pooled,  "C_score"),
-        stats_ci(cv2$test_pooled, "C_score"),
-        stats_ci(cv1$test_pooled,  "AUCROC"),
-        stats_ci(cv2$test_pooled, "AUCROC")
+        stats_ci(base$test_pooled,  "C_score"),
+        stats_ci(alternative$test_pooled, "C_score"),
+        stats_ci(base$test_pooled,  "AUCROC"),
+        stats_ci(alternative$test_pooled, "AUCROC")
       ))
   }
   # results_mean and results_mean_train row and col names
@@ -93,8 +95,8 @@ survcompare2 <- function(cv1, cv2) {
   results_mean_train <- results_mean_train[col_order]
 
   # testing outperformance
-  t_coxph <- difftest(cv2$test, cv1$test, 1000, 25)
-  t_coxph_train <- difftest(cv2$train, cv1$train, 1000, 25)
+  t_coxph <- difftest(alternative$test, base$test, 1000, 25)
+  t_coxph_train <- difftest(alternative$train, base$train, 1000, 25)
 
   # adding results line for the differences with Cox-PH
   results_mean["Diff", ] = results_mean[2, ] - results_mean[1,]
@@ -113,17 +115,17 @@ survcompare2 <- function(cv1, cv2) {
   output$return_models <- list(name1 = NaN,
                                name2 = NaN)
   output$bestparams <- list(name1 = NaN,
-                            name2 = cv2$bestparams)
-  output$test <- list(name1 = cv1$test, name2 = cv2$test)
-  output$train <- list(name1 = cv1$train, name2 = cv2$train)
+                            name2 = alternative$bestparams)
+  output$test <- list(name1 = base$test, name2 = alternative$test)
+  output$train <- list(name1 = base$train, name2 = alternative$train)
   output$difftest <- t_coxph
   output$main_stats <- auc_c_stats
   output$main_stats_pooled <- auc_c_stats_pooled
-  output$randomseed <- cv1$randomseed
+  output$randomseed <- base$randomseed
   output$useCoxLasso <- FALSE
   output$model_name_base <- name1
   output$model_name <- name2
-  output$cv <- cv1$cv
+  output$cv <- base$cv
   class(output) <- "survcompare"
   #summary.survcompare(output)
   return(output)
