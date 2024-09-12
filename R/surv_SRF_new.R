@@ -264,8 +264,8 @@ ml_hyperparams_srf <- function(mlparams = list(),
   }else{
     mtry = round(c(p/10, p/5, p/3, p/2, max(1, sqrt(p))),0)
   }
-  nodesize <- seq(5, 50, 10)
-  nodedepth <- c(5, 25)
+  nodesize <- seq(5,50,10)
+  nodedepth <- c(2,5,7,15,50)
   default_grid <- list(mtry = mtry, nodesize = nodesize, nodedepth = nodedepth)
 
   if (length(mlparams) == 0) {
