@@ -27,7 +27,7 @@ survcompare2 <- function(base, alternative) {
   if (cp$anyerror)
     stop (paste("Error: Objects class is not 'survensemble_cv'"))
 
-  if (sum(base$cv != alternative$cv) >0)
+  if (sum(base$cv[1:3] != alternative$cv[1:3]) >0)
     stop (paste(
       "Error: cross-validation parameters differ (base$cv != alternative$cv)."
     ))

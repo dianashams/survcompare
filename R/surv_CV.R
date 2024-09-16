@@ -30,6 +30,12 @@ surv_CV <-
                               model_name))
       }
 
+    if (!is.null(model_args$max_grid_size)) {
+      max_grid_size = model_args$max_grid_size
+    } else{
+      max_grid_size = NaN
+    }
+
     time_0 <- Sys.time()
     if (is.nan(randomseed)) {randomseed <- round(stats::runif(1) * 1e9, 0)}
     if (!any(is.data.frame(df),
@@ -149,7 +155,9 @@ surv_CV <-
 
     bestparams = as.data.frame(do.call(rbind, params_for_each_cv))
     if (dim(bestparams)[1]==outer_cv*repeat_cv) {
-      bestparams$C_score_outer = df_modelstats_test$C_score}
+      bestparams$C_score_outer = df_modelstats_test$C_score
+      bestparams = bestparams[order(-bestparams$C_score_outer), ]
+      }
 
     #summary for printing and summary(obj)
     stats_summary <- function(x) {
@@ -202,7 +210,7 @@ surv_CV <-
     output$randomseed <- randomseed
     output$bestparams<- bestparams
     output$call <- Call
-    output$cv <- c(outer_cv, inner_cv, repeat_cv)
+    output$cv <- c("outer_cv" = outer_cv, "inner_cv"=inner_cv, "repeat_cv"=repeat_cv, "max_grid_size"=max_grid_size)
     output$summarydf <- summarydf
     output$summarydf_pooled <- summarydf_pooled
     output$model_name <- model_name
