@@ -1,4 +1,24 @@
-######################### Ensemble 1 ########################
+
+
+#' Predicts event probability for a fitted survsrf_ens
+#' @description
+#' @param object trained survsrf_ens model
+#' @param newdata test data
+#' @param fixed_time  time for which probabilities are computed
+#' @param ... other parameters to pass
+#' @return matrix of predictions for observations in newdata by times
+#' @export
+survsrfens_predict <- function(object,
+                                 newdata,
+                                 fixed_time) {
+  if (!inherits(object, "survensemble")){stop("Not a \"survensemble\" object")}
+  if (!inherits(newdata, "data.frame")){stop("The data should be a data frame")}
+
+  # use model_base with the base Cox model to find cox_predict
+  newdata$cox_predict <- survcox_predict(object$model_base,newdata, fixed_time)
+  predicted_event_prob <- survsrf_predict(object$model, newdata, fixed_time)
+  return(predicted_event_prob)
+}
 
 #' Fits an ensemble of Cox-PH and Survival Random Forest (SRF)
 #' with internal CV to tune SRF hyperparameters.
@@ -17,9 +37,9 @@
 #' @param tuningparams list of mtry, nodedepth and nodesize, to use default supply empty list()
 #' @param useCoxLasso FALSE/TRUE, FALSE by default
 #' @param var_importance_calc FALSE/TRUE, TRUE by default
-#' @return trained object of class survensemble
+#' @return trained object of class survsrf_ens
 #' @export
-survensemble_train <- function(df_train,
+survsrfens_train <- function(df_train,
                                predict.factors,
                                fixed_time = NaN,
                                inner_cv = 3,
@@ -39,20 +59,14 @@ survensemble_train <- function(df_train,
     print("No eliible params")
     return(NULL)
   }
-
-  # defining output for fixed_time
-  # setting fixed_time if not given
   if (is.nan(fixed_time)| (length(fixed_time) > 1)) {
     fixed_time <-
       round(quantile(df_train[df_train$event == 1, "time"], 0.9), 1)
   }
-
-  #setting random seed
   if (is.nan(randomseed)) {
     randomseed <- round(stats::runif(1) * 1e9, 0)
   }
   set.seed(randomseed)
-
   #out-of-sample Cox predictions
   cv_folds <-
     caret::createFolds(df_train$event, k = 10, list = FALSE)
@@ -72,7 +86,6 @@ survensemble_train <- function(df_train,
     # adding Cox prediction to the df_train in the column "cox_predict"
     df_train[cv_folds == cv_iteration, "cox_predict"] <- cox_predict_oob
   }
-
   predict.factors.plusCox <- c(predict.factors, "cox_predict")
 
   srf.ens <-
@@ -85,7 +98,6 @@ survensemble_train <- function(df_train,
       randomseed = randomseed,
       tuningparams = tuningparams
     )
-
   if (var_importance_calc) {
     v <- randomForestSRC::vimp(
       srf.ens$model,importance = "permute",seed = randomseed)
@@ -105,50 +117,19 @@ survensemble_train <- function(df_train,
   output$randomseed <- randomseed
   output$bestparams <- srf.ens$bestparams
   output$call <-  match.call()
-  class(output) <- "survensemble"
   output$vimp10 <- vimp10
+  class(output) <- "survensemble"
   return(output)
 }
 
-
-#' Predicts event probability for a fitted survensemble
-#' @description
-#' \link[survcompare:predict.survensemble]{predict.survensemble}
-#' @param object trained survensemble model
-#' @param newdata test data
-#' @param fixed_time  time for which probabilities are computed
-#' @param ... other parameters to pass
-#' @return matrix of predictions for observations in newdata by times
-#' @export
-predict.survensemble <- function(object,
-                                 newdata,
-                                 fixed_time,
-                                 ...) {
-  if (!inherits(object, "survensemble")) {
-    stop("Not a \"survensemble\" object")
-  }
-  if (!inherits(newdata, "data.frame")) {
-    stop("The data should be a data frame")
-  }
-
-  # use model_base with the base Cox model to find cox_predict
-  newdata$cox_predict <- survcox_predict(object$model_base,
-                                         newdata, fixed_time)
-  # now use SRF prediction function
-  # the object$model will use the additional factor "cox_predict" in newdata
-  predicted_event_prob <- survsrf_predict(object$model, newdata, fixed_time)
-  return(predicted_event_prob)
-}
-
-
-#' Cross-validates predictive performance for Ensemble 1
+#' Cross-validates predictive performance for SRF Ensemble
 #'
 #' @param df data frame with the data, "time" and "event" for survival outcome
 #' @param predict.factors list of predictor names
 #' @param fixed_time  at which performance metrics are computed
-#' @param outer_cv k in k-fold CV, default 3
-#' @param inner_cv kk in the inner look of kk-fold CV, default 3
-#' @param repeat_cv if NULL, runs once (or 1), otherwise repeats CV
+#' @param outer_cv number of folds in outer CV, default 3
+#' @param inner_cv number of folds for model tuning CV, default 3
+#' @param repeat_cv number of CV repeats, if NULL, runs once
 #' @param randomseed random seed
 #' @param return_models TRUE/FALSE, if TRUE returns all CV objects
 #' @param useCoxLasso TRUE/FALSE, default is FALSE
@@ -156,13 +137,13 @@ predict.survensemble <- function(object,
 #' @examples \donttest{
 #' \dontshow{rfcores_old <- options()$rf.cores; options(rf.cores=1)}
 #' df <- simulate_nonlinear()
-#' ens_cv <- survensemble_cv(df, names(df)[1:4])
+#' ens_cv <- survsrf_ens_cv(df, names(df)[1:4])
 #' summary(ens_cv)
 #' \dontshow{options(rf.cores=rfcores_old)}
 #' }
 #' @return list of outputs
 #' @export
-survensemble_cv <- function(df,
+survsrfens_cv <- function(df,
                             predict.factors,
                             fixed_time = NaN,
                             outer_cv = 3,
@@ -202,8 +183,8 @@ survensemble_cv <- function(df,
     repeat_cv = repeat_cv,
     randomseed = randomseed,
     return_models = return_models,
-    train_function = survensemble_train,
-    predict_function = predict.survensemble,
+    train_function = survsrfens_train,
+    predict_function = survsrfens_predict,
     model_args = list(
       "useCoxLasso" = useCoxLasso,
       "tuningparams" = tuningparams,
@@ -218,78 +199,3 @@ survensemble_cv <- function(df,
   return(output)
 }
 
-##################################################################
-
-#' Prints trained survensemble object
-#'
-#'@param x survensemble object
-#'@param ... additional arguments to be passed
-#'@return x
-#'@export
-print.survensemble <- function(x, ...) {
-  if (!inherits(x, "survensemble")) {
-    stop("Not a \"survensemble\" object")
-  }
-  summary.survensemble(x)
-}
-
-#' Prints summary of a trained survensemble object
-#'
-#'@param object survensemble object
-#'@param ... additional arguments to be passed
-#'@return object
-#'@export
-summary.survensemble <- function(object, ...) {
-  if (!inherits(object, "survensemble")) {
-    stop("Not a \"survensemble\" object")
-  }
-  cat("Survival ensemble", object$model_name ,"\n")
-  if (!is.null(cl <- object$call)) {
-    cat("Call:\n")
-    dput(cl)
-  }
-  if(!is.null(object$lambda)){
-    cat("\n=> Lambda (ML contribution share) :", object$lambda, "\n")
-  }
-  cat("\n=> Items available as object$item are: ")
-  cat(names(object), sep = ", ")
-}
-
-##################################################################
-#' Prints survensemble_cv object
-#'
-#'@param x survensemble_cv object
-#'@param ... additional arguments to be passed
-#'@return x
-#'@export
-print.survensemble_cv <- function(x, ...) {
-  if (!inherits(x, "survensemble_cv")) {
-    stop("\nNot a \"survensemble_cv\" object")
-  }
-  summary.survensemble_cv(x)
-}
-
-
-#' Prints a summary of survensemble_cv object
-#'
-#'@param object survensemble_cv object
-#'@param ... additional arguments to be passed
-#'@return object
-#'@export
-summary.survensemble_cv <- function(object, ...) {
-  if (!inherits(object, "survensemble_cv")) {
-    stop("Not a \"survensemble_cv\" object")
-  }
-  cat("Cross-validation results. Computation time:",
-      round(object$time,2), "sec. \n")
-
-  if (!is.null(cl <- object$call)) {
-    cat("Call:\n")
-    dput(cl)
-  }
-  print(round(object$testaverage,4))
-
-  cat("\nThe stats are computed from the ", dim(object$test)[1]," data splits.\n")
-  print(
-    object$summarydf[!rownames(object$summarydf) %in% c("repeat_cv", "outer_cv"), ])
-}

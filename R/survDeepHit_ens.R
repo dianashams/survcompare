@@ -1,8 +1,34 @@
 
-################  ens_deephit_train ####################
+
+#same as deephit_predict
+#' @export
+survdhens_predict <-
+  function(trained_object,
+           newdata,
+           fixed_time,
+           predict.factors) {
+
+    if (!inherits(trained_object, "survensemble")) {
+      stop("Not a \"survensemble\" object")
+    }
+    if (!inherits(newdata, "data.frame")) {
+      stop("The data should be a data frame")
+    }
+    # use model_base with the base Cox model to find cox_predict
+    newdata$cox_predict <- survcox_predict(trained_object$model_base,
+                                           newdata = newdata,fixed_time = fixed_time)
+    # use deephit_predict()
+    predict_eventprob <-
+      survdeephit_predict(trained_object$model,newdata, fixed_time,
+                      predict.factors = c(predict.factors, "cox_predict")
+      )
+    return(predict_eventprob)
+  }
+
+
 # Create out-of-bag Cox predictions, then train deephit
 #' @export
-ens_deephit_train <-
+survdhens_train <-
   function(df_train,
            predict.factors,
            fixed_time = NaN,
@@ -54,7 +80,7 @@ ens_deephit_train <-
 
     # train the deephit model
     deephit.ens <-
-      deephit_train(df_train = df_train,
+      survdeephit_train(df_train = df_train,
                     predict.factors = predict.factors.plusCox,
                     fixed_time = fixed_time,
                     tuningparams = tuningparams,
@@ -78,36 +104,8 @@ ens_deephit_train <-
     return(output)
   }
 
-################  ens_deephit_predict ####################
-
-#same as deephit_predict
 #' @export
-ens_deephit_predict <-
-  function(trained_object,
-           newdata,
-           fixed_time,
-           predict.factors) {
-
-    if (!inherits(trained_object, "survensemble")) {
-      stop("Not a \"survensemble\" object")
-    }
-    if (!inherits(newdata, "data.frame")) {
-      stop("The data should be a data frame")
-    }
-    # use model_base with the base Cox model to find cox_predict
-    newdata$cox_predict <- survcox_predict(trained_object$model_base,
-        newdata = newdata,fixed_time = fixed_time)
-    # use deephit_predict()
-    predict_eventprob <-
-      deephit_predict(trained_object$model,newdata, fixed_time,
-        predict.factors = c(predict.factors, "cox_predict")
-      )
-    return(predict_eventprob)
-  }
-
-############### ens_deephit_CV #############
-#' @export
-ens_deephit_cv <- function(df,
+survdhens_cv <- function(df,
                            predict.factors,
                            fixed_time = NaN,
                            outer_cv = 3,
@@ -136,8 +134,8 @@ ens_deephit_cv <- function(df,
     repeat_cv = repeat_cv,
     randomseed = randomseed,
     return_models = return_models,
-    train_function = ens_deephit_train,
-    predict_function = ens_deephit_predict,
+    train_function = survdhens_train,
+    predict_function = survdhens_predict,
     model_args = list("tuningparams" = tuningparams,
                       "useCoxLasso" = useCoxLasso,
                       "max_grid_size" = max_grid_size,

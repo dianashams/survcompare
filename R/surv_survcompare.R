@@ -36,7 +36,7 @@
 #' @param useCoxLasso TRUE / FALSE, for whether to use regularized version of the Cox model, FALSE is default
 #' @param outer_cv k in k-fold CV
 #' @param inner_cv k in k-fold CV for internal CV to tune survival random forest hyper-parameters
-#' @param srf_tuning list of tuning parameters for random forest: 1) NULL for using a default tuning grid, or 2) a list("mtry"=c(...), "nodedepth" = c(...), "nodesize" = c(...))
+#' @param tuningparams list of tuning parameters for random forest: 1) NULL for using a default tuning grid, or 2) a list("mtry"=c(...), "nodedepth" = c(...), "nodesize" = c(...))
 #' @param return_models TRUE/FALSE to return the trained models; default is FALSE, only performance is returned
 #' @param repeat_cv if NULL, runs once, otherwise repeats several times with different random split for CV, reports average of all
 #' @param train_ml TRUE/FALSE for whether to train SRF on its own, apart from the CoxPH->SRF ensemble. Default is FALSE as there is not much information in SRF itself compared to the ensembled version.
@@ -56,7 +56,7 @@ survcompare <- function(df_train,
                         useCoxLasso = FALSE,
                         outer_cv = 3,
                         inner_cv = 3,
-                        srf_tuning = list(),
+                        tuningparams = list(),
                         return_models = FALSE,
                         repeat_cv = 2,
                         train_ml = FALSE) {
@@ -123,11 +123,11 @@ survcompare <- function(df_train,
       inner_cv = inner_cv,
       randomseed = randomseed,
       return_models = return_models,
-      srf_tuning = srf_tuning,
+      tuningparams = tuningparams,
       repeat_cv = repeat_cv
     )
   }
-  ens1_cv <- survensemble_cv(
+  ens1_cv <- survsrfensemble_cv(
     df = df_train,
     predict.factors = predict_factors,
     fixed_time = fixed_time,
@@ -135,10 +135,11 @@ survcompare <- function(df_train,
     inner_cv = inner_cv,
     randomseed = randomseed,
     return_models = return_models,
-    srf_tuning = srf_tuning,
+    tuningparams = tuningparams,
     useCoxLasso = useCoxLasso,
     repeat_cv = repeat_cv
   )
+
 
   # gathering the output: test&train performance
 
@@ -256,35 +257,3 @@ survcompare <- function(df_train,
 }
 
 
-# Testing statistical significance of the ensembled model outperformance
-# over the baseline model (Model 1 vs Model 0)
-difftest <- function(res1, res0, sample_n, param_n) {
-  m <- apply(res1 - res0, FUN = mean, 2, na.rm = 1)
-  std <- apply(res1 - res0, FUN = stats::sd, 2, na.rm = 1)
-  tpval <-
-    function(x) {
-      if (class(try(stats::t.test(x, alternative = "greater")$p.value)
-      )  ==  "try-error")
-        return(NaN)
-      return(stats::t.test(x, alternative = "greater")$p.value)
-    }
-  #Fisher test for diff in R2 of 2 models
-  # https://sites.duke.edu/bossbackup/files/2013/02/FTestTutorial.pdf
-  pv_bs <-
-    1 - stats::pf(
-      mean(res1$BS, na.rm = 1) / mean(res0$BS, na.rm = 1),
-      sample_n - param_n,
-      sample_n - param_n - 1,
-      lower.tail = FALSE
-    )
-  pvalue <-  apply(res1 - res0, FUN = tpval, 2)
-  res <- rbind(m, std, pvalue)
-  res["pvalue", "BS"] = pv_bs
-  return(res[, c("T",
-                 "C_score",
-                 "AUCROC",
-                 "BS",
-                 "BS_scaled",
-                 "Calib_slope",
-                 "Calib_alpha")])
-}

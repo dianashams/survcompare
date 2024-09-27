@@ -210,7 +210,8 @@ surv_CV <-
     output$randomseed <- randomseed
     output$bestparams<- bestparams
     output$call <- Call
-    output$cv <- c("outer_cv" = outer_cv, "inner_cv"=inner_cv, "repeat_cv"=repeat_cv, "max_grid_size"=max_grid_size)
+    output$cv <- c("outer_cv" = outer_cv, "inner_cv"=inner_cv,
+                   "repeat_cv"=repeat_cv, "max_grid_size"=max_grid_size)
     output$summarydf <- summarydf
     output$summarydf_pooled <- summarydf_pooled
     output$model_name <- model_name

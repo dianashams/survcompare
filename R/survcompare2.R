@@ -1,6 +1,5 @@
-#' survcompare2() compares if model evaluated in the second object (alternative) outperforms the first one (base)
-#' it assumes that the same CV folds were used in each CV (if the repeated CV),
-#' i.e. the same randomseed were used while performing base and alternative
+#' The function survcompare2() compares two cross-validated models, the first is considered as "base", the 2nd as an "alternative"
+#' the same randomseed, number of repeated CVs and CV folds should have been used.
 #'
 #' @param base an object of type "survensemble_cv", an outcome of survcox_cv, survsrf_cv, deephit_cv and other "_cv" functions of 'survcompare' packge
 #' @param alternative an object of type "survensemble_cv", the outcome of survcox_cv, survsrf_cv, deephit_cv and other "_cv" functions of 'survcompare' packge
@@ -8,17 +7,16 @@
 #' @examples
 #' df <-simulate_nonlinear(100)
 #' params <- names(df)[1:4]
-#' mybase <- survcv1(df, params, randomseed = 42)
-#' mysrf <- survsrf_cv(df, params, randomseed = 42)
-#' survcompare2(mybase, mysrf)
+#' cv1 <- survcox_cv(df, params, randomseed = 42)
+#' cv2 <- survsrf_cv(df, params, randomseed = 42)
+#' survcompare2(cv1, cv2)
 #' @export
 survcompare2 <- function(base, alternative) {
 
   Call <- match.call()
-
   name1 <- base$model_name
   name2 <- alternative$model_name
-
+  modelnames <- c(name1, name2)
   inputs <- list(base, alternative)
   inputclass <-
     list(base = "survensemble_cv", alternative = "survensemble_cv")
@@ -26,7 +24,6 @@ survcompare2 <- function(base, alternative) {
 
   if (cp$anyerror)
     stop (paste("Error: Objects class is not 'survensemble_cv'"))
-
   if (sum(base$cv[1:3] != alternative$cv[1:3]) >0)
     stop (paste(
       "Error: cross-validation parameters differ (base$cv != alternative$cv)."
@@ -36,21 +33,6 @@ survcompare2 <- function(base, alternative) {
       "Error: different randomseeds (base$randomseed!= alternative$randomseed)."
     ))
 
-  # gathering the output: test&train performance
-  stats_ci <- function(x, col = "C_score") {
-    temp <- x[, col]
-    c(
-      "mean" = mean(temp, na.rm = TRUE),
-      "sd" = sd(temp, na.rm = TRUE),
-      "95CILow" = unname(quantile(temp, 0.025,na.rm = TRUE)),
-      "95CIHigh" = unname(quantile(temp, 0.975, na.rm=TRUE))
-    )
-  }
-
-  repeat_cv <- base$cv[1]
-  # combined results, if ML was trained (train_ml = TRUE), and then if only the Ensemble (FALSE)
-
-  modelnames <- c(name1, name2)
   results_mean <-
     as.data.frame(rbind(base$testaverage, alternative$testaverage))
   results_mean_train <-
@@ -60,12 +42,23 @@ survcompare2 <- function(base, alternative) {
     as.data.frame(rbind(base$testmedian, alternative$testmedian))
   results_median$sec <- round(as.numeric(c(base$time, alternative$time)), 2)
   results_mean_train$sec <- results_mean$sec
+  stats_ci <- function(x, col = "C_score") {
+    temp <- x[, col]
+    c(
+      "mean" = mean(temp, na.rm = TRUE),
+      "sd" = sd(temp, na.rm = TRUE),
+      "95CILow" = unname(quantile(temp, 0.025,na.rm = TRUE)),
+      "95CIHigh" = unname(quantile(temp, 0.975, na.rm=TRUE))
+    )
+  }
   auc_c_stats <- as.data.frame(rbind(
     stats_ci(base$test,  "C_score"),
     stats_ci(alternative$test, "C_score"),
     stats_ci(base$test,  "AUCROC"),
     stats_ci(alternative$test, "AUCROC")
   ))
+
+  repeat_cv <- base$cv[1]
   if (repeat_cv == 1) {
     auc_c_stats_pooled = auc_c_stats
   } else{
@@ -78,8 +71,6 @@ survcompare2 <- function(base, alternative) {
       ))
   }
   # results_mean and results_mean_train row and col names
-  col_order <-  c("T", "C_score", "AUCROC", "BS", "BS_scaled",
-                  "Calib_slope", "Calib_alpha", "sec")
   row.names(results_mean_train) <- modelnames
   row.names(results_mean) <- modelnames
   row.names(results_median) <- modelnames
@@ -90,6 +81,8 @@ survcompare2 <- function(base, alternative) {
     c(paste("C_score", modelnames, sep = "_"),
       paste("AUCROC", modelnames, sep = "_"))
 
+  col_order <-  c("T", "C_score", "AUCROC", "BS", "BS_scaled",
+                  "Calib_slope", "Calib_alpha", "sec")
   results_mean <- results_mean[col_order]
   results_median <- results_median[col_order]
   results_mean_train <- results_mean_train[col_order]
@@ -105,6 +98,7 @@ survcompare2 <- function(base, alternative) {
   results_mean_train["pvalue", ] = c(t_coxph_train[3,], NaN)
 
   results_median["Diff", ] = results_median[2, ] - results_median[1,]
+  # we test significant difference in means, so p-value is from the "means" table
   results_median["pvalue",] = results_mean["pvalue", ]
 
   # output
@@ -127,6 +121,39 @@ survcompare2 <- function(base, alternative) {
   output$model_name <- name2
   output$cv <- base$cv
   class(output) <- "survcompare"
-  #summary.survcompare(output)
   return(output)
+}
+
+
+# Testing statistical significance of the ensembled model outperformance
+# over the baseline model (Model 1 vs Model 0)
+difftest <- function(res1, res0, sample_n, param_n) {
+  m <- apply(res1 - res0, FUN = mean, 2, na.rm = 1)
+  std <- apply(res1 - res0, FUN = stats::sd, 2, na.rm = 1)
+  tpval <-
+    function(x) {
+      if (class(try(stats::t.test(x, alternative = "greater")$p.value)
+      )  ==  "try-error")
+        return(NaN)
+      return(stats::t.test(x, alternative = "greater")$p.value)
+    }
+  #Fisher test for diff in R2 of 2 models
+  # https://sites.duke.edu/bossbackup/files/2013/02/FTestTutorial.pdf
+  pv_bs <-
+    1 - stats::pf(
+      mean(res1$BS, na.rm = 1) / mean(res0$BS, na.rm = 1),
+      sample_n - param_n,
+      sample_n - param_n - 1,
+      lower.tail = FALSE
+    )
+  pvalue <-  apply(res1 - res0, FUN = tpval, 2)
+  res <- rbind(m, std, pvalue)
+  res["pvalue", "BS"] = pv_bs
+  return(res[, c("T",
+                 "C_score",
+                 "AUCROC",
+                 "BS",
+                 "BS_scaled",
+                 "Calib_slope",
+                 "Calib_alpha")])
 }

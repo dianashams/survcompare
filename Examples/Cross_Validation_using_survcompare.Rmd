@@ -23,8 +23,9 @@ However, as the package uses Cox Proportionate Hazards and Survival Random Fores
 ### 1. Fitting, cross-validating, and predicting event probabilities using `survcompare` functionality for CoxPH and CoxLasso
 
 ```{r coxph_cv}
-devtools::install_github("dianashams/survcompare",build_vignettes = TRUE)
-library(survcompare)
+#devtools::install_github("dianashams/survcompare",build_vignettes = TRUE)
+#library(survcompare)
+
 # We will use the GBSG data from survival package. 
 # Prepare the data for 'survcompare':
 mygbsg <- gbsg
@@ -145,7 +146,7 @@ srfmodel2 <-
     traindf,
     myfactors,
     predict_time,
-    srf_tuning = my_srf_tuning,
+    tuningparams = my_srf_tuning,
     inner_cv = 2,
     randomseed = 42
   )
