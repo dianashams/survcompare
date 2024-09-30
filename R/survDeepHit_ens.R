@@ -1,12 +1,18 @@
 
-
-#same as deephit_predict
+#' Computes event probabilities from a trained ensemble of CoxPH and DeepHit
+#' @param trained_object a trained model, output of survdhens_train()
+#' @param newdata new data for which predictions are made
+#' @param fixed_time time of interest for which event probabilities are computed
+#' @param predict.factors list of predictor names
+#' @param extrapsurvival if probabilities are extrapolated beyond trained times (constant)
+#' @return vector of predicted event probabilities
 #' @export
 survdhens_predict <-
   function(trained_object,
            newdata,
            fixed_time,
-           predict.factors) {
+           predict.factors,
+           extrapsurvival = TRUE) {
 
     if (!inherits(trained_object, "survensemble")) {
       stop("Not a \"survensemble\" object")
@@ -20,13 +26,22 @@ survdhens_predict <-
     # use deephit_predict()
     predict_eventprob <-
       survdeephit_predict(trained_object$model,newdata, fixed_time,
-                      predict.factors = c(predict.factors, "cox_predict")
+                      predict.factors = c(predict.factors, "cox_predict"),
+                      extrapsurvival = extrapsurvival
       )
     return(predict_eventprob)
   }
 
 
-# Create out-of-bag Cox predictions, then train deephit
+#' Trains ensemble of the CoxPH and DeepHit
+#' @param df_train  data, "time" and "event" should describe survival outcome
+#' @param predict.factors list of predictor names
+#' @param fixed_time time at which performance is maximized
+#' @param inner_cv number of cross-validation folds for hyperparameters' tuning
+#' @param randomseed random seed to control tuning including data splits
+#' @param useCoxLasso if CoxLasso is used (TRUE) or not (FALSE, default)
+#' @param tuningparams if given, list of hyperparameters, list(mod_alpha=c(), ...), otherwise a wide default grid is used
+#' @param max_grid_size number of random grid searches for model tuning
 #' @export
 survdhens_train <-
   function(df_train,
@@ -104,6 +119,20 @@ survdhens_train <-
     return(output)
   }
 
+#' Cross-validates the performance of DeepHit and CoxPH Ensemble
+#' @param df  data, "time" and "event" should describe survival outcome
+#' @param predict.factors list of predictor names
+#' @param fixed_time time at which performance is maximized
+#' @param outer_cv number of cross-validation folds for model validation
+#' @param inner_cv number of cross-validation folds for hyperparameters' tuning
+#' @param repeat_cv number of CV repeats, if NaN, runs once
+#' @param randomseed random seed to control tuning including data splits
+#' @param return_models TRUE/FALSE, if TRUE returns all trained models
+#' @param useCoxLasso if CoxLasso is used (TRUE) or not (FALSE, default)
+#' @param tuningparams if given, list of hyperparameters, list(mod_alpha=c(), ...), otherwise a wide default grid is used
+#' @param max_grid_size number of random grid searches for model tuning
+#' @param parallel if parallel calculations are used
+#' @param verbose FALSE(default)/TRUE
 #' @export
 survdhens_cv <- function(df,
                            predict.factors,

@@ -1,11 +1,18 @@
-
+#' Predicts event probability by a trained stacked ensemble of Survival Random Forest and CoxPH
+#'
+#' @param trained_object a trained model, output of survsrfstack_train()
+#' @param newdata new data for which predictions are made
+#' @param fixed_time time of interest, for which event probabilities are computed
+#' @param predict.factors list of predictor names
+#' @param extrapsurvival if probabilities are extrapolated beyond trained times (constant)
+#' @return vector of predicted event probabilities
 #' @export
 survsrfstack_predict <-
   function(trained_object,
            newdata,
            fixed_time,
            predict.factors,
-           use_alternative_model = FALSE
+           extrapsurvival=TRUE
   ) {
     predictdata <- newdata[predict.factors]
     l <- trained_object$lambda
@@ -20,26 +27,34 @@ survsrfstack_predict <-
     predictdata$ml_predict <-
       survsrf_predict(trained_model = trained_object$model_base_ml,
                       newdata = newdata,
-                      fixed_time = fixed_time)
+                      fixed_time = fixed_time,
+                      extrapsurvival = extrapsurvival)
     #weighted sum
     p <- predictdata$cox_predict +
       l * (predictdata$ml_predict- predictdata$cox_predict)
-
-    # alternative_model = logistic regression of Cox and ML predictions,
-    if(use_alternative_model) {
-      m <- trained_object$model_meta_alternative
-      logit = function(x) {
-        log(pmax(pmin(x, 0.9999), 0.0001) / (1 - pmax(pmin(x, 0.9999), 0.0001)))
-      }
-      predictdata$cox_predict_logit <- logit(predictdata$cox_predict)
-      predictdata$ml_predict_logit <- logit(predictdata$ml_predict)
-      return (predict(m, newdata = predictdata))
-    }
-    # return weighted sum
     return(p)
   }
 
-# Create out-of-bag Cox predictions, then train srf
+# Trains stacked ensemble of the CoxPH and Survival Random Forest
+#' @param df_train  data, "time" and "event" should describe survival outcome
+#' @param predict.factors list of predictor names
+#' @param fixed_time time at which performance is maximized
+#' @param inner_cv number of cross-validation folds for hyperparameters' tuning
+#' @param randomseed random seed to control tuning including data splits
+#' @param useCoxLasso if CoxLasso is used (TRUE) or not (FALSE, default)
+#' @param tuningparams if given, list of hyperparameters, list(mtry=c(), nodedepth=c(),nodesize=c()), otherwise a wide default grid is used
+#' @param max_grid_size number of random grid searches for model tuning
+#' @param verbose FALSE(default)/TRUE
+#' @return output = list(bestparams, allstats, model)
+#' @examples
+#' d <-simulate_nonlinear(100),
+#' p<- names(d)[1:4]
+#' tuningparams = list(
+#'  "mtry" = c(5,10,15),
+#'  "nodedepth" = c(5,10,15,20),
+#'  "nodesize" =    c(20,30,50)
+#' )
+#' m_srf<- survsrf_train(d,p,tuningparams=tuningparams)
 #' @export
 survsrfstack_train <-
   function(df_train,
@@ -204,6 +219,19 @@ survsrfstack_train <-
     return(output)
   }
 
+#' Cross-validates stacked ensemble of the CoxPH and Survival Random Forest models
+#' @param df  data, "time" and "event" should describe survival outcome
+#' @param predict.factors list of predictor names
+#' @param fixed_time time at which performance is maximized
+#' @param outer_cv number of cross-validation folds for model validation
+#' @param inner_cv number of cross-validation folds for hyperparameters' tuning
+#' @param repeat_cv number of CV repeats, if NaN, runs once
+#' @param randomseed random seed to control tuning including data splits
+#' @param useCoxLasso if CoxLasso is used (TRUE) or not (FALSE, default)
+#' @param tuningparams if given, list of hyperparameters, list(mtry=c(), nodedepth=c(),nodesize=c()), otherwise a wide default grid is used
+#' @param max_grid_size number of random grid searches for model tuning
+#' @param parallel if parallel calculations are used
+#' @param verbose FALSE(default)/TRUE
 #' @export
 survsrfstack_cv <- function(df,
                          predict.factors,

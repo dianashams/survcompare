@@ -1,5 +1,11 @@
 
-# The function to predict event probability by a trained deephitmodel
+#' Computes event probabilities from a trained DeepHit
+#' @param trained_object a trained model, output of survdhens_train()
+#' @param newdata new data for which predictions are made
+#' @param fixed_time time of interest for which event probabilities are computed
+#' @param predict.factors list of predictor names
+#' @param extrapsurvival if probabilities are extrapolated beyond trained times (constant)
+#' @return vector of predicted event probabilities
 #' @export
 survdeephit_predict <-
   function(trained_model,
@@ -22,7 +28,33 @@ survdeephit_predict <-
     return(predict_eventprob)
   }
 
-# The function trains deephit model with given params
+#' Trains DeepHit
+#' @param df_train  data, "time" and "event" should describe survival outcome
+#' @param predict.factors list of predictor names
+#' @param fixed_time time at which performance is maximized
+#' @param tuningparams if given, list of hyperparameters, list(mod_alpha=c(), ...), otherwise a wide default grid is used.
+#' e.g. (mod_alpha = c(0.2,0.5),dropout= c(0.1,0.8), learning_rate= c(0.001,0.01), num_nodes = list(c(64,64)), epochs = 10, sigma = c(0.1,1,10), cuts =50,batch_size=50, early_stopping = FALSE, weight_decay= 0)
+#' @param max_grid_size number of random grid searches for model tuning
+#' @param inner_cv number of cross-validation folds for hyperparameters' tuning
+#' @param randomseed random seed to control tuning including data splits
+#' @param verbose FALSE(default)/TRUE
+#' @return  list of outputs
+#' @examples
+#' d <-simulate_nonlinear(200),
+#' p<- names(d)[1:4]
+#' tuningparams = list(
+#'  dropout = c(0.1, 0.3),
+#'  learning_rate = c(0.001),
+#'  num_nodes =    list(c(8, 8), c(16,16)),
+#'  batch_size = 50,
+#'  epochs = 10,
+#'  mod_alpha = 0.2,
+#'  sigma = 0.1,
+#'  cuts = 10,
+#'  early_stopping = FALSE,
+#'  weight_decay= 0
+#' )
+#' model_dh <- survdeephit_train(d, p, tuningparams = tuningparams)
 #' @export
 survdeephit_train <-
   function(df_train,
@@ -86,31 +118,17 @@ survdeephit_train <-
   }
 
 
-#'A repeated 3-fold CV over a hyperparameters grid
-#'
-#' @param repeat_tune number of repeats
-#' @param df_tune data
-#' @param predict.factors predictor names
-#' @param fixed_time  not used here, but for some models the time for which performance is optimized
-#' @param tuningparams list with the range of hyperparameters
-#' @param inner_cv number of folds for each CV
-#' @param max_grid_size 10 by default. If grid size > max_grid_size, a random search is performed for max_grid_size iterations. Set this to a small number for random search
-#' @param randomseed to choose random subgroup of hyperparams
-#' @return  output=list(cindex_ordered, bestparams)
-#' @examples
-#' d <-simulate_nonlinear(100),
-#' p<- names(d)[1:4]
-#' tuningparams = list(
-#'  "dropout" = c(0.1, 0.3),
-#'  "learning_rate" = c(0.001),
-#'  "num_nodes" =    list(c(8, 8), c(16, 16, 16, 4), c(32, 32, 32, 4)),
-#'  "batch_size" = min(max(64, round(dim(df_train_cv)[1]/8, 0)),256),
-#'  "epochs" = c(5, 50),
-#'  "mod_alpha" = 0.2,
-#'  "sigma" = 0.1,
-#'  "cuts" = 10
-#' )
-#' survdeephit_tune(d, p,tuningparams = tuningparams, max_grid_size = 10)
+
+#' Internal function for deephit_tune(), performs 1 CV
+#' @param df_tune  data, "time" and "event" should describe survival outcome
+#' @param predict.factors list of predictor names
+#' @param repeat_tune number of repeated CV for tuning (1 is default)
+#' @param fixed_time time at which performance is maximized
+#' @param tuningparams if given, list of hyperparameters, list(mod_alpha=c(), ...), otherwise a wide default grid is used
+#' @param max_grid_size number of random grid searches for model tuning
+#' @param inner_cv number of cross-validation folds for hyperparameters' tuning
+#' @param randomseed random seed to control tuning including data splits
+#' @return  list of outputs
 #' @export
 survdeephit_tune <-
   function(df_tune,
@@ -254,6 +272,9 @@ survdeephit_tune_single <-
 
 #' Internal function for getting grid of hyperparameters
 #' for random or grid search of size = max_grid_size
+#' @param mlparams list (mod_alpha,dropout, learning_rate, num_nodes, epochs, sigma, cuts,batch_size, early_stopping, weight_decay)
+#' @param randomseed random seed to control which rows from the grid are selected
+#' @param max_grid_size number of random grid searches for model tuning
 #' @export
 ml_hyperparams_deephit <- function(mlparams = list(),
                                     max_grid_size = 10,
@@ -321,6 +342,19 @@ ml_hyperparams_deephit <- function(mlparams = list(),
 
 
 # The function trains deephit model with given params
+#' @param df  data, "time" and "event" should describe survival outcome
+#' @param predict.factors list of predictor names
+#' @param fixed_time time at which performance is maximized
+#' @param outer_cv number of cross-validation folds for model validation
+#' @param inner_cv number of cross-validation folds for hyperparameters' tuning
+#' @param repeat_cv number of CV repeats, if NaN, runs once
+#' @param randomseed random seed to control tuning including data splits
+#' @param return_models TRUE/FALSE, if TRUE returns all trained models
+#' @param tuningparams if given, list of hyperparameters, list(mod_alpha=c(), ...), otherwise a wide default grid is used
+#' e.g. (mod_alpha = c(0.2,0.5),dropout= c(0.1,0.8), learning_rate= c(0.001,0.01), num_nodes = list(c(64,64)), epochs = 10, sigma = c(0.1,1,10), cuts =50,batch_size=50, early_stopping = FALSE, weight_decay= 0)
+#' @param max_grid_size number of random grid searches for model tuning
+#' @param parallel if parallel calculations are used
+#' @param verbose FALSE(default)/TRUE
 #' @export
 survdeephit_cv <- function(df,
                        predict.factors,

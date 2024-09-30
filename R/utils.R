@@ -226,64 +226,6 @@ surv_validate <- function(y_predict,
 }
 
 
-#' Calibration stats of a fitted Cox PH model
-#' @description
-#' Computes calibration alpha and slope for a fitted coxph model
-#' in the data.
-#'
-#' Crowson, C. S., Atkinson, E. J., & Therneau, T. M. (2016).
-#' Assessing calibration of prognostic risk scores.
-#' Statistical methods in medical research, 25(4), 1692-1706.
-#'
-#' https://journals.sagepub.com/doi/pdf/10.1177/0962280213497434
-#'
-#' @param cox_model fitted cox model, namely, coxph() object
-#' @param test_data test data, should be a data frame with "time" and "event" columns for survival outcome
-#' @return c(calibration alpha, calibration slope)
-#' @export
-cox_calibration_stats <-  function(cox_model, test_data) {
-  if (!inherits(cox_model, "coxph")) {
-    stop("The model should be a coxph object.")
-  }
-  if (!inherits(test_data, "data.frame")) {
-    stop("The test data should be a dataframe.")
-  }
-
-  temp <-
-    try(predict(cox_model, newdata = test_data, type = "lp"), silent = TRUE)
-
-  if (inherits(temp, "try-error")) {
-    stop ("Predictions can not be made for test data using the model provided.")
-  }
-
-  p <-
-    log(predict(cox_model, newdata = test_data, type = "expected"))
-  lp <- predict(cox_model, newdata = test_data, type = "lp")
-  logbase <- p - lp
-
-  fit1 <-
-    try(stats::glm(event ~ offset(p), family = poisson, data = test_data),
-        silent = TRUE)
-  fit2 <-
-    try(stats::glm(event ~ lp + offset(logbase),
-                   family = poisson,
-                   data = test_data),
-        silent = TRUE)
-
-  if (inherits(fit1, "try-error") |
-      (inherits(fit2, "try-error"))) {
-    stop("Stats computations failed.")
-  }
-
-  #group <- cut(lp, c(-Inf, quantile(lp, (1:9) / 10), Inf))
-  #fit3 <- stats::glm(event ~ -1 + group + offset(p),family = poisson,data = test_data)
-
-  calib_alpha <- as.numeric(fit1$coefficients[1])
-  calib_slope <- as.numeric(fit2$coefficients[2])
-
-  return(c("calib_alpha" = calib_alpha, "calib_slope" = calib_slope))
-}
-
 
 eligible_params <- function(params, df) {
   # This function checks eligible predictors from params list for split

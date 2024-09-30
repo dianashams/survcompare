@@ -1,22 +1,25 @@
 
 
-#' Predicts event probability for a fitted survsrf_ens
-#' @description
-#' @param object trained survsrf_ens model
-#' @param newdata test data
-#' @param fixed_time  time for which probabilities are computed
-#' @param ... other parameters to pass
-#' @return matrix of predictions for observations in newdata by times
+#' Predicts event probability by a trained sequential ensemble of Survival Random Forest and CoxPH
+#'
+#' @param trained_model a trained model, output of survsrfens_train()
+#' @param newdata new data for which predictions are made
+#' @param fixed_time time of interest, for which event probabilities are computed
+#' @param predict.factors list of predictor names
+#' @param extrapsurvival if probabilities are extrapolated beyond trained times (constant)
+#' @return vector of predicted event probabilities
 #' @export
-survsrfens_predict <- function(object,
-                                 newdata,
-                                 fixed_time) {
-  if (!inherits(object, "survensemble")){stop("Not a \"survensemble\" object")}
+survsrfens_predict <- function(trained_model,
+                               newdata,
+                               fixed_time,
+                               extrapsurvival = TRUE) {
+  if (!inherits(trained_model, "survensemble")){stop("Not a \"survensemble\" model")}
   if (!inherits(newdata, "data.frame")){stop("The data should be a data frame")}
 
   # use model_base with the base Cox model to find cox_predict
-  newdata$cox_predict <- survcox_predict(object$model_base,newdata, fixed_time)
-  predicted_event_prob <- survsrf_predict(object$model, newdata, fixed_time)
+  newdata$cox_predict <- survcox_predict(trained_model$model_base,newdata, fixed_time)
+  predicted_event_prob <- survsrf_predict(trained_model$model, newdata, fixed_time,
+                                          extrapsurvival = extrapsurvival)
   return(predicted_event_prob)
 }
 
@@ -29,21 +32,22 @@ survsrfens_predict <- function(object,
 #' #' Cox model is fitted to .9 data to predict the rest .1 for each 1/10s fold;
 #' these out-of-the-bag predictions are passed on to SRF
 #'
-#' @param df_train  data, "time" and "event"  describe survival outcome
-#' @param predict.factors list of the column names to be used as predictors
-#' @param fixed_time  for which the performance is maximized
-#' @param inner_cv  number of inner cycles for model tuning
-#' @param randomseed  random seed
-#' @param tuningparams list of mtry, nodedepth and nodesize, to use default supply empty list()
-#' @param useCoxLasso FALSE/TRUE, FALSE by default
-#' @param var_importance_calc FALSE/TRUE, TRUE by default
+#' @param df_train  data, "time" and "event" should describe survival outcome
+#' @param predict.factors list of predictor names
+#' @param fixed_time time at which performance is maximized
+#' @param inner_cv number of cross-validation folds for hyperparameters' tuning
+#' @param randomseed random seed to control tuning including data splits
+#' @param tuningparams if given, list of hyperparameters, list(mtry=c(), nodedepth=c(),nodesize=c()), otherwise a wide default grid is used
+#' @param useCoxLasso if CoxLasso is used (TRUE) or not (FALSE, default)
+#' @param max_grid_size number of random grid searches for model tuning
+#' @param var_importance_calc if variable importance is computed
 #' @return trained object of class survsrf_ens
 #' @export
 survsrfens_train <- function(df_train,
                                predict.factors,
                                fixed_time = NaN,
                                inner_cv = 3,
-                               randomseed = NULL,
+                               randomseed = NaN,
                                tuningparams = list(),
                                useCoxLasso = FALSE,
                                max_grid_size =10,
@@ -129,15 +133,17 @@ survsrfens_train <- function(df_train,
 #' @param fixed_time  at which performance metrics are computed
 #' @param outer_cv number of folds in outer CV, default 3
 #' @param inner_cv number of folds for model tuning CV, default 3
-#' @param repeat_cv number of CV repeats, if NULL, runs once
+#' @param repeat_cv number of CV repeats, if NaN, runs once
 #' @param randomseed random seed
-#' @param return_models TRUE/FALSE, if TRUE returns all CV objects
+#' @param return_models TRUE/FALSE, if TRUE returns all trained models
 #' @param useCoxLasso TRUE/FALSE, default is FALSE
-#' @param tuningparams list of tuning parameters for random forest: 1) NULL for using a default tuning grid, or 2) a list("mtry"=c(...), "nodedepth" = c(...), "nodesize" = c(...))
+#' @param tuningparams if given, list of hyperparameters, list(mtry=c(), nodedepth=c(),nodesize=c()), otherwise a wide default grid is used
+#' @param max_grid_size number of random grid searches for model tuning
+#' @param parallel if parallel calculations are used
 #' @examples \donttest{
 #' \dontshow{rfcores_old <- options()$rf.cores; options(rf.cores=1)}
 #' df <- simulate_nonlinear()
-#' ens_cv <- survsrf_ens_cv(df, names(df)[1:4])
+#' ens_cv <- survsrfens_cv(df, names(df)[1:4])
 #' summary(ens_cv)
 #' \dontshow{options(rf.cores=rfcores_old)}
 #' }
@@ -149,7 +155,7 @@ survsrfens_cv <- function(df,
                             outer_cv = 3,
                             inner_cv = 3,
                             repeat_cv = 2,
-                            randomseed = NULL,
+                            randomseed = NaN,
                             return_models = FALSE,
                             useCoxLasso = FALSE,
                             tuningparams = list(),

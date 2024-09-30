@@ -1,5 +1,13 @@
 
-# The function to predict event probability by a trained srfmodel
+#' Predicts event probability by a trained Survival Random Forest
+#'
+#' @param trained_model a trained SRF model, output of survsrf_train(), or randomForestSRC::rfsrc()
+#' @param newdata new data for which predictions are made
+#' @param fixed_time time of interest for which event probabilities are computed
+#' @param extrapsurvival if probabilities are extrapolated beyond trained times (using probability of
+#' the lastest available time). Can be helpful for cross-validation of small data, where random
+#' split may cause the time of interest being outside of the training set.
+#' @return vector of predicted event probabilities
 #' @export
 survsrf_predict <-
   function(trained_model,
@@ -24,8 +32,30 @@ survsrf_predict <-
     return(predict_eventprob)
   }
 
-
-# The function trains srf model with given params
+#' Fits randomForestSRC, with tuning by mtry, nodedepth, and nodesize.
+#' Underlying model is by Ishwaran et al(2008)
+#' https://www.randomforestsrc.org/articles/survival.html
+#' Ishwaran H, Kogalur UB, Blackstone EH, Lauer MS. Random survival forests.
+#' The Annals of Applied Statistics. 2008;2:841–60.
+#'
+#' @param df_train  data, "time" and "event" should describe survival outcome
+#' @param predict.factors list of predictor names
+#' @param fixed_time time at which performance is maximized
+#' @param tuningparams if given, list of hyperparameters, list(mtry=c(), nodedepth=c(),nodesize=c()), otherwise a wide default grid is used
+#' @param max_grid_size number of random grid searches for model tuning
+#' @param inner_cv number of cross-validation folds for hyperparameters' tuning
+#' @param randomseed random seed to control tuning including data splits
+#' @param verbose TRUE/FALSE, FALSE by default
+#' @return output = list(bestparams, allstats, model)
+#' @examples
+#' d <-simulate_nonlinear(100),
+#' p<- names(d)[1:4]
+#' tuningparams = list(
+#'  "mtry" = c(5,10,15),
+#'  "nodedepth" = c(5,10,15,20),
+#'  "nodesize" =    c(20,30,50)
+#' )
+#' m_srf<- survsrf_train(d,p,tuningparams=tuningparams)
 #' @export
 survsrf_train <-
   function(df_train,
@@ -91,23 +121,13 @@ survsrf_train <-
 #'
 #' @param repeat_tune number of repeats
 #' @param df_tune data
-#' @param predict.factors predictor names
+#' @param predict.factors list of predictor names
 #' @param fixed_time  not used here, but for some models the time for which performance is optimized
-#' @param tuningparams list with the range of hyperparameters
-#' @param inner_cv number of folds for each CV
-#' @param max_grid_size 10 by default. If grid size > max_grid_size, a random search is performed for max_grid_size iterations. Set this to a small number for random search
+#' @param tuningparams if given, list of hyperparameters, list(mtry=c(), nodedepth=c(),nodesize=c()), otherwise a wide default grid is used
+#' @param inner_cv number of cross-validation folds for hyperparameter tuning
+#' @param max_grid_size number of random grid searches for model tuning
 #' @param randomseed to choose random subgroup of hyperparams
 #' @return  output=list(cindex_ordered, bestparams)
-#' @examples
-#' d <-simulate_nonlinear(100),
-#' p<- names(d)[1:4]
-#' tuningparams = list(
-#'  "mtry" = c(5,10,15),
-#'  "nodedepth" = c(5,10,15,20),
-#'  "nodesize" =    c(20,30,50)
-#' )
-#' srf_tune(d, p,tuningparams = tuningparams, max_grid_size = 10)
-#' @export
 survsrf_tune <-
   function(df_tune,
            predict.factors,
@@ -151,12 +171,11 @@ survsrf_tune <-
 
 #' Internal function for survsrf_tune(), performs 1 CV
 #' @param df_tune data
-#' @param predict.factors predictor names
+#' @param predict.factors list of predictor names
 #' @param fixed_time predictions for which time are computed for c-index
 #' @param grid_hyperparams  hyperparameters grid (or a default will be used )
 #' @param inner_cv number of folds for each CV
 #' @return  output=list(grid, cindex, cindex_mean)
-#' @export
 survsrf_tune_single <-
   function(df_tune,
            predict.factors,
@@ -249,7 +268,6 @@ survsrf_tune_single <-
 
 #' Internal function for getting grid of hyperparameters
 #' for random or grid search of size = max_grid_size
-#' @export
 ml_hyperparams_srf <- function(mlparams = list(),
                               p = 10,
                               max_grid_size = 10,
@@ -259,7 +277,7 @@ ml_hyperparams_srf <- function(mlparams = list(),
   }else if (p<25) {mtry = c(3,5,7,10,15)
   }else{mtry = round(c(p/10, p/5, p/3, p/2, max(1, sqrt(p))),0)  }
 
-  nodesize <- seq(15, max(min(n/10, 50), 30), 5)
+  nodesize <- seq(15, max(min(dftune_size/10, 50), 30), 5)
   nodedepth <- c(2,3,5,7,10,15,50)
   default_grid <- list(mtry = mtry, nodesize = nodesize, nodedepth = nodedepth)
 
@@ -291,18 +309,20 @@ ml_hyperparams_srf <- function(mlparams = list(),
   return(final_grid)
 }
 
-#' Cross-validates SRF model
+#' Cross-validates Survival Random Forest
 #'
-#' @param df data frame with the data, "time" and "event" for survival outcome
+#' @param df  data, "time" and "event" should describe survival outcome
 #' @param predict.factors list of predictor names
-#' @param fixed_time  at which performance metrics are computed
-#' @param outer_cv k in k-fold CV, default 3
-#' @param repeat_cv if NULL, runs once, otherwise repeats CV
-#' @param randomseed random seed
-#' @param return_models TRUE/FALSE, if TRUE returns all CV objects
-#' @param inner_cv k in the inner loop of k-fold CV for SRF hyperparameters tuning, default is 3
-#' @param tuningparams list of tuning parameters for random forest: 1) NULL for using a default tuning grid, or 2) a list("mtry"=c(...), "nodedepth" = c(...), "nodesize" = c(...))
-#' @param parallel TRUE/FALSE if use parallel computations
+#' @param fixed_time time at which performance is maximized
+#' @param outer_cv number of cross-validation folds for model validation
+#' @param inner_cv number of cross-validation folds for hyperparameters' tuning
+#' @param repeat_cv number of CV repeats, if NaN, runs once
+#' @param randomseed random seed to control tuning including data splits
+#' @param return_models if all models are stored and returned
+#' @param tuningparams if given, list of hyperparameters, list(mtry=c(), nodedepth=c(),nodesize=c()), otherwise a wide default grid is used
+#' @param max_grid_size number of random grid searches for model tuning
+#' @param parallel if parallel calculations are used
+#' @param verbose FALSE(default)/TRUE
 #' @examples \donttest{
 #' \dontshow{rfcores_old<- options()$rf.cores; options(rf.cores = 1)}
 #' df <- simulate_nonlinear()

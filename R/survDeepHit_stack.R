@@ -1,12 +1,17 @@
-
-#same as deephit_predict
+#' Computes event probabilities from a trained stacked ensemble of DeepHit and CoxPH
+#' @param trained_object a trained model, output of survdhstack_train()
+#' @param newdata new data for which predictions are made
+#' @param fixed_time time of interest for which event probabilities are computed
+#' @param predict.factors list of predictor names
+#' @param extrapsurvival if probabilities are extrapolated beyond trained times (constant)
+#' @return vector of predicted event probabilities
 #' @export
 survdhstack_predict <-
   function(trained_object,
            newdata,
            fixed_time,
            predict.factors,
-           use_alternative_model = FALSE
+           extrapsurvival = FALSE
   ) {
     predictdata <- newdata[predict.factors]
     l <- trained_object$lambda
@@ -21,26 +26,24 @@ survdhstack_predict <-
     predictdata$ml_predict <-
       survdeephit_predict(trained_model = trained_object$model_base_ml,
                       newdata = newdata, predict.factors = predict.factors,
-                      fixed_time = fixed_time)
+                      fixed_time = fixed_time,extrapsurvival = extrapsurvival)
     #weighted sum
     p <- predictdata$cox_predict +
       l * (predictdata$ml_predict- predictdata$cox_predict)
-
-    # alternative_model = logistic regression of Cox and ML predictions,
-    if(use_alternative_model) {
-      m <- trained_object$model_meta_alternative
-      logit = function(x) {
-        log(pmax(pmin(x, 0.9999), 0.0001) / (1 - pmax(pmin(x, 0.9999), 0.0001)))
-      }
-      predictdata$cox_predict_logit <- logit(predictdata$cox_predict)
-      predictdata$ml_predict_logit <- logit(predictdata$ml_predict)
-      return (predict(m, newdata = predictdata))
-    }
     # return weighted sum
     return(p)
   }
 
-# Create out-of-bag Cox predictions, then train deephit
+#' Trains stacked ensemble of the CoxPH and DeepHit
+#' @param df_train  data, "time" and "event" should describe survival outcome
+#' @param predict.factors list of predictor names
+#' @param fixed_time time at which performance is maximized
+#' @param inner_cv number of cross-validation folds for hyperparameters' tuning
+#' @param randomseed random seed to control tuning including data splits
+#' @param useCoxLasso if CoxLasso is used (TRUE) or not (FALSE, default)
+#' @param tuningparams if given, list of hyperparameters, list(mod_alpha=c(), ...), otherwise a wide default grid is used
+#' @param max_grid_size number of random grid searches for model tuning
+#' @param verbose FALSE(default)/TRUE
 #' @export
 survdhstack_train <-
   function(df_train,
@@ -58,7 +61,9 @@ survdhstack_train <-
       fixed_time <-
         round(quantile(df_train[df_train$event == 1, "time"], 0.9), 1)
     }
-    if (!is.nan(randomseed)) {set.seed(randomseed)}
+    if (is.nan(randomseed)) {
+      randomseed <- round(stats::runif(1) * 1e9, 0)
+    }
     if(verbose) cat("\nTraining baseline learners ...\n")
     #base DeepHit
     ml_base_model <-
@@ -194,6 +199,21 @@ survdhstack_train <-
     return(output)
   }
 
+
+#' Cross-validates Stacked Ensemble of CoxPH and DeepHit
+#' @param df  data, "time" and "event" should describe survival outcome
+#' @param predict.factors list of predictor names
+#' @param fixed_time time at which performance is maximized
+#' @param outer_cv number of cross-validation folds for model validation
+#' @param inner_cv number of cross-validation folds for hyperparameters' tuning
+#' @param randomseed random seed to control tuning including data splits
+#' @param return_models TRUE/FALSE, if TRUE returns all trained models
+#' @param useCoxLasso if CoxLasso is used (TRUE) or not (FALSE, default)
+#' @param tuningparams if given, list of hyperparameters, list(mtry=c(), nodedepth=c(),nodesize=c()), otherwise a wide default grid is used
+#' e.g. (mod_alpha = c(0.2,0.5),dropout= c(0.1,0.8), learning_rate= c(0.001,0.01), num_nodes = list(c(64,64)), epochs = 10, sigma = c(0.1,1,10), cuts =50,batch_size=50, early_stopping = FALSE, weight_decay= 0)
+#' @param max_grid_size number of random grid searches for model tuning
+#' @param parallel if parallel calculations are used
+#' @param verbose FALSE(default)/TRUE
 #' @export
 survdhstack_cv <- function(df,
                            predict.factors,

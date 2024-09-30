@@ -2,8 +2,7 @@
 #' @description
 #' The function performs a repeated nested cross-validation for
 #' 1) Cox-PH (survival package, survival::coxph) or Cox-Lasso (glmnet package, glmnet::cox.fit)
-#' 2) Ensemble of the Cox model and Survival Random Forest (randomForestSRC::rfsrc)
-#' 3) Survival Random Forest on its own, if train_ml = TRUE
+#' 2) Survival Random Forest (randomForestSRC::rfsrc), or its ensemble with the Cox model (if use_ensemble =TRUE)
 #'
 #' The same random seed for the train/test splits are used for all models to aid fair comparison;
 #' and the performance metrics are computed for the tree models including Harrel's c-index,
@@ -16,6 +15,9 @@
 #' The difference in performance of the Ensembled Cox and SRF and the baseline Cox-PH
 #' can be viewed as quantification of the non-linear and cross-terms contribution to
 #' the predictive power of the supplied predictors.
+#'
+#' The function is a wrapper for survcompare2(), for comparison of the CoxPH and SRF models, and
+#' an alternative way to do the same analysis is to run survcox_cv() and survsrf_cv(), then using survcompare2()
 #'
 #' @importFrom survival Surv
 #' @importFrom timeROC timeROC
@@ -39,27 +41,31 @@
 #' @param tuningparams list of tuning parameters for random forest: 1) NULL for using a default tuning grid, or 2) a list("mtry"=c(...), "nodedepth" = c(...), "nodesize" = c(...))
 #' @param return_models TRUE/FALSE to return the trained models; default is FALSE, only performance is returned
 #' @param repeat_cv if NULL, runs once, otherwise repeats several times with different random split for CV, reports average of all
-#' @param train_ml TRUE/FALSE for whether to train SRF on its own, apart from the CoxPH->SRF ensemble. Default is FALSE as there is not much information in SRF itself compared to the ensembled version.
-#' @return outcome = list(data frame with performance results, fitted Cox models, fitted SRF)
+#' @param ml this is currently for Survival Random Forest only ("SRF")
+#' @param use_ensemble TRUE/FALSE for whether to train SRF on its own, apart from the CoxPH->SRF ensemble. Default is FALSE as there is not much information in SRF itself compared to the ensembled version.
+#' @return outcome - cross-validation results for CoxPH, SRF, and an object containing the comparison results
 #' @examples
 #' \dontshow{rfcores_old <- options()$rf.cores; options(rf.cores=1)}
 #' df <-simulate_nonlinear(100)
+#' predictors <- names(df)[1:4]
 #' srf_params <- list("mtry" = c(2), "nodedepth"=c(25), "nodesize" =c(15))
-#' mysurvcomp <- survcompare(df, names(df)[1:4], srf_tuning = srf_params, outer_cv = 2, inner_cv =2)
+#' mysurvcomp <- survcompare(df, predictors, tuningparams = srf_params, max_grid_size = 1)
 #' summary(mysurvcomp)
 #' \dontshow{options(rf.cores=rfcores_old)}
 #' @export
 survcompare <- function(df_train,
-                        predict_factors,
-                        fixed_time = NULL,
-                        randomseed = NULL,
-                        useCoxLasso = FALSE,
-                        outer_cv = 3,
-                        inner_cv = 3,
-                        tuningparams = list(),
-                        return_models = FALSE,
-                        repeat_cv = 2,
-                        train_ml = FALSE) {
+                           predict_factors,
+                           fixed_time = NaN,
+                           randomseed = NaN,
+                           useCoxLasso = FALSE,
+                           outer_cv = 3,
+                           inner_cv = 3,
+                           tuningparams = list(),
+                           return_models = FALSE,
+                           repeat_cv = 2,
+                           ml = "SRF",
+                           use_ensemble = FALSE,
+                           max_grid_size = 10) {
 
   Call <- match.call()
   inputs <- list(
@@ -71,7 +77,7 @@ survcompare <- function(df_train,
     repeat_cv,
     randomseed,
     return_models,
-    srf_tuning,
+    tuningparams,
     useCoxLasso
   )
 
@@ -85,7 +91,7 @@ survcompare <- function(df_train,
       repeat_cv = "numeric",
       randomseed = "numeric",
       return_models = "logical",
-      srf_tuning = "list",
+      tuningparams = "list",
       useCoxLasso = "logical"
     )
   cp <- check_call(inputs, inputclass, Call)
@@ -96,15 +102,17 @@ survcompare <- function(df_train,
     stop("Missing data can not be handled. Please impute first.")
   }
 
-  if (is.null(randomseed)) {
+  if (is.nan(randomseed)) {
     randomseed <- round(stats::runif(1) * 1e9, 0) + 1
   }
-  if (is.null(fixed_time)) {
-    fixed_time <- quantile(df_train[df_train$event == 1, "time"], 0.9)
+  if (is.nan(fixed_time)) {
+    fixed_time <- quantile(df_train[df_train$event == 1, "time"], 0.9, na.rm = TRUE)
   }
+  #SRF_ensemble or DeepHit_ensemble
+  ensemble_name <- paste(ml, "ensemble", sep="_")
 
-  # cross-validation
-  cox_cv <- survcox_cv(
+  # CoxPH
+  cv1 <- survcox_cv(
     df = df_train,
     predict.factors = predict_factors,
     fixed_time = fixed_time ,
@@ -114,8 +122,9 @@ survcompare <- function(df_train,
     return_models = return_models,
     repeat_cv = repeat_cv
   )
-  if (train_ml) {
-    ml_cv <- survsrf_cv(
+
+  if(use_ensemble){
+    cv2 <- survsrfens_cv(
       df = df_train,
       predict.factors = predict_factors,
       fixed_time = fixed_time,
@@ -124,136 +133,27 @@ survcompare <- function(df_train,
       randomseed = randomseed,
       return_models = return_models,
       tuningparams = tuningparams,
-      repeat_cv = repeat_cv
+      useCoxLasso = useCoxLasso,
+      repeat_cv = repeat_cv,
+      max_grid_size = max_grid_size
     )
-  }
-  ens1_cv <- survsrfensemble_cv(
-    df = df_train,
-    predict.factors = predict_factors,
-    fixed_time = fixed_time,
-    outer_cv = outer_cv,
-    inner_cv = inner_cv,
-    randomseed = randomseed,
-    return_models = return_models,
-    tuningparams = tuningparams,
-    useCoxLasso = useCoxLasso,
-    repeat_cv = repeat_cv
-  )
-
-
-  # gathering the output: test&train performance
-
-  stats_ci <- function(x, col = "C_score") {
-    temp <- x[, col]
-    c(
-      "mean" = mean(temp, na.rm = 1),
-      "sd" = sd(temp, na.rm = 1),
-      "95CILow" = unname(quantile(temp, 0.025)),
-      "95CIHigh" = unname(quantile(temp, 0.975))
-    )
-  }
-
-  if (train_ml) {
-    modelnames <-
-      c(ifelse(useCoxLasso, "CoxLasso", "CoxPH"),
-        "SRF_Ensemble",
-        "SRF")
-    results_mean <-
-      as.data.frame(rbind(
-        cox_cv$testaverage,
-        ens1_cv$testaverage,
-        ml_cv$testaverage
-      ))
-    results_mean_train <-
-      as.data.frame(rbind(
-        cox_cv$trainaverage,
-        ens1_cv$trainaverage,
-        ml_cv$trainaverage
-      ))
-    results_mean$sec <-
-      round(as.numeric(c(
-        cox_cv$time, ens1_cv$time, ml_cv$time
-      )), 2)
-    results_mean_train$sec <- results_mean$sec
-    auc_c_stats <- as.data.frame(rbind(
-      stats_ci(cox_cv$test,  "C_score"),
-      stats_ci(ens1_cv$test, "C_score"),
-      stats_ci(ml_cv$test, "C_score"),
-      stats_ci(cox_cv$test,  "AUCROC"),
-      stats_ci(ens1_cv$test, "AUCROC"),
-      stats_ci(ml_cv$test, "AUCROC"),
-    ))
   } else{
-    modelnames <-
-      c(ifelse(useCoxLasso, "CoxLasso", "CoxPH"), "SRF_Ensemble")
-    results_mean <-
-      as.data.frame(rbind(cox_cv$testaverage, ens1_cv$testaverage))
-    results_mean_train <-
-      as.data.frame(rbind(cox_cv$trainaverage, ens1_cv$trainaverage))
-    results_mean$sec <-
-      round(as.numeric(c(cox_cv$time, ens1_cv$time)), 2)
-    results_mean_train$sec <- results_mean$sec
-    auc_c_stats <- as.data.frame(rbind(
-      stats_ci(cox_cv$test,  "C_score"),
-      stats_ci(ens1_cv$test, "C_score"),
-      stats_ci(cox_cv$test,  "AUCROC"),
-      stats_ci(ens1_cv$test, "AUCROC")
-    ))
+    cv2 <- survsrf_cv(
+      df = df_train,
+      predict.factors = predict_factors,
+      fixed_time = fixed_time,
+      outer_cv = outer_cv,
+      inner_cv = inner_cv,
+      repeat_cv = repeat_cv,
+      randomseed = randomseed,
+      return_models = return_models,
+      tuningparams = tuningparams,
+      max_grid_size = max_grid_size)
   }
 
-  col_order <- c("T",
-                 "C_score",
-                 "AUCROC",
-                 "BS",
-                 "BS_scaled",
-                 "Calib_slope",
-                 "Calib_alpha",
-                 "sec")
-  row.names(results_mean_train) <- modelnames
-  row.names(results_mean) <- modelnames
-  row.names(auc_c_stats) <-
-    c(paste("C_score", modelnames, sep = "_"),
-      paste("AUCROC", modelnames, sep = "_"))
-  results_mean <- results_mean[col_order]
-  results_mean_train <- results_mean_train[col_order]
+  output<- survcompare2(cv1, cv2)
+  output$cv1 <- cv1
+  output$cv2 <- cv2
 
-  # testing outperformance of the SRF ensemble over the Cox model
-  t_coxph <-
-    difftest(ens1_cv$test,
-             cox_cv$test,
-             dim(df_train)[1],
-             length(predict_factors))
-  t_coxph_train <-
-    difftest(ens1_cv$train,
-             cox_cv$train,
-             dim(df_train)[1],
-             length(predict_factors))
-
-  # adding results line for the differences with Cox-PH
-  results_mean["Diff",] = results_mean[2,] - results_mean[1, ]
-  results_mean_train["Diff",] = results_mean[2,] - results_mean[1, ]
-  results_mean["pvalue",] = c(t_coxph[3, ], NaN) #NaN for "sec" column
-  results_mean_train["pvalue",] = c(t_coxph_train[3, ], NaN)
-  # __________________________________________________
-
-  # output
-  output <- list()
-  output$results_mean <- results_mean
-  output$results_mean_train <- results_mean_train
-  output$return_models <- list("CoxPH" = cox_cv$tuned_cv_models,
-                               "SRF_ensemble" = ens1_cv$tuned_cv_models)
-  output$test <- list("CoxPH" = cox_cv$test,
-                      "SRF_ensemble" = ens1_cv$test)
-  output$train <- list("CoxPH" = cox_cv$train,
-                       "SRF_ensemble" = ens1_cv$train)
-  output$difftest <- t_coxph
-  output$main_stats <- auc_c_stats
-  output$randomseed <- randomseed
-  output$useCoxLasso <- useCoxLasso
-  output$model_name <- "SurvivalRandomForest"
-  class(output) <- "survcompare"
-  summary.survcompare(output)
   return(output)
 }
-
-

@@ -1,8 +1,35 @@
-#' The function survcompare2() compares two cross-validated models, the first is considered as "base", the 2nd as an "alternative"
-#' the same randomseed, number of repeated CVs and CV folds should have been used.
+#' @description
+#' Compares two cross-validated models using surv____cv functions of this package.
+#' Usually, this is a Cox Proportionate Hazards Model (or Cox LASSO), and Survival Random Forest,
+#' or DeepHit (if installed from GitHub, not in CRAN version). Please see examples below.
 #'
-#' @param base an object of type "survensemble_cv", an outcome of survcox_cv, survsrf_cv, deephit_cv and other "_cv" functions of 'survcompare' packge
-#' @param alternative an object of type "survensemble_cv", the outcome of survcox_cv, survsrf_cv, deephit_cv and other "_cv" functions of 'survcompare' packge
+#' The same random seed, number of repetitions (repeat_cv), outer and inner folds numbers should have
+#' been used for cross-validation objects such that those can be compared using survcompare2().
+#' This ensures that the same data splits were used, and hence model performance on the same train/test splits are compared.
+#' Harrel's c-index,time-dependent AUC-ROC, time-dependent Brier Score, and calibration slopes are reported.
+#' The statistical significance of the performance differences is performed based on the C-index.
+#'
+#' The function is designed to help with the model selection by quantifying the loss of predictive
+#' performance (if any) if Cox-PH is used instead of a more complex model such as SRF
+#' which can capture non-linear and interaction terms, as well as non-proportionate hazards.
+#' The difference in performance of the Ensembled Cox and SRF and the baseline Cox-PH
+#' can be viewed as quantification of the non-linear and cross-terms contribution to
+#' the predictive power of the supplied predictors.
+#'
+#' @importFrom survival Surv
+#' @importFrom timeROC timeROC
+#' @importFrom stats as.formula
+#' @importFrom stats quantile
+#' @importFrom stats runif
+#' @importFrom stats coef
+#' @importFrom stats binomial
+#' @importFrom stats poisson
+#' @importFrom stats predict
+#' @importFrom stats sd
+#' @importFrom randomForestSRC rfsrc
+#' @importFrom survival coxph
+#' @param base an object of type "survensemble_cv", for example, outcomes of survcox_cv, survsrf_cv, survsrfens_cv, survsrfstack_cv
+#' @param alternative an object of type "survensemble_cv", to compare to "base"
 #' @return outcome = list(data frame with performance results, fitted Cox models, fitted DeespSurv)
 #' @examples
 #' df <-simulate_nonlinear(100)
