@@ -51,7 +51,8 @@ survsrfens_train <- function(df_train,
                                tuningparams = list(),
                                useCoxLasso = FALSE,
                                max_grid_size =10,
-                               var_importance_calc = FALSE) {
+                               var_importance_calc = FALSE,
+                               verbose = FALSE) {
   # the function trains Cox model, then adds its predictions
   # into Survival Random Forest model
   # to mimic stacking procedure and reduce overfitting,
@@ -100,7 +101,8 @@ survsrfens_train <- function(df_train,
       max_grid_size = max_grid_size,
       inner_cv = inner_cv,
       randomseed = randomseed,
-      tuningparams = tuningparams
+      tuningparams = tuningparams,
+      verbose = verbose
     )
   if (var_importance_calc) {
     v <- randomForestSRC::vimp(
@@ -120,6 +122,7 @@ survsrfens_train <- function(df_train,
   output$model_base <- cox_base_model
   output$randomseed <- randomseed
   output$bestparams <- srf.ens$bestparams
+  output$grid <- srf.ens$grid_of_hyperparams
   output$call <-  match.call()
   output$vimp10 <- vimp10
   class(output) <- "survensemble"
@@ -140,6 +143,7 @@ survsrfens_train <- function(df_train,
 #' @param tuningparams if given, list of hyperparameters, list(mtry=c(), nodedepth=c(),nodesize=c()), otherwise a wide default grid is used
 #' @param max_grid_size number of random grid searches for model tuning
 #' @param parallel if parallel calculations are used
+#' @param verbose FALSE(default)/TRUE
 #' @examples \donttest{
 #' \dontshow{rfcores_old <- options()$rf.cores; options(rf.cores=1)}
 #' df <- simulate_nonlinear()
@@ -160,7 +164,8 @@ survsrfens_cv <- function(df,
                             useCoxLasso = FALSE,
                             tuningparams = list(),
                             max_grid_size = 10,
-                            parallel = FALSE) {
+                            parallel = FALSE,
+                            verbose = FALSE) {
   Call <- match.call()
   inputs <- list(df , predict.factors, fixed_time,
                  outer_cv,inner_cv, repeat_cv,
@@ -179,7 +184,6 @@ survsrfens_cv <- function(df,
   if (sum(is.na(df[c("time", "event", predict.factors)])) > 0) {
     stop("Missing data can not be handled. Please impute first.")
   }
-
   output <- surv_CV(
     df = df,
     predict.factors = predict.factors,
@@ -191,13 +195,12 @@ survsrfens_cv <- function(df,
     return_models = return_models,
     train_function = survsrfens_train,
     predict_function = survsrfens_predict,
-    model_args = list(
-      "useCoxLasso" = useCoxLasso,
-      "tuningparams" = tuningparams,
-      "fixed_time" = fixed_time,
-      "max_grid_size" = max_grid_size,
-      "randomseed" = randomseed
-    ),
+    model_args = list("useCoxLasso" = useCoxLasso,
+                      "tuningparams" = tuningparams,
+                      "fixed_time" = fixed_time,
+                      "max_grid_size" = max_grid_size,
+                      "randomseed" = randomseed,
+                      "verbose" = verbose),
     model_name = "SRF_ensemble",
     parallel= parallel
   )

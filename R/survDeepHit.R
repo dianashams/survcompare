@@ -114,6 +114,7 @@ survdeephit_train <-
     output$model_name = "DeepHit"
     output$model = deephitm
     output$bestparams = bestparams
+    output$grid = grid_of_hyperparams
     return(output)
   }
 
@@ -387,7 +388,8 @@ survdeephit_cv <- function(df,
     model_args = list(
       tuningparams = tuningparams,
       max_grid_size = max_grid_size,
-      fixed_time = fixed_time
+      fixed_time = fixed_time,
+      verbose = verbose
     ),
     predict_args = list(predict.factors = predict.factors),
     model_name = "DeepHit",

@@ -114,6 +114,7 @@ survsrf_train <-
     output$model_name = "Survival Random Forest"
     output$model = srfm
     output$bestparams = bestparams
+    output$grid = grid_of_hyperparams
     return(output)
   }
 
@@ -188,7 +189,7 @@ survsrf_tune_single <-
     if (is.nan(fixed_time) | length(fixed_time) > 1) {
       # not implemented for multiple time
       fixed_time <-
-        round(quantile(df_tune[df_tune$event == 1, "time"], 0.9), 2)
+        quantile(df_tune[df_tune$event == 1, "time"], 0.9)
     }
     grid_size <- dim(grid_hyperparams)[1]
 
@@ -378,7 +379,6 @@ survsrf_cv <- function(df,
   if (sum(is.na(df[c("time", "event", predict.factors)])) > 0) {
     stop("Missing data can not be handled. Please impute first.")
   }
-
   output <- surv_CV(
     df = df,
     predict.factors = predict.factors,

@@ -42,7 +42,7 @@
 #' @param return_models TRUE/FALSE to return the trained models; default is FALSE, only performance is returned
 #' @param repeat_cv if NULL, runs once, otherwise repeats several times with different random split for CV, reports average of all
 #' @param ml this is currently for Survival Random Forest only ("SRF")
-#' @param use_ensemble TRUE/FALSE for whether to train SRF on its own, apart from the CoxPH->SRF ensemble. Default is FALSE as there is not much information in SRF itself compared to the ensembled version.
+#' @param use_ensemble TRUE/FALSE for whether to train SRF on its own, apart from the CoxPH->SRF ensemble. Default is TRUE
 #' @return outcome - cross-validation results for CoxPH, SRF, and an object containing the comparison results
 #' @examples
 #' \dontshow{rfcores_old <- options()$rf.cores; options(rf.cores=1)}
@@ -64,7 +64,7 @@ survcompare <- function(df_train,
                            return_models = FALSE,
                            repeat_cv = 2,
                            ml = "SRF",
-                           use_ensemble = FALSE,
+                           use_ensemble = TRUE,
                            max_grid_size = 10) {
 
   Call <- match.call()
@@ -154,8 +154,6 @@ survcompare <- function(df_train,
   output<- survcompare2(cv1, cv2)
   output$cv1 <- cv1
   output$cv2 <- cv2
-
-  summary.survcompare(output)
 
   return(output)
 }

@@ -29,8 +29,6 @@ summary.survensemble_cv <- function(object, ...) {
   if(!is.null(object$lambda)){
     cat("\n=> Lambda (ML contribution share) :", object$lambda, "\n")
   }
-  cat("\n=> Items available as object$item are: ")
-  cat(names(object), sep = ", ")
 }
 
 ##################################################################

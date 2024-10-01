@@ -9,69 +9,51 @@
 #' @param y_predicted_newdata computed event probabilities (! not survival probabilities)
 #' @param df_brier_train train data
 #' @param df_newdata test data for which brier score is computed
-#' @param time_points times at which BS calculated
+#' @param time_point times at which BS calculated
 #' @param weighted TRUE/FALSE for IPWC to use or not
-#' @return vector of time-dependent Brier Scores for all time_points
+#' @return vector of time-dependent Brier Scores for all time_point
 surv_brierscore <-
   function(y_predicted_newdata,
            df_brier_train,
            df_newdata,
-           time_points,
+           time_point,
            weighted = TRUE) {
+
     # compute K-M probabilities of censoring for each observation till its individual time
-    df_newdata$p_km_obs <-
-      survival_prob_km(df_brier_train, df_newdata$time, estimate_censoring = TRUE)
-    df_newdata$p_km_obs <-
-      pmax(pmin(df_newdata$p_km_obs, 0.9999), 0.0001)
+    df_newdata$p_km_obs <- pmax(pmin(
+      survival_prob_km(df_brier_train, df_newdata$time, estimate_censoring = TRUE),
+      0.9999),0.0001)
 
     # ! impute with mean observations if can't estimate !
     df_newdata[is.na(df_newdata$p_km_obs), "p_km_obs"] <-
       mean(df_newdata$p_km_obs, na.rm = 1)
 
-    p_km_t <-
-      survival_prob_km(df_brier_train, time_points, estimate_censoring = TRUE)
-    p_km_t <- pmax(pmin(p_km_t, 0.9999), 0.0001)
-    p_km_t
+    p_km_t <- pmax(pmin(
+      survival_prob_km(df_brier_train, time_point, estimate_censoring = TRUE),
+      0.9999), 0.0001)
 
-    bs <- c()
-    for (j in 1:length(time_points)) {
-      # assign t_point and predicted  probabilities
-      if (length(time_points) == 1) {
-        # only 1 time
-        t_point <- time_points
-        ppp <- pmax(pmin(y_predicted_newdata, 0.9999), 0.0001)
-      } else {
-        # many times
-        t_point <- time_points[j]
-        ppp <-
-          pmax(pmin(y_predicted_newdata[, j], 0.9999), 0.0001)
-      }
-      # cases and controls by time t_point
-      id_case <-
-        ((df_newdata$time <= t_point) & (df_newdata$event == 1))
-      id_control <- (df_newdata$time > t_point)
+    ppp <- pmax(pmin(y_predicted_newdata, 0.9999), 0.0001)
 
-      # compute BS with weights which are 1/G(t) for controls and 1/G(obs_i) for cases
-      # if weights == false, use w=1 for all
-      if (weighted == TRUE) {
+    # cases and controls by time time_point
+    id_case <- ((df_newdata$time <= time_point) & (df_newdata$event == 1))
+    id_control <- (df_newdata$time > time_point)|
+      ((df_newdata$time == time_point)&(df_newdata$event == 0))
+
+    # compute BS with weights which are 1/G(t) for controls and 1/G(obs_i) for cases
+    # if weights == false, use w=1 for all
+    if (weighted == TRUE) {
         # brier score is average of weighted squared errors
-        bs[j] <-
-          (
-            sum(
-              as.numeric(id_case) * (1 - ppp) ^ 2 * 1 / df_newdata$p_km_obs,
-              na.rm = 0
-            ) +
-              sum(id_control * (0 - ppp) ^ 2 * 1 / p_km_t[j], na.rm = 0)
-          ) / dim(df_newdata)[1]
+        bs <-
+          (sum(as.numeric(id_case) * (1 - ppp) ^ 2 * 1 / df_newdata$p_km_obs,na.rm = 0) +
+              sum(id_control * (0 - ppp) ^ 2 * 1 / p_km_t, na.rm = 0)
+           ) / dim(df_newdata)[1]
         } else {
         # un-weighted BS
-        bs[j] <-
-          sum(id_case * (1 - ppp) ^ 2 + id_control * (0 - ppp) ^ 2, na.rm = 0) / dim(df_newdata)[1]
-      }
-    }
-    names(bs) <- round(time_points, 6)
+        bs <- sum(id_case * (1 - ppp) ^ 2 +
+                       id_control * (0 - ppp) ^ 2, na.rm = 0) / dim(df_newdata)[1]
+        }
     return(bs)
-  }
+}
 
 
 #' Calculates survival probability estimated by Kaplan-Meier survival curve
@@ -79,7 +61,7 @@ surv_brierscore <-
 #' @param df_km_train event probabilities (!not survival)
 #' @param times times at which survival is estimated
 #' @param estimate_censoring FALSE by default, if TRUE, event and censoring is reversed (for IPCW calculations)
-#' @return vector of survival probabilities for time_points
+#' @return vector of survival probabilities for time_point
 survival_prob_km <-
   function(df_km_train, times, estimate_censoring = FALSE) {
     if (estimate_censoring == FALSE) {
@@ -87,6 +69,7 @@ survival_prob_km <-
         survival::survfit(survival::Surv(time, event) ~ 1, data = df_km_train)
     } else {
       df_km_train$censor_as_event <- 1 - df_km_train$event
+      times[times==max(df_km_train$time)] = 0.9999*max(df_km_train$time)
       km <-
         survival::survfit(survival::Surv(time, censor_as_event) ~ 1, data = df_km_train)
     }
@@ -102,7 +85,7 @@ survival_prob_km <-
 #' @param df_train train data, data frame
 #' @param df_test test data, data frame
 #' @param weighted TRUE/FALSE, for IPWC
-#' @param alpha calibration alpha as mean difference or from logistic regression
+#' @param alpha calibration alpha as mean difference in probabilities, or in log-odds (from logistic regression, default)
 #' @return  data.frame(T, AUCROC, Brier Score, Scaled Brier Score, C_score, Calib slope, Calib alpha)
 #' @export
 surv_validate <- function(y_predict,
@@ -148,9 +131,12 @@ surv_validate <- function(y_predict,
                          NaN, temp$concordance)
 
   # 2) time dependent AUC
+  # this gives NA for the final time, so we move it to t-
+  predict_time_auc <- predict_time
+  if (predict_time == max(df_test$time)) {predict_time_auc <- 0.9999 * max(df_test$time)}
   temp <-  try(timeROC::timeROC(
       T = df_test$time,delta = df_test$event,
-      marker = y_predict,times = predict_time,cause = 1),
+      marker = y_predict,times = predict_time_auc,cause = 1),
       silent = TRUE)
   auc_score <- ifelse(inherits(temp, "try-error"), NaN, temp$AUC[2])
 
@@ -169,7 +155,7 @@ surv_validate <- function(y_predict,
               dim(df_test)[1]),
         df_brier_train = df_train,
         df_newdata = df_test,
-        time_points = predict_time,
+        time_point = predict_time,
         weighted = weighted
       )
     brier_score_scaled <- 1 - brier_score / bs_base
@@ -224,8 +210,6 @@ surv_validate <- function(y_predict,
   )
   return(output)
 }
-
-
 
 eligible_params <- function(params, df) {
   # This function checks eligible predictors from params list for split

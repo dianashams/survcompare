@@ -8,23 +8,23 @@ surv_brierscore(
   y_predicted_newdata,
   df_brier_train,
   df_newdata,
-  time_points,
+  time_point,
   weighted = TRUE
 )
 }
 \arguments{
-\item{y_predicted_newdata}{computed event probabilities}
+\item{y_predicted_newdata}{computed event probabilities (! not survival probabilities)}
 
 \item{df_brier_train}{train data}
 
 \item{df_newdata}{test data for which brier score is computed}
 
-\item{time_points}{times at which BS calculated}
+\item{time_point}{times at which BS calculated}
 
 \item{weighted}{TRUE/FALSE for IPWC to use or not}
 }
 \value{
-vector of time-dependent Brier Scores for all time_points
+vector of time-dependent Brier Scores for all time_point
 }
 \description{
 Calculates time-dependent Brier Scores for a vector of times. Calculations are similar to that in:

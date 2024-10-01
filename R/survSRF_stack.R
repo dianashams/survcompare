@@ -214,6 +214,7 @@ survsrfstack_train <-
     output$model_base_ml <- ml_base_model
     output$randomseed <- randomseed
     output$bestparams <- c( ml_base_model$bestparams, bestparams_meta)
+    output$grid = ml_base_model$grid_of_hyperparams
     output$call <-  match.call()
     class(output) <- "survensemble"
     return(output)

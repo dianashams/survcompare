@@ -2,7 +2,9 @@
 title: "Model Validation and Cross Validation using survcompare"
 author: "Diana Shamsutdinova"
 date: "2023-11-13"
-output: html_document
+output:
+  html_document: default
+  pdf_document: default
 ---
 
 ```{r, include = FALSE}
@@ -10,6 +12,7 @@ knitr::opts_chunk$set(
   collapse = TRUE,
   comment = "#>"
 )
+devtools::load_all(".", reset = TRUE)
 ```
 
 ## Package background
@@ -28,6 +31,7 @@ However, as the package uses Cox Proportionate Hazards and Survival Random Fores
 
 # We will use the GBSG data from survival package. 
 # Prepare the data for 'survcompare':
+library(survival)
 mygbsg <- gbsg
 mygbsg$time<- gbsg$rfstime/365
 mygbsg$event<- gbsg$status
@@ -47,8 +51,8 @@ predict_time <- 6
 cox1<- survcox_train(traindf, myfactors, useCoxLasso = FALSE)
 
 # predict event probability at predict_time
-cox_p6_test<- survcompare::survcox_predict(cox1, testdf, predict_time)
-cox_p6_train <- survcompare::survcox_predict(cox1, traindf, predict_time)
+cox_p6_test<- survcox_predict(cox1, testdf, predict_time)
+cox_p6_train <- survcox_predict(cox1, traindf, predict_time)
 
 # compute performance stats 
 cox_performance_test <- 
@@ -125,10 +129,10 @@ There are more hyperparameters in the underlying `randomForestSRC::rfsrc()` func
 The tuning values for mtry, nodesize and nodedepth depend on the data size and total number of predictors. One can check the tuning grid and the final optimized parameters by running: 
 ```{r, srf_tuning_params}
 # Tuning grid:
-print(srfmodel1$tuning)
+print(srfmodel1$grid)
 
 # Selected hyperparameters and their performance metrics (measured on out-of-sample observations):
-print(srfmodel1$beststats)  
+print(srfmodel1$bestparams)  
 ```
 
 It is possible to use a custom grid to tune SRF. First, create a list containing three numerical vectors, named as "mtry", "nodesize", and "nodedepth", containing their candidate values. Then, supply the list as an argument to `survsrf_train()`. We suggest running default option, and then adjusting the grid to include higher or lower values, if the highest or lowest value was chosen in the default run. 
@@ -152,9 +156,9 @@ srfmodel2 <-
   )
 
 # Compare the fits (we see some marginal improvement)
-round(rbind(
-  default_tune = srfmodel1$beststats,
-  custom_tune = srfmodel2$beststats ),3)
+rbind(
+  default_tune = srfmodel1$bestparams,
+  custom_tune = srfmodel2$bestparams )
 
 #          mtry nodesize nodedepth time AUCROC  BS   BS_scaled C_score
 #default_tune	 2	 20	    25	     6	   0.730	0.179	0.273	    0.673	

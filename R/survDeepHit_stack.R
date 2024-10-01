@@ -131,7 +131,7 @@ survdhstack_train <-
                       max_grid_size = 1,
                       inner_cv = inner_cv,
                       randomseed = randomseed + cv_iteration,
-                      verbose = FALSE)
+                      verbose = verbose)
       # predict for data_oob
       ml_predict_oob <-
         survdeephit_predict(trained_model = deephit.cv,
@@ -226,7 +226,8 @@ survdhstack_cv <- function(df,
                            useCoxLasso = FALSE,
                            tuningparams = list(),
                            max_grid_size =10,
-                           parallel = FALSE
+                           parallel = FALSE,
+                           verbose = FALSE
 ) {
   Call <- match.call()
   if (sum(is.na(df[c("time", "event", predict.factors)])) > 0) {
@@ -247,7 +248,8 @@ survdhstack_cv <- function(df,
                       "useCoxLasso" = useCoxLasso,
                       "max_grid_size" = max_grid_size,
                       "randomseed" = randomseed,
-                      "fixed_time" = fixed_time),
+                      "fixed_time" = fixed_time,
+                      "verbose"= verbose),
     predict_args = list("predict.factors" = predict.factors),
     model_name = "Stacked_DeepHit_CoxPH",
     parallel = parallel

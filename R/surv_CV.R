@@ -37,7 +37,10 @@ surv_CV <-
     }
 
     time_0 <- Sys.time()
+
+    if (is.nan(fixed_time)) {fixed_time <-quantile(df[df$event == 1, "time"], 0.9, na.rm = TRUE)}
     if (is.nan(randomseed)) {randomseed <- round(stats::runif(1) * 1e9, 0)}
+
     if (!any(is.data.frame(df),
       predict.factors %in% colnames(df),
       c("time", "event") %in% colnames(df)
@@ -47,9 +50,6 @@ surv_CV <-
     }
     if (sum(is.na(df[c("time", "event", predict.factors)])) > 0) {
       stop("Missing data can not be handled. Please impute first.")
-    }
-    if (sum(is.nan(fixed_time)) > 0) {
-      fixed_time <- round(quantile(df[df$event == 1, "time"], 0.9), 1)
     }
     predict.factors <- eligible_params(predict.factors, df)
     if (length(predict.factors) == 0) {

@@ -15,7 +15,7 @@ survival_prob_km(df_km_train, times, estimate_censoring = FALSE)
 \item{estimate_censoring}{FALSE by default, if TRUE, event and censoring is reversed (for IPCW calculations)}
 }
 \value{
-vector of survival probabilities for time_points
+vector of survival probabilities for time_point
 }
 \description{
 Calculates survival probability estimated by Kaplan-Meier survival curve

@@ -51,7 +51,8 @@ survdhens_train <-
            randomseed = NaN,
            useCoxLasso = FALSE,
            tuningparams = list(),
-           max_grid_size =10) {
+           max_grid_size =10,
+           verbose = verbose) {
 
     Call <- match.call()
 
@@ -101,7 +102,8 @@ survdhens_train <-
                     tuningparams = tuningparams,
                     max_grid_size = max_grid_size,
                     inner_cv = inner_cv,
-                    randomseed = randomseed )
+                    randomseed = randomseed,
+                    verbose = verbose)
 
     #base cox model
     cox_base_model <-
@@ -114,6 +116,7 @@ survdhens_train <-
     output$model_base <- cox_base_model
     output$randomseed <- randomseed
     output$bestparams <- deephit.ens$bestparams
+    output$grid <- deephit.ens$grid_of_hyperparams
     output$call <-  match.call()
     class(output) <- "survensemble"
     return(output)
@@ -169,7 +172,8 @@ survdhens_cv <- function(df,
                       "useCoxLasso" = useCoxLasso,
                       "max_grid_size" = max_grid_size,
                       "randomseed" = randomseed,
-                      "fixed_time" = fixed_time),
+                      "fixed_time" = fixed_time,
+                      "verbose"= verbose),
     predict_args = list("predict.factors" = predict.factors),
     model_name = "DeepHit_ensemble",
     parallel = parallel

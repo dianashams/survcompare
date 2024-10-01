@@ -1,121 +1,134 @@
-#########################################################
-#' September 2023,  code by Diana Shamsutdinova
-#' 
+#'########################################################
+#' September 2024,  code by Diana Shamsutdinova
+#'
 #' Illustrative example of using the survcompare package
 #' a) linear data
 #' b) non-linear and interaction terms data
-#' c) GBSG2 data https://rdrr.io/cran/pec/man/GBSG2.html  
-#'    German Breast Cancer Study Group, Schumacher et al. (1994) 
-#' 
-########################################################
+#' c) GBSG2 data https://rdrr.io/cran/pec/man/GBSG2.html
+#'    German Breast Cancer Study Group, Schumacher et al. (1994)
+#'
+#'#######################################################
 
-### Aims of survcompare() method: 
+### Aims of survcompare() method:
 ### 1) Check if there are non-linear and interaction terms in the data
 ### 2) Quantify their contribution to the models' performance
-### 3) Help researchers to make an informed decision on whether 
+### 3) Help researchers to make an informed decision on whether
 ###     the benefit of using a flexible but less transparent machine learning method is high enough,
 ###     or the classical (or regularized) Cox model should be preferred.
-
-### Method: 
+### Method:
 ### 1) Using repeated cross-validation, validate the performance of the Cox model (or Cox Lasso)
-### 2) Validate the performance of the Survival Random Forest(SRF) (ensembled with the Cox model) which captures non-linearity and interactions automatically. 
+### 2) Validate the performance of the Survival Random Forest(SRF) (ensembled with the Cox model) which captures non-linearity and interactions automatically.
 ### 3) Perform statistical test to compare the models
-### 
-
-### Why ensemble and not just SRF? 
-### -> The ensemble of Cox and SRF takes the predictions of Cox model and adds to the list of 
-### predictors to train SRF. This way, we make sure that linearity is captured by SRF at 
-### least as good as the Cox model, and hence the marginal outperformance can be attributed to 
+###
+### Why ensemble and not just SRF?
+### -> The ensemble of Cox and SRF takes the predictions of Cox model and adds to the list of
+### predictors to train SRF. This way, we make sure that linearity is captured by SRF at
+### least as good as the Cox model, and hence the marginal outperformance can be attributed to
 ### the qualities of SRF that Cox does not have, i.e. data complexity.
+#'##############################################################
 
+#### a) Application to the simulated data with simple linear dependencies ####
 
-###############################################################
-
-# a) Application to the simulated data with simple linear dependencies
-
-# simulate data 
-mydata_1 <- simulate_linear(500)
+# simulate data
+mydata_1 <- simulate_linear(200)
 predictors <- names(mydata_1)[1:4]
-compare_models_1 <- survcompare(mydata_1, predictors, 10,
-                              outer_cv = 3, inner_cv = 3, repeat_cv = 1, 
-                              useCoxLasso = TRUE)
+compare_models_1 <- survcompare(mydata_1, predictors, randomseed = 100)
 
-summary(compare_models_1)
-# Internally validated test performance of CoxLasso   and Survival Random Forest ensemble:
-#                 T C_score  AUCROC     BS BS_scaled Calib_slope
-# CoxLasso      10  0.7684  0.7562 0.1133    0.3045      1.1366
-# SRF_Ensemble  10  0.7657  0.7489 0.1186    0.2726      1.4142
-# Diff           0 -0.0027 -0.0073 0.0052   -0.0319      0.2775
-# pvalue       NaN  0.5334  0.6005 0.6239    0.9887      0.2409
-#               Calib_alpha  sec
-# CoxLasso          0.2148 0.34
-# SRF_Ensemble      0.1627 3.03
-# Diff             -0.0521 2.69
-# pvalue            0.7563  NaN
-# 
-# Survival Random Forest ensemble has NOT outperformed CoxLasso  with mean c-index difference of-0.0027.
-# The difference is not statistically significant, p-value = 0.5334. The data may NOT contain considerable non-linear or cross-term dependencies, better captured by the Survival Random Forest.
-# C-score: 
-#   CoxLasso    0.7684(95CI=0.7075-0.823;SD=0.0611)
-#   SRF_Ensemble 0.7657(95CI=0.7229-0.8217;SD=0.0537)
-# AUCROC:
-#  CoxLasso   0.7562(95CI=0.6938-0.8617;SD=0.0987)
-#  SRF_Ensemble 0.7489(95CI=0.6508-0.8798;SD=0.1251)
+# # Internally validated test performance of CoxPH and SRF_ensemble over 2
+# repeated 3 fold cross-validations (inner k = 3 ). Mean performance:
+# T C_score  AUCROC Calib_slope  sec
+# CoxPH        8.043  0.7320  0.7265      0.8733 0.33
+# SRF_ensemble 8.043  0.6988  0.7007      1.0866 8.62
+# Diff         0.000 -0.0332 -0.0258      0.2133 8.29
+# pvalue         NaN  0.9864  0.9828      0.1238  NaN
+#
+# Median performance:
+#   T C_score  AUCROC Calib_slope  sec
+# CoxPH        8.043  0.7295  0.7309      0.7962 0.33
+# SRF_ensemble 8.043  0.7169  0.7226      0.9778 8.62
+# Diff         0.000 -0.0126 -0.0082      0.1816 8.29
+# pvalue         NaN  0.9864  0.9828      0.1238  NaN
+#
+# SRF_ensemble has NOT outperformed CoxPH with the mean c-index difference of -0.0332.
+# The difference is not statistically significant with the p-value = 0.9864.
+# The data may NOT contain considerable non-linear or cross-term dependencies
+# that could be captured by SRF_ensemble.
+# Mean C-score:
+#   CoxPH  0.732(95CI=0.721-0.743;SD=0.0163)
+# SRF_ensemble 0.6988(95CI=0.6898-0.7079;SD=0.0135)
+# Mean AUCROC:
+#   CoxPH  0.7265(95CI=0.7119-0.741;SD=0.0217)
+# SRF_ensemble 0.7007(95CI=0.6869-0.7146;SD=0.0206)
+
+# NOTE: the same results can be obtained by cross-validating CoxPH and SRF separately,
+# and then using survcompare2() function;
+# outer_cv, inner_cv, repeat_cv, and randomseed should be the same.
+# cv1<- survcox_cv(mydata_1, predictors, randomseed = 100)
+# cv2<- survsrfens_cv(mydata_1, predictors, randomseed = 100)
+# survcompare2(cv1, cv2)
 
 
-compare_models_1$main_stats
-#                          mean         sd   95CILow  95CIHigh
-# CoxPH_______C_score 0.7387869 0.04301220 0.6700542 0.8055633
-# SRFensemble_C_score 0.7135155 0.04300221 0.6417006 0.7851860
-# CoxPH________AUCROC 0.7842373 0.04593391 0.7053326 0.8534232
-# SRFensemble__AUCROC 0.7555365 0.04596786 0.6655202 0.8234735
+compare_models_1$main_stats_pooled
+#                       mean      sd  95CILow 95CIHigh
+# C_score_CoxPH        0.7320 0.01633  0.7210   0.7430
+# C_score_SRF_ensemble 0.6898 0.02260  0.6746   0.7050
+# AUCROC_CoxPH         0.7265 0.02165  0.7119   0.7410
+# AUCROC_SRF_ensemble  0.6919 0.03111  0.6710   0.7128
+
+# More information, including Brier Scores, Calibration slope and alphas can be seen in the
+# compare_models_1$results_mean. These are averaged performance metrics on the test sets.
+compare_models_1$results_mean
+#                 T  C_score   AUCROC      BS BS_scaled Calib_slope Calib_alpha  sec
+# CoxPH        8.043  0.73202  0.72649 0.14823   0.12633      0.8733    -0.14200 0.29
+# SRF_ensemble 8.043  0.68978  0.69192 0.16037   0.05228      1.0610     0.02838 8.65
+# Diff         0.000 -0.04224 -0.03457 0.01214  -0.07405      0.1877     0.17037 8.36
+# pvalue         NaN  0.99883  0.98781      NA   0.91152      0.1481     0.01964  NaN
 
 
-# b) Application to the simulated data with complex dependencies
+#### b) Application to the simulated data with complex dependencies ####
 
 # simulate data using simsurv_crossterms()
-mydata_2 <- simulate_crossterms(500)
+mydata_2 <- simulate_crossterms(200)
 mypredictors <- names(mydata_2)[1:4]
-compare_models_2 <- survcompare(mydata_2, mypredictors, 10,
-                              outer_cv = 3, inner_cv = 3, repeat_cv = 5, 
-                              useCoxLasso = FALSE)
+compare_models_2 <- survcompare(mydata_2, mypredictors, randomseed = 101)
+compare_models_2
+# Internally validated test performance of CoxPH and SRF_ensemble over 2 repeated
+# 3 fold cross-validations (inner k = 3 ). Mean performance:
+#   T C_score AUCROC Calib_slope  sec
+# CoxPH        8.315  0.5970 0.5716      0.6427 0.31
+# SRF_ensemble 8.315  0.6243 0.6130      0.4244 8.44
+# Diff         0.000  0.0273 0.0414     -0.2183 8.13
+# pvalue         NaN  0.0523 0.0328      0.8257  NaN
+#
+# Median performance:
+#   T C_score AUCROC Calib_slope  sec
+# CoxPH        8.315  0.6101 0.5983      0.7172 0.31
+# SRF_ensemble 8.315  0.6159 0.6145      0.3881 8.44
+# Diff         0.000  0.0058 0.0162     -0.3291 8.13
+# pvalue         NaN  0.0523 0.0328      0.8257  NaN
+#
+# SRF_ensemble has NOT outperformed CoxPH with the mean c-index difference of 0.0273.
+# The difference is not statistically significant with the p-value = 0.0523.
+# The data may NOT contain considerable non-linear or cross-term dependencies
+# that could be captured by SRF_ensemble.
+# Mean C-score:
+#   CoxPH  0.597(95CI=0.5691-0.625;SD=0.0416)
+# SRF_ensemble 0.6243(95CI=0.6222-0.6264;SD=0.0031)
+# Mean AUCROC:
+#   CoxPH  0.5716(95CI=0.5339-0.6094;SD=0.0562)
+# SRF_ensemble 0.613(95CI=0.6044-0.6216;SD=0.0128)
 
-# [1] "Cross-validating Cox-PH ( 5 repeat(s), 3 loops)"
-# |===============================================================| 100%
-# [1] "Cross-validating Survival Random Forest - Cox model ensemble ( 5 repeat(s), 3 outer, 3 inner loops)"
-# |===============================================================| 100%
-# Time difference of 22.68073 secs
-# 
-# Internally validated test performance of CoxPH     and Survival Random Forest ensemble:
-#                T C_score AUCROC      BS BS_scaled Calib_slope Calib_alpha   sec
-# CoxPH         10  0.6484 0.6502  0.1306    0.1714      0.7985      0.2242  1.18
-# SRF_Ensemble  10  0.7479 0.7601  0.1061    0.3282      0.7336      0.2361 22.68
-# Diff           0  0.0995 0.1098 -0.0245    0.1568     -0.0648      0.0119 21.50
-# pvalue       NaN  0.0000 0.0000  0.0104    0.0000      0.7684      0.3294   NaN
-# 
-# Survival Random Forest ensemble has outperformed CoxPH    by 0.0995 in C-index.
-# The difference is statistically significant with the p-value = 0***.
-# The supplied data may contain non-linear or cross-term dependencies, 
-# better captured by the Survival Random Forest.
-# C-score: 
-#   CoxPH      0.6484(95CI=0.5491-0.7104;SD=0.0476)
-# SRF_Ensemble 0.7479(95CI=0.6933-0.8316;SD=0.0433)
-# AUCROC:
-#   CoxPH      0.6502(95CI=0.5428-0.7078;SD=0.0484)
-# SRF_Ensemble 0.7601(95CI=0.6986-0.8381;SD=0.045)
-                    
 
-compare_models_2$main_stats
-#                           mean         sd   95CILow  95CIHigh
-# C_score_CoxPH        0.6483860 0.04764071 0.5491227 0.7103612
-# C_score_SRF_Ensemble 0.7478547 0.04332483 0.6933300 0.8315516
-# AUCROC_CoxPH         0.6502224 0.04842263 0.5428135 0.7077804
-# AUCROC_SRF_Ensemble  0.7600702 0.04495999 0.6985573 0.8381287
-
+compare_models_2$main_stats_pooled
+#                                 mean      sd 95CILow 95CIHigh
+# C_score_CoxPH                  0.5970 0.04160  0.5691   0.6250
+# C_score_Survival Random Forest 0.6310 0.01541  0.6207   0.6414
+# AUCROC_CoxPH                   0.5858 0.05611  0.5481   0.6235
+# AUCROC_Survival Random Forest  0.6540 0.00758  0.6489   0.6591
 
 ##################################################################
-# c) Application to the GBSG2 data https://rdrr.io/cran/pec/man/GBSG2.html  
-#  German Breast Cancer Study Group, Schumacher et al. (1994) 
+# c) Application to the GBSG2 data https://rdrr.io/cran/pec/man/GBSG2.html
+#  German Breast Cancer Study Group, Schumacher et al. (1994)
 
 library(pec) #for GBSG2 data
 data("GBSG2")
@@ -135,52 +148,66 @@ gbsg_data = gbsg_data[c("time", "event", params)]
 # choose the time horizon for predictions
 quantile(gbsg_data[gbsg_data$event==1, "time"],0.95) #4.96
 quantile(gbsg_data[gbsg_data$event==0, "time"],0.95) #6.34
-final_time = 5
 
 compare_models_gbsg <-
-  survcompare(
-    gbsg_data,
-    params,
-    predict_t = final_time,
-    outer_cv = 3,
-    inner_cv = 3,
-    repeat_cv = 5,
-    useCoxLasso = FALSE
-  )
+  survcompare(gbsg_data,params,fixed_time = 5,repeat_cv = 5, randomseed= 102)
 
-# [1] "Cross-validating Cox-PH ( 5 repeat(s), 3 loops)"
-# |=============================================================| 100%
-# [1] "Cross-validating Survival Random Forest - Cox model ensemble ( 5 repeat(s), 3 outer, 3 inner loops)"
-# |=============================================================| 100%
-# Time difference of 56.00061 secs
-# 
-# Internally validated test performance of CoxPH and Survival Random Forest ensemble:
-#                T C_score  AUCROC      BS BS_scaled Calib_slope
-# CoxPH          5  0.6773  0.7266  0.2435    0.0631      1.1869
-# SRF_Ensemble   5  0.6938  0.7230  0.2188    0.1584      1.3555
-# Diff           0  0.0165 -0.0036 -0.0247    0.0953      0.1686
-# pvalue       NaN  0.0001  0.7043  0.0819    0.0236      0.0596
-# Calib_alpha   sec
-# CoxPH             0.2393  1.52
-# SRF_Ensemble      0.8103 56.00
-# Diff              0.5709 54.48
-# pvalue            0.0067   NaN
-# 
-# Survival Random Forest ensemble has outperformed CoxPH by 0.0165*** in C-index.
-# The difference is statistically significant, p-value = 9.1e-05. 
-# The supplied data may contain non-linear or cross-term dependencies, 
-# better captured by the Survival Random Forest.
-# C-score: 
-#   CoxPH      0.6773(95CI=0.6392-0.7207;SD=0.0254)
-# SRF_Ensemble 0.6938(95CI=0.6617-0.7475;SD=0.0282)
-# AUCROC:
-#   CoxPH      0.7266(95CI=0.6529-0.8073;SD=0.0501)
-# SRF_Ensemble 0.723(95CI=0.6599-0.8206;SD=0.0515)
+# [1] "Cross-validating CoxPH using 5 repeat(s), 3 outer, 3 inner loops)."
+# [1] "Repeated CV 1 / 5"
+# |===================================================================| 100%
+# [1] "Repeated CV 2 / 5"
+# |===================================================================| 100%
+# [1] "Repeated CV 3 / 5"
+# |===================================================================| 100%
+# [1] "Repeated CV 4 / 5"
+# |===================================================================| 100%
+# [1] "Repeated CV 5 / 5"
+# |===================================================================| 100%
+# Time difference of 1.347 secs
+# [1] "Cross-validating Survival Random Forest using 5 repeat(s), 3 outer, 3 inner loops).
+# For SRF inner CV is not used if oob = TRUE (default)"
+# [1] "Repeated CV 1 / 5"
+# |===================================================================| 100%
+# [1] "Repeated CV 2 / 5"
+# |===================================================================| 100%
+# [1] "Repeated CV 3 / 5"
+# |===================================================================| 100%
+# [1] "Repeated CV 4 / 5"
+# |===================================================================| 100%
+# [1] "Repeated CV 5 / 5"
+# |===================================================================| 100%
+# Time difference of 57.9 secs
+#
+# Internally validated test performance of CoxPH and Survival Random Forest
+# over 5 repeated 3 fold cross-validations (inner k = 3 ). Mean performance:
+#                         T C_score  AUCROC Calib_slope   sec
+# CoxPH                    5  0.6737  0.7222      0.7779  1.35
+# Survival Random Forest   5  0.6898  0.7065      1.2132 57.90
+# Diff                     0  0.0161 -0.0157      0.4353 56.55
+# pvalue                 NaN  0.0014  0.9709      0.0009   NaN
+#
+# Median performance:
+#                          T C_score  AUCROC Calib_slope   sec
+# CoxPH                    5  0.6761  0.7444      0.7792  1.35
+# Survival Random Forest   5  0.6909  0.7107      1.1435 57.90
+# Diff                     0  0.0148 -0.0336      0.3643 56.55
+# pvalue                 NaN  0.0014  0.9709      0.0009   NaN
 
-round(compare_models_gbsg$main_stats,5)
-#                         mean      sd 95CILow 95CIHigh
-# C_score_CoxPH        0.67727 0.02538 0.63917  0.72065
-# C_score_SRF_Ensemble 0.69381 0.02821 0.66174  0.74751
-# AUCROC_CoxPH         0.72660 0.05008 0.65287  0.80733
-# AUCROC_SRF_Ensemble  0.72299 0.05149 0.65988  0.82055
+# Survival Random Forest has outperformed CoxPHby 0.0161 in C-index.
+# The difference is statistically significant with the p-value 0.0014**.
+# The supplied data may contain non-linear or cross-term dependencies,
+# better captured by Survival Random Forest.
+# Mean C-score:
+#   CoxPH  0.6737(95CI=0.6686-0.6787;SD=0.0043)
+# Survival Random Forest 0.6898(95CI=0.6795-0.6969;SD=0.0074)
+# Mean AUCROC:
+#   CoxPH  0.7222(95CI=0.7046-0.7372;SD=0.0138)
+# Survival Random Forest 0.7065(95CI=0.6828-0.7205;SD=0.0158)
 
+
+round(compare_models_gbsg$main_stats_pooled,5)
+#                                  mean      sd 95CILow 95CIHigh
+# C_score_CoxPH                  0.6737 0.00434  0.6686   0.6787
+# C_score_Survival Random Forest 0.6898 0.00744  0.6794   0.6969
+# AUCROC_CoxPH                   0.7222 0.01379  0.7046   0.7371
+# AUCROC_Survival Random Forest  0.7065 0.01580  0.6828   0.7205

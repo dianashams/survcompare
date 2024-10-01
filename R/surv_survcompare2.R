@@ -85,7 +85,7 @@ survcompare2 <- function(base, alternative) {
     stats_ci(alternative$test, "AUCROC")
   ))
 
-  repeat_cv <- base$cv[1]
+  repeat_cv <- base$cv[3]
   if (repeat_cv == 1) {
     auc_c_stats_pooled = auc_c_stats
   } else{
@@ -118,7 +118,7 @@ survcompare2 <- function(base, alternative) {
   t_coxph <- difftest(alternative$test, base$test, 1000, 25)
   t_coxph_train <- difftest(alternative$train, base$train, 1000, 25)
 
-  # adding results line for the differences with Cox-PH
+  # adding results' row for the differences with Cox-PH
   results_mean["Diff", ] = results_mean[2, ] - results_mean[1,]
   results_mean_train["Diff", ] = results_mean[2, ] - results_mean[1,]
   results_mean["pvalue", ] = c(t_coxph[3,], NaN) #NaN for "sec" column
@@ -133,10 +133,8 @@ survcompare2 <- function(base, alternative) {
   output$results_mean <- results_mean
   output$results_median <- results_median
   output$results_mean_train <- results_mean_train
-  output$return_models <- list(name1 = NaN,
-                               name2 = NaN)
-  output$bestparams <- list(name1 = NaN,
-                            name2 = alternative$bestparams)
+  output$return_models <- list(name1 = NaN,name2 = NaN)
+  output$bestparams <- list(name1 = NaN,name2 = alternative$bestparams)
   output$test <- list(name1 = base$test, name2 = alternative$test)
   output$train <- list(name1 = base$train, name2 = alternative$train)
   output$difftest <- t_coxph
@@ -147,10 +145,10 @@ survcompare2 <- function(base, alternative) {
   output$model_name_base <- name1
   output$model_name <- name2
   output$cv <- base$cv
+
   class(output) <- "survcompare"
   return(output)
 }
-
 
 # Testing statistical significance of the ensembled model outperformance
 # over the baseline model (Model 1 vs Model 0)

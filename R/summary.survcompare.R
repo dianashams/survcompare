@@ -68,7 +68,7 @@ summary.survcompare <-
     # print the output message
     cat(paste(t1, t2, ifelse(pv < 0.001, round(pv, 8), round(pv, 4)), pvstars, t3, sep = ""))
 
-    #print the main stats
+    #print the main stats, SD take from one cross-validation if only one CV ran (repeat_cv=1)
     ms <- x$main_stats_pooled
     f <- function(i) {
       paste(round(mean(ms[i, "mean"]), 4),
