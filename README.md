@@ -99,7 +99,7 @@ round(compare_models$main_stats_pooled,4)
 # AUCROC_CoxPH                   0.7096 0.0218  0.6949   0.7242
 # AUCROC_Survival Random Forest  0.7277 0.0536  0.6917   0.7638
 
-# Check the stacked ensemble:
+# -------------  Stacked ensemble: -------------
 cvstack <- survsrfstack_cv(mydata2, mypredictors2, randomseed = 100, repeat_cv = 3)
 # get lambdas:
 unlist(cvstack$bestparams$lambda)
