@@ -1,8 +1,6 @@
 #' Summary of survcompare results
-#'
 #' @param object output object of the survcompare function
 #' @param ... additional arguments to be passed
-#' @return object
 #' @export
 summary.survcompare <-
   function(object, ...) {
@@ -75,9 +73,9 @@ summary.survcompare <-
             "(95CI=",round(mean(ms[i, "95CILow"]), 4),"-",
             round(mean(ms[i, "95CIHigh"]), 4),";SD=",
             round(mean(ms[i, "sd"]), 4),")",sep = "")}
-    #' to check which row is for AUCROC for Cox and ML,
-    #' if baseline ML was also reported, these are rows 4 and 5
-    #' if not, then rows 3 and 4, so we add 1 if needed to 3 and 4
+    # to check which row is for AUCROC for Cox and ML,
+    # if baseline ML was also reported, these are rows 4 and 5
+    # if not, then rows 3 and 4, so we add 1 if needed to 3 and 4
     ii = ifelse(dim(ms)[1]==4, 0, 1)
     cat(
       paste( "Mean C-score: \n  ",coxend,"  ",
@@ -98,7 +96,5 @@ print.survcompare <- function(x, ...) {
     stop("Not a \"survcompare\" object")
   }
   summary.survcompare(x)
-  cat("\n", "See other items as x$item. Items available:\n")
-  cat(names(x), sep = ", ")
   invisible(x)
 }

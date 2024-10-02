@@ -36,6 +36,8 @@ survsrfens_train(
 \item{max_grid_size}{number of random grid searches for model tuning}
 
 \item{var_importance_calc}{if variable importance is computed}
+
+\item{verbose}{FALSE (default)/TRUE}
 }
 \value{
 trained object of class survsrf_ens

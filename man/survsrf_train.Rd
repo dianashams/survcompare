@@ -47,7 +47,7 @@ Ishwaran H, Kogalur UB, Blackstone EH, Lauer MS. Random survival forests.
 The Annals of Applied Statistics. 2008;2:841–60.
 }
 \examples{
-d <-simulate_nonlinear(100),
+d <-simulate_nonlinear(100)
 p<- names(d)[1:4]
 tuningparams = list(
  "mtry" = c(5,10,15),

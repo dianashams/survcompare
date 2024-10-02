@@ -16,7 +16,6 @@ survsrfstack_cv(
   useCoxLasso = FALSE,
   tuningparams = list(),
   max_grid_size = 10,
-  parallel = FALSE,
   verbose = FALSE
 )
 }
@@ -35,13 +34,13 @@ survsrfstack_cv(
 
 \item{randomseed}{random seed to control tuning including data splits}
 
+\item{return_models}{TRUE/FALSE, if TRUE returns all CV objects}
+
 \item{useCoxLasso}{if CoxLasso is used (TRUE) or not (FALSE, default)}
 
 \item{tuningparams}{if given, list of hyperparameters, list(mtry=c(), nodedepth=c(),nodesize=c()), otherwise a wide default grid is used}
 
 \item{max_grid_size}{number of random grid searches for model tuning}
-
-\item{parallel}{if parallel calculations are used}
 
 \item{verbose}{FALSE(default)/TRUE}
 }

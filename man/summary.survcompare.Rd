@@ -11,9 +11,6 @@
 
 \item{...}{additional arguments to be passed}
 }
-\value{
-object
-}
 \description{
 Summary of survcompare results
 }

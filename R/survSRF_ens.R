@@ -5,7 +5,6 @@
 #' @param trained_model a trained model, output of survsrfens_train()
 #' @param newdata new data for which predictions are made
 #' @param fixed_time time of interest, for which event probabilities are computed
-#' @param predict.factors list of predictor names
 #' @param extrapsurvival if probabilities are extrapolated beyond trained times (constant)
 #' @return vector of predicted event probabilities
 #' @export
@@ -41,6 +40,7 @@ survsrfens_predict <- function(trained_model,
 #' @param useCoxLasso if CoxLasso is used (TRUE) or not (FALSE, default)
 #' @param max_grid_size number of random grid searches for model tuning
 #' @param var_importance_calc if variable importance is computed
+#' @param verbose FALSE (default)/TRUE
 #' @return trained object of class survsrf_ens
 #' @export
 survsrfens_train <- function(df_train,
@@ -142,7 +142,6 @@ survsrfens_train <- function(df_train,
 #' @param useCoxLasso TRUE/FALSE, default is FALSE
 #' @param tuningparams if given, list of hyperparameters, list(mtry=c(), nodedepth=c(),nodesize=c()), otherwise a wide default grid is used
 #' @param max_grid_size number of random grid searches for model tuning
-#' @param parallel if parallel calculations are used
 #' @param verbose FALSE(default)/TRUE
 #' @examples \donttest{
 #' \dontshow{rfcores_old <- options()$rf.cores; options(rf.cores=1)}
@@ -164,19 +163,17 @@ survsrfens_cv <- function(df,
                             useCoxLasso = FALSE,
                             tuningparams = list(),
                             max_grid_size = 10,
-                            parallel = FALSE,
                             verbose = FALSE) {
   Call <- match.call()
   inputs <- list(df , predict.factors, fixed_time,
                  outer_cv,inner_cv, repeat_cv,
                  randomseed, return_models,
-                 useCoxLasso,tuningparams, parallel)
+                 useCoxLasso,tuningparams)
   inputclass<- list(df = "data.frame", predict.factors = "character",
                     fixed_time = "numeric",outer_cv = "numeric",
                     inner_cv = "numeric", repeat_cv = "numeric",
                     randomseed = "numeric",return_models = "logical",
-                    useCoxLasso="logical", tuningparams = "list",
-                   parallel = "logical")
+                    useCoxLasso="logical", tuningparams = "list")
 
   cp<- check_call(inputs, inputclass, Call)
   if (cp$anyerror) stop (paste(cp$msg[cp$msg!=""], sep=""))
@@ -201,8 +198,7 @@ survsrfens_cv <- function(df,
                       "max_grid_size" = max_grid_size,
                       "randomseed" = randomseed,
                       "verbose" = verbose),
-    model_name = "SRF_ensemble",
-    parallel= parallel
+    model_name = "SRF_ensemble"
   )
   output$call <- Call
   return(output)

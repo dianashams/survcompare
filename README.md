@@ -4,17 +4,29 @@
 
 ![image](https://github.com/dianashams/ensemble-methods-for-survival-analysis/blob/gh-pages/survcompare_cartoon.png)
 ### Method: 
-The primary goal is to assist researchers in making informed decisions regarding whether they should choose a flexible yet less transparent machine learning approach or a traditional linear method. This is achieved by examining the presence of non-linear and interaction terms within the data and quantifying their impact on the models' performance. Using repeated nested cross-validation, the package:
-  * Validates Cox Proportionate Hazards model, or Cox Lasso depending on the user's input. The underlying models are 'survival::coxph()' [1,2] or 'glmnet::glmnet(..., family="cox")'[3].
-  * Validates Survival Random Forest ensembled with the baseline Cox model. The underlying Survival Random Forest model is 'randomForestSRC::rfsrc()' [4].
-  * Performs statistical testing of whether the ensemble has outperformed the Cox model.
+The primary goal is to assist researchers in making informed decisions regarding whether they should choose a flexible yet less transparent machine learning approach or a traditional linear method. This is achieved by examining the presence of non-linear and interaction terms within the data and quantifying their impact on the models' performance. 
+
+The package fits, tunes, and internaly validates the baseline Cox Proportionate Hazards model (CoxPH), and compares its performance to one of the machine learning alternatives (Survival Random Forest (SRF), or its ensemble with CoxPH). A comparison with the deep learning model DeepHit is available through the package's GitHub version. 
+The package 
+   * Fits and tunes the underlying models using cross-validated random hyperparameter search 
+   * Performs statistical testing to compare the outperformance of the SRF (or SRF-CoxPH ensemble) over the baseline Cox-PH model
+     
+In more details, the baseline models are: 
+  * Cox Proportionate Hazards model. The underlying model is 'survival::coxph()' [1,2]. 
+  * Cox-Lasso regularized version of the CoxpH. The underlying model is 'glmnet::glmnet(..., family="cox")'[3].
+
+The alternatives are:  
+  * Survival Random Forest (SRF) model, the underlying  model is 'randomForestSRC::rfsrc()' [4]. 
+  * Sequential ensemble of the SRF with the baseline Cox model [6]. The ensemble takes CoxPH predictions and supplied them to  Survival Random Forest as an additional predictor, see more explanations below.
+  * Stacked ensemble of the CoxPH and Survival Random Forest, $`\lambda CoxPH + (1-\lambda) SRF`$. Lambda parameter is tuned within the package and the value shows what share of SRF predictions can improve the baseline CoxPH performance. $`\lambda = 0`$ means only CoxPH is used, $`\lambda = 1`$  means the model only relies on Survival Random Forest.
+  * GitHit only: deep learning model DeepHit 'survivalmodels::deephit()', as well as its sequential and stacked ensembles with CoxPH or Cox-Lasso. 
 
 The performance metrics include [5]:
  * Discrimination measures: Harrell's concordance index, time-dependent AUCROC.
  * Calibration measures: calibration slope, calibration alpha.
  * Overall fit: Brier score, Scaled Brier score. 
 
-NB: Survcompare is the first ensemble method described in https://dianashams.github.io/ensemble-methods-for-survival-analysis/ as published in Shamsutdinova, Stamate, Roberts, & Stahl (2022, June) [6]. 
+NB: Sequential ensemble is the first ensemble method described in https://dianashams.github.io/ensemble-methods-for-survival-analysis/ as published in Shamsutdinova, Stamate, Roberts, & Stahl (2022, June) [6]. 
 
 ### Getting started 
 You can install the package from CRAN as `install.packages("survcompare")`, or from its github directory by running the `devtools::install_github("dianashams/survcompare")` command. The main function to use is `survcompare(data, predictors)`. The data should be in a form of a data frame, with "time" and "event" columns defining the survival outcome. A list of column names corresponding to the predictors to be used should also be supplied.
@@ -22,12 +34,16 @@ You can install the package from CRAN as `install.packages("survcompare")`, or f
 #### FAQ1: Why these (CoxPH and SRF) models? 
 CoxPH model is a widely used survival model proved to be robust and easy to interprete. It assumes linear dependency of the log-hazards on the predictors; in its classical form, the effect of predictors is time-invariant which underlies the proportionality assumption. This  means that models' estimates are the averaged over time effects of predictors on the instant chances of survival. 
 
-SRF is a machine learning algorithm that recursively splits the data into the sub-samples with similar survival profiles. It can deal with non-proportionate hazards and automatically captures non-linear and interaction terms, on top of the linear dependencies that CoxPH handles. However, it tends to overfit, and interpretation of radom forests' predictions is not straightforward especially for the survival data.
+SRF is a machine learning algorithm that recursively splits the data into the sub-samples with similar survival profiles. It can deal with non-proportionate hazards and automatically captures non-linear and interaction terms, on top of the linear dependencies that CoxPH handles. However, it can overfit, especially in smaller datasets, often seen in clinical data, and interpretation of random forests' predictions is not straightforward especially for the survival data.
 
 Given these qualities, SRF vs CoxPH's comparison is indicative of compex data dependencies, and quantifies the cost of using a simpler CoxPH model versus more flexible alternatives.
 
 #### FAQ2: Why the ensemble and not just SRF? 
-The ensemble of Cox and SRF takes the predictions of the Cox model and adds to the list of predictors to train SRF. This way, we make sure that linearity is captured by SRF at least as good as in the Cox model, and hence the marginal outperformance of the ensemble over the Cox model can be fully attributed to the qualities of SRF that Cox does not have, that is, data complexity.
+First, you can use the package to compare the performances of the CoxPH and SRF themselves. 
+
+Second, the ensembles aim to single out the predictive value of the non-linearities and other data relationships that could not be captured by the baseline models. In both ensembles, the final models has a direct access to the predictions of the baseline CoxPH, and hence, the outperformance can be fully attributed to such complex relationships. 
+
+For example, the sequential ensemble of Cox and SRF takes the predictions of the Cox model and adds to the list of predictors to train SRF. This way, we make sure that linearity is captured by SRF at least as good as in the Cox model, and hence the marginal outperformance of the ensemble over the Cox model can be fully attributed to the qualities of SRF that Cox does not have, that is, data complexity.
 
 #### FAQ3: How do I interpret and use the results? 
 First, try to run sufficient number of repetitions (repeat_cv), at least 5, ideally 20-50 depending on the data heterogeneity and size.
@@ -36,45 +52,89 @@ There are two possible outcomes: "Survival Random Forest ensemble has outperform
   * In the case of **outperformance**, a researcher can 1) decide to go for a more complex model, 2) look for the interaction and non-linear terms that could be added to the CoxPH and re-run the test again, or 3) consider still using the CoxPH model if the difference is not large in the context of the performed task, or not enough to sacrifice model interpretability.
 
 ### Example:
-The files in the "Example/" folder illustrate `survcompare`'s  application to the simulated and GBSG2  (https://rdrr.io/cran/pec/man/GBSG2.html) datasets. The outputs contain  internally-validated performance metrics along with the results of the statistical testing of whether Survival Random Forest outperforms the Cox Proportionate Hazard model (or Cox Lasso).  
 ```R
 mydata <- simulate_crossterms()
 mypredictors <- names(mydata)[1:4]
-compare_models <- survcompare(mydata, mypredictors, predict_t = 10)
+compare_models <- survcompare(mydata, mypredictors, fixed_time = 9)
 
-# [1] "Cross-validating Survival Random Forest - Cox model ensemble ( 5 repeat(s), 5 outer, 3 inner loops)"
-# |========================================================================================| 100%
-# Time difference of 1.574276 secs
-# [1] "Cross-validating Survival Random Forest - Cox model ensemble ( 5 repeat(s), 5 outer, 3 inner loops)"
-# |========================================================================================| 100%
-# Time difference of 27.41951 secs
+# [1] "Cross-validating CoxPH using 2 repeat(s), 3 outer, 3 inner loops)."
+# [1] "Repeated CV 1 / 2"
+# |====================================================================================| 100%
+# [1] "Repeated CV 2 / 2"
+# |====================================================================================| 100%
+# Time difference of 0.4649661 secs
+# [1] "Cross-validating Survival Random Forest using 2 repeat(s), 3 outer, 3 inner loops)."
+# [1] "Repeated CV 1 / 2"
+# |====================================================================================| 100%
+# [1] "Repeated CV 2 / 2"
+# |====================================================================================| 100%
+# Time difference of 9.842596 secs
+# Internally validated test performance of CoxPH and Survival Random Forest over 2 repeated 3 fold cross-validations (inner k = 3 ). Mean performance:
+#   T C_score AUCROC Calib_slope  sec
+# CoxPH                    9  0.6774 0.7096      0.8407 0.46
+# Survival Random Forest   9  0.6974 0.7277      1.0101 9.84
+# Diff                     0  0.0200 0.0182      0.1695 9.38
+# pvalue                 NaN  0.0602 0.1177      0.1564  NaN
 # 
-# Internally validated test performance of CoxPH     and Survival Random Forest ensemble:
-#                T C_score AUCROC      BS BS_scaled Calib_slope Calib_alpha   sec
-# CoxPH         10  0.5937 0.6043  0.1341    0.1529      0.8507      0.1528  1.57
-# SRF_Ensemble  10  0.7362 0.7548  0.1143    0.2773      0.9432      0.2123 27.42
-# Diff           0  0.1425 0.1505 -0.0198    0.1244      0.0925      0.0595 25.85
-# pvalue       NaN  0.0000 0.0000  0.0848    0.0000      0.2785      0.0958   NaN
+# Median performance:
+#   T C_score AUCROC Calib_slope  sec
+# CoxPH                    9  0.6623 0.7054      0.7447 0.46
+# Survival Random Forest   9  0.7042 0.7514      1.0164 9.84
+# Diff                     0  0.0419 0.0460      0.2717 9.38
+# pvalue                 NaN  0.0602 0.1177      0.1564  NaN
 # 
-# Survival Random Forest ensemble has outperformed CoxPH    by 0.1425 in C-index.
-# The difference is statistically significant with the p-value 0***.
+# Survival Random Forest has NOT outperformed CoxPH with the mean c-index difference of 0.02.
+# The difference is not statistically significant with the p-value = 0.0602. 
+# The data may NOT contain considerable non-linear or cross-term dependencies
+# that could be captured by Survival Random Forest.
+# Mean C-score: 
+#   CoxPH  0.6774(95CI=0.6737-0.6811;SD=0.0055)
+# Survival Random Forest 0.6974(95CI=0.6791-0.7157;SD=0.0272)
+# Mean AUCROC:
+#   CoxPH  0.7096(95CI=0.6949-0.7242;SD=0.0218)
+# Survival Random Forest 0.7277(95CI=0.6917-0.7638;SD=0.0536)
+
+round(compare_models$main_stats_pooled,4)
+
+#                                  mean     sd 95CILow 95CIHigh
+# C_score_CoxPH                  0.6774 0.0055  0.6737   0.6811
+# C_score_Survival Random Forest 0.6974 0.0272  0.6791   0.7157
+# AUCROC_CoxPH                   0.7096 0.0218  0.6949   0.7242
+# AUCROC_Survival Random Forest  0.7277 0.0536  0.6917   0.7638
+
+# -------------  Stacked ensemble: -------------
+cvstack <- survsrfstack_cv(mydata2, mypredictors2, randomseed = 100, repeat_cv = 3)
+# get lambdas:
+unlist(cvstack$bestparams$lambda)
+#[1] 0.99 1.00 1.00 0.78 0.98 0.55 0.44 0.96 0.60
+# mean lambda
+mean(unlist(cvstack$bestparams$lambda)) #0.811 - the meta-learner mostly relies on SRF 
+
+# Compare stacked ensemble performance to the basline CoxLasso using survcompare2() function:
+cv1 <- survcox_cv(mydata2, mypredictors2, randomseed = 100, repeat_cv = 3, useCoxLasso = TRUE)
+compare2 <- survcompare2(cv1, cvstack)
+
+# Internally validated test performance of CoxLasso and Stacked_SRF_CoxPH over 
+# 3 repeated 3 fold cross-validations (inner k = 3 ). Mean performance:
+#                     T C_score AUCROC Calib_slope   sec
+# CoxLasso            9  0.6377 0.6395      1.4429  0.69
+# Stacked_SRF_CoxPH   9  0.7720 0.8119      1.0922 14.09
+# Diff                0  0.1343 0.1723     -0.3508 13.40
+# pvalue            NaN  0.0000 0.0000      0.8327   NaN
+# 
+# Stacked_SRF_CoxPH has outperformed CoxLassoby 0.1343 in C-index.
+# The difference is statistically significant with the p-value 1.27e-06***.
 # The supplied data may contain non-linear or cross-term dependencies, 
-# better captured by the Survival Random Forest.
-# C-score: 
-#   CoxPH      0.5937(95CI=0.4171-0.7671;SD=0.1026)
-# SRF_Ensemble 0.7362(95CI=0.646-0.8731;SD=0.062)
-# AUCROC:
-#   CoxPH      0.6043(95CI=0.4114-0.8046;SD=0.113)
-# SRF_Ensemble 0.7548(95CI=0.6431-0.8717;SD=0.0668)
+# better captured by Stacked_SRF_CoxPH.
+# Mean C-score: 
+#   CoxLasso  0.6377(95CI=0.6312-0.6479;SD=0.0096)
+# Stacked_SRF_CoxPH 0.772(95CI=0.7543-0.7885;SD=0.018)
+# Mean AUCROC:
+#   CoxLasso  0.6395(95CI=0.6325-0.6492;SD=0.0091)
+# Stacked_SRF_CoxPH 0.8119(95CI=0.7885-0.8296;SD=0.0224)
 
-compare_models$main_stats
-
-#                           mean         sd   95CILow  95CIHigh
-# C_score_CoxPH        0.5936962 0.10258552 0.4171451 0.7671053
-# C_score_SRF_Ensemble 0.7361651 0.06201633 0.6460198 0.8730571
-# AUCROC_CoxPH         0.6042905 0.11296335 0.4113758 0.8046243
-# AUCROC_SRF_Ensemble  0.7547585 0.06677083 0.6431052 0.8716964
 ```
+NB: More examples are located in the "Example/" folder. 
 
 ### If you use the package or its code, please cite:
 Shamsutdinova, D., Stamate, D., Roberts, A., & Stahl, D. (2022). Combining Cox Model and Tree-Based Algorithms to Boost Performance and Preserve Interpretability for Health Outcomes. In IFIP International Conference on Artificial Intelligence Applications and Innovations (pp. 170-181). Springer, Cham.

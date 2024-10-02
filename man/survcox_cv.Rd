@@ -13,8 +13,7 @@ survcox_cv(
   randomseed = NaN,
   return_models = FALSE,
   inner_cv = 3,
-  useCoxLasso = FALSE,
-  parallel = FALSE
+  useCoxLasso = FALSE
 )
 }
 \arguments{

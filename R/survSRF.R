@@ -48,7 +48,7 @@ survsrf_predict <-
 #' @param verbose TRUE/FALSE, FALSE by default
 #' @return output = list(bestparams, allstats, model)
 #' @examples
-#' d <-simulate_nonlinear(100),
+#' d <-simulate_nonlinear(100)
 #' p<- names(d)[1:4]
 #' tuningparams = list(
 #'  "mtry" = c(5,10,15),
@@ -176,6 +176,8 @@ survsrf_tune <-
 #' @param fixed_time predictions for which time are computed for c-index
 #' @param grid_hyperparams  hyperparameters grid (or a default will be used )
 #' @param inner_cv number of folds for each CV
+#' @param randomseed randomseed
+#' @param progressbar FALSE(default)/TRUE
 #' @return  output=list(grid, cindex, cindex_mean)
 survsrf_tune_single <-
   function(df_tune,
@@ -269,6 +271,12 @@ survsrf_tune_single <-
 
 #' Internal function for getting grid of hyperparameters
 #' for random or grid search of size = max_grid_size
+#' @param mlparams list of params
+#' @param dftune_size size of the tuning data to define nodesize options
+#' @param p number of predictors to detine mtry options
+#' @param max_grid_size grid size for tuning
+#' @param randomseed randomseed to select the tuning grid
+#' @export
 ml_hyperparams_srf <- function(mlparams = list(),
                               p = 10,
                               max_grid_size = 10,
@@ -322,7 +330,6 @@ ml_hyperparams_srf <- function(mlparams = list(),
 #' @param return_models if all models are stored and returned
 #' @param tuningparams if given, list of hyperparameters, list(mtry=c(), nodedepth=c(),nodesize=c()), otherwise a wide default grid is used
 #' @param max_grid_size number of random grid searches for model tuning
-#' @param parallel if parallel calculations are used
 #' @param verbose FALSE(default)/TRUE
 #' @examples \donttest{
 #' \dontshow{rfcores_old<- options()$rf.cores; options(rf.cores = 1)}
@@ -343,7 +350,6 @@ survsrf_cv <- function(df,
                        return_models = FALSE,
                        tuningparams = list(),
                        max_grid_size = 10,
-                       parallel = FALSE,
                        verbose = FALSE) {
 
   Call <- match.call()
@@ -357,7 +363,6 @@ survsrf_cv <- function(df,
                  return_models,
                  tuningparams,
                  max_grid_size,
-                 parallel,
                  verbose
                  )
   inputclass<- list(df = "data.frame",
@@ -370,7 +375,6 @@ survsrf_cv <- function(df,
                     return_models = "logical",
                     tuningparams = "list",
                     max_grid_size = "numeric",
-                    parallel = "logical",
                     verbose = "logical")
 
   cp<- check_call(inputs, inputclass, Call)
@@ -395,8 +399,7 @@ survsrf_cv <- function(df,
                       fixed_time = fixed_time,
                       randomseed = randomseed,
                       verbose = verbose),
-    model_name = "Survival Random Forest",
-    parallel = parallel
+    model_name = "Survival Random Forest"
   )
   output$call <- Call
   return(output)

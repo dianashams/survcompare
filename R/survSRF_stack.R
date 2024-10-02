@@ -22,7 +22,7 @@ survsrfstack_predict <-
       survcox_predict(trained_model = trained_object$model_base_cox,
                       newdata = newdata, fixed_time = fixed_time)
     # if it is just Cox model, i.e. lambda = 0, return Cox predictions
-    if ((!use_alternative_model) & (l==0)) {return (predictdata$cox_predict)}
+    if (l==0) {return (predictdata$cox_predict)}
     # otherwise compute ML predictions
     predictdata$ml_predict <-
       survsrf_predict(trained_model = trained_object$model_base_ml,
@@ -35,7 +35,7 @@ survsrfstack_predict <-
     return(p)
   }
 
-# Trains stacked ensemble of the CoxPH and Survival Random Forest
+#' Trains the stacked ensemble of the CoxPH and Survival Random Forest
 #' @param df_train  data, "time" and "event" should describe survival outcome
 #' @param predict.factors list of predictor names
 #' @param fixed_time time at which performance is maximized
@@ -47,7 +47,7 @@ survsrfstack_predict <-
 #' @param verbose FALSE(default)/TRUE
 #' @return output = list(bestparams, allstats, model)
 #' @examples
-#' d <-simulate_nonlinear(100),
+#' d <-simulate_nonlinear(100)
 #' p<- names(d)[1:4]
 #' tuningparams = list(
 #'  "mtry" = c(5,10,15),
@@ -186,30 +186,11 @@ survsrfstack_train <-
 
     if(verbose) cat("\t Lambda = ", lambdas[best_i],", in Cox + lambda * (ML - Cox).")
 
-    # alternative stacked model (unrestricted to lambda in 0-1)
-    # 1/0 by fixed_time:
-    df_train$event_t <-
-      ifelse(df_train$time <= fixed_time & df_train$event == 1, 1, 0)
-    logit = function(x) {
-      log(pmax(pmin(x, 0.9999), 0.0001) / (1 - pmax(pmin(x, 0.9999), 0.0001)))
-    }
-    df_train$cox_predict_logit <- logit(df_train$cox_predict)
-    df_train$ml_predict_logit <- logit(df_train$ml_predict)
-    # Excluding censored observations before fixed_time, leave those with known state
-    df_train_in_scope <-
-      df_train[(df_train$time >= fixed_time) |
-                 (df_train$time < fixed_time & df_train$event == 1),]
-    model_meta_alternative <-
-      glm(event_t ~ cox_predict_logit + ml_predict_logit,
-          data = df_train_in_scope,
-          family = "binomial")
-
     #output
     output = list()
     output$model_name <- "Stacked_SRF_CoxPH"
     output$oob_predictions <- df_train
     output$lambda <- lambdas[best_i]
-    output$model_meta_alternative <- model_meta_alternative
     output$model_base_cox <- cox_base_model
     output$model_base_ml <- ml_base_model
     output$randomseed <- randomseed
@@ -228,10 +209,10 @@ survsrfstack_train <-
 #' @param inner_cv number of cross-validation folds for hyperparameters' tuning
 #' @param repeat_cv number of CV repeats, if NaN, runs once
 #' @param randomseed random seed to control tuning including data splits
+#' @param return_models TRUE/FALSE, if TRUE returns all CV objects
 #' @param useCoxLasso if CoxLasso is used (TRUE) or not (FALSE, default)
 #' @param tuningparams if given, list of hyperparameters, list(mtry=c(), nodedepth=c(),nodesize=c()), otherwise a wide default grid is used
 #' @param max_grid_size number of random grid searches for model tuning
-#' @param parallel if parallel calculations are used
 #' @param verbose FALSE(default)/TRUE
 #' @export
 survsrfstack_cv <- function(df,
@@ -245,7 +226,6 @@ survsrfstack_cv <- function(df,
                          useCoxLasso = FALSE,
                          tuningparams = list(),
                          max_grid_size =10,
-                         parallel = FALSE,
                          verbose = FALSE
 ) {
   Call <- match.call()
@@ -272,8 +252,7 @@ survsrfstack_cv <- function(df,
                       "fixed_time" = fixed_time,
                       "verbose" = verbose),
     predict_args = list("predict.factors" = predict.factors),
-    model_name = "Stacked_SRF_CoxPH",
-    parallel = parallel
+    model_name = "Stacked_SRF_CoxPH"
   )
   output$call <- Call
   return(output)

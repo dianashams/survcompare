@@ -11,24 +11,7 @@ surv_CV <-
            predict_function,
            model_args = list(),
            predict_args = list(),
-           model_name = "my model",
-           parallel = FALSE) {
-
-    if (parallel) {
-      return(surv_CV_parallel(df,
-                              predict.factors,
-                              fixed_time,
-                              outer_cv,
-                              inner_cv,
-                              repeat_cv,
-                              randomseed,
-                              return_models,
-                              train_function,
-                              predict_function,
-                              model_args,
-                              predict_args,
-                              model_name))
-      }
+           model_name = "my model") {
 
     if (!is.null(model_args$max_grid_size)) {
       max_grid_size = model_args$max_grid_size
@@ -62,12 +45,9 @@ surv_CV <-
     if (is.numeric(repeat_cv) & repeat_cv > 1) {
       repeat_cv = round(repeat_cv, 0)    } else{      repeat_cv = 1    }
 
-    note_srf = ifelse(
-      model_name == "Survival Random Forest",
-      "For SRF inner CV is not used if oob = TRUE (default)",  "")
     print(paste("Cross-validating ",model_name," using ",repeat_cv,
         " repeat(s), ",outer_cv," outer, ",inner_cv," inner loops).",
-        note_srf,sep = ""))
+        sep = ""))
 
     modelstats_train <- list()
     modelstats_test <- list()

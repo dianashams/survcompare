@@ -13,6 +13,17 @@ ml_hyperparams_srf(
   randomseed = NaN
 )
 }
+\arguments{
+\item{mlparams}{list of params}
+
+\item{p}{number of predictors to detine mtry options}
+
+\item{max_grid_size}{grid size for tuning}
+
+\item{dftune_size}{size of the tuning data to define nodesize options}
+
+\item{randomseed}{randomseed to select the tuning grid}
+}
 \description{
 Internal function for getting grid of hyperparameters
 for random or grid search of size = max_grid_size

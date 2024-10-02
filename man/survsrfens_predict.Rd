@@ -14,8 +14,6 @@ survsrfens_predict(trained_model, newdata, fixed_time, extrapsurvival = TRUE)
 \item{fixed_time}{time of interest, for which event probabilities are computed}
 
 \item{extrapsurvival}{if probabilities are extrapolated beyond trained times (constant)}
-
-\item{predict.factors}{list of predictor names}
 }
 \value{
 vector of predicted event probabilities

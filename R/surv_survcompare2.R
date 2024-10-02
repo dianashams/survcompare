@@ -1,20 +1,17 @@
-#' @description
 #' Compares two cross-validated models using surv____cv functions of this package.
-#' Usually, this is a Cox Proportionate Hazards Model (or Cox LASSO), and Survival Random Forest,
+#' @description
+#' #' The two arguments are two cross-validated models, base and alternative,
+#'  e.g., Cox Proportionate Hazards Model (or Cox LASSO), and Survival Random Forest,
 #' or DeepHit (if installed from GitHub, not in CRAN version). Please see examples below.
 #'
-#' The same random seed, number of repetitions (repeat_cv), outer and inner folds numbers should have
-#' been used for cross-validation objects such that those can be compared using survcompare2().
-#' This ensures that the same data splits were used, and hence model performance on the same train/test splits are compared.
+#' Both cross-validations should be done with the same random seed, number of repetitions
+#' (repeat_cv), outer_cv and inner_cv to ensure the models are compared on the same train/test splits.
+#'
 #' Harrel's c-index,time-dependent AUC-ROC, time-dependent Brier Score, and calibration slopes are reported.
-#' The statistical significance of the performance differences is performed based on the C-index.
+#' The statistical significance of the performance differences is tested for the C-indeces.
 #'
 #' The function is designed to help with the model selection by quantifying the loss of predictive
-#' performance (if any) if Cox-PH is used instead of a more complex model such as SRF
-#' which can capture non-linear and interaction terms, as well as non-proportionate hazards.
-#' The difference in performance of the Ensembled Cox and SRF and the baseline Cox-PH
-#' can be viewed as quantification of the non-linear and cross-terms contribution to
-#' the predictive power of the supplied predictors.
+#' performance (if any) if "alternative" is used instead of "base."
 #'
 #' @importFrom survival Surv
 #' @importFrom timeROC timeROC
@@ -34,8 +31,8 @@
 #' @examples
 #' df <-simulate_nonlinear(100)
 #' params <- names(df)[1:4]
-#' cv1 <- survcox_cv(df, params, randomseed = 42)
-#' cv2 <- survsrf_cv(df, params, randomseed = 42)
+#' cv1 <- survcox_cv(df, params, randomseed = 42, repeat_cv =1)
+#' cv2 <- survsrf_cv(df, params, randomseed = 42, repeat_cv = 1)
 #' survcompare2(cv1, cv2)
 #' @export
 survcompare2 <- function(base, alternative) {
@@ -157,13 +154,11 @@ difftest <- function(res1, res0, sample_n, param_n) {
   std <- apply(res1 - res0, FUN = stats::sd, 2, na.rm = 1)
   tpval <-
     function(x) {
-      if (class(try(stats::t.test(x, alternative = "greater")$p.value)
-      )  ==  "try-error")
-        return(NaN)
-      return(stats::t.test(x, alternative = "greater")$p.value)
+      temp<- try(stats::t.test(x, alternative = "greater")$p.value, silent = TRUE)
+      if (inherits(temp, "try-error")) { return(NaN)}
+      return(temp)
     }
-  #Fisher test for diff in R2 of 2 models
-  # https://sites.duke.edu/bossbackup/files/2013/02/FTestTutorial.pdf
+  #Fisher test R-sq difference https://sites.duke.edu/bossbackup/files/2013/02/FTestTutorial.pdf
   pv_bs <-
     1 - stats::pf(
       mean(res1$BS, na.rm = 1) / mean(res0$BS, na.rm = 1),

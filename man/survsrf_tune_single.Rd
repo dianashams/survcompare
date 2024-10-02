@@ -24,6 +24,10 @@ survsrf_tune_single(
 \item{grid_hyperparams}{hyperparameters grid (or a default will be used )}
 
 \item{inner_cv}{number of folds for each CV}
+
+\item{randomseed}{randomseed}
+
+\item{progressbar}{FALSE(default)/TRUE}
 }
 \value{
 output=list(grid, cindex, cindex_mean)
