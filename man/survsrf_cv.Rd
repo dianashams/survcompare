@@ -15,7 +15,8 @@ survsrf_cv(
   return_models = FALSE,
   tuningparams = list(),
   max_grid_size = 10,
-  verbose = FALSE
+  verbose = FALSE,
+  parallel = FALSE
 )
 }
 \arguments{

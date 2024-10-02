@@ -350,7 +350,8 @@ survsrf_cv <- function(df,
                        return_models = FALSE,
                        tuningparams = list(),
                        max_grid_size = 10,
-                       verbose = FALSE) {
+                       verbose = FALSE,
+                       parallel = FALSE) {
 
   Call <- match.call()
   inputs <- list(df,
@@ -399,7 +400,8 @@ survsrf_cv <- function(df,
                       fixed_time = fixed_time,
                       randomseed = randomseed,
                       verbose = verbose),
-    model_name = "Survival Random Forest"
+    model_name = "Survival Random Forest",
+    parallel = parallel
   )
   output$call <- Call
   return(output)

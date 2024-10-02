@@ -163,7 +163,8 @@ survsrfens_cv <- function(df,
                             useCoxLasso = FALSE,
                             tuningparams = list(),
                             max_grid_size = 10,
-                            verbose = FALSE) {
+                            verbose = FALSE,
+                            parallel = FALSE) {
   Call <- match.call()
   inputs <- list(df , predict.factors, fixed_time,
                  outer_cv,inner_cv, repeat_cv,
@@ -198,7 +199,8 @@ survsrfens_cv <- function(df,
                       "max_grid_size" = max_grid_size,
                       "randomseed" = randomseed,
                       "verbose" = verbose),
-    model_name = "SRF_ensemble"
+    model_name = "SRF_ensemble",
+    parallel = parallel
   )
   output$call <- Call
   return(output)
