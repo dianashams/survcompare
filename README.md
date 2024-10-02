@@ -18,7 +18,7 @@ In more details, the baseline models are:
 The alternatives are:  
   * Survival Random Forest (SRF) model, the underlying  model is 'randomForestSRC::rfsrc()' [4]. 
   * Sequential ensemble of the SRF with the baseline Cox model [6]. The ensemble takes CoxPH predictions and supplied them to  Survival Random Forest as an additional predictor, see more explanations below.
-  * Stacked ensemble of the CoxPH and Survival Random Forest, designed as a linear combination of the CoxPH and SRF. Stacked ensemble predictions = lambda x CoxPH + (1-lambda) x SRF. Lambda parameter is tuned within the package and the value shows what share of SRF predictions can improve the baseline CoxPH performance. Lambda = 0 means only CoxPH is used, lambda = 1 means the model only relies on Survival Random Forest.
+  * Stacked ensemble of the CoxPH and Survival Random Forest, $`\lambda CoxPH + (1-\lambda) SRF`$. Lambda parameter is tuned within the package and the value shows what share of SRF predictions can improve the baseline CoxPH performance. $`\lambda = 0`$ means only CoxPH is used, $`\lambda = 1`$  means the model only relies on Survival Random Forest.
   * GitHit only: deep learning model DeepHit 'survivalmodels::deephit()', as well as its sequential and stacked ensembles with CoxPH or Cox-Lasso. 
 
 The performance metrics include [5]:
