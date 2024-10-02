@@ -1,7 +1,7 @@
 ---
 title: "Model Validation and Cross Validation using survcompare"
 author: "Diana Shamsutdinova"
-date: "2023-11-13"
+date: "2024-10-01"
 output:
   html_document: default
   pdf_document: default
@@ -21,7 +21,7 @@ The main application of the survcompare package it to check whether there are co
 
 However, as the package uses Cox Proportionate Hazards and Survival Random Forest models, some of the developed functions may be helpful on its own, in particular, to perform a repeated nested cross-validation of these two underlying models.
 
-## Other use cases of `survcompare`
+## Some use cases of `survcompare`
 
 ### 1. Fitting, cross-validating, and predicting event probabilities using `survcompare` functionality for CoxPH and CoxLasso
 
