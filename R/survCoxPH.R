@@ -22,39 +22,38 @@ survcox_train <- function(df_train,
   if (indx[1] * indx[2] == 0) {
     stop("Please supply data and predictors")
   }
-
   stopifnot(
     "The data is not a data frame" = inherits(df_train, "data.frame"),
     "Predictors are not found" = inherits(predict.factors, "character"),
     "Predictors are not in the data supplied" = predict.factors %in% colnames(df_train)
   )
-
-  # wrapper for coxph() function returning a trained Cox model
-  if (useCoxLasso == FALSE) {
-    cox.m <- NULL
-    try({
-      cox.m <- survival::coxph(as.formula(
-        paste(
-          "survival::Surv(df_train$time, df_train$event) ~",
-          paste(predict.factors, collapse = "+")
-        )
-      ),
-      data = df_train, x = TRUE)
-      # replace NAwith 0 i.e. ignore params that Cox couldn't estimate
-      cox.m$coefficients[is.na(cox.m$coefficients)] <- 0
-    },
-    silent = TRUE)
-    if (is.null(cox.m)) {
-      print(paste(
-        "Warning: cox.m == NULL, N/Events=",
-        dim(df_train)[1],
-        sum(df_train$event == 1)
-      ))
-    }
-    return(cox.m)
-  } else {
-    return(survcoxlasso_train(df_train, predict.factors, inner_cv))
+  # if Lasso, then return survcoxlasso_train()
+  if (useCoxLasso){
+    return(survcoxlasso_train(df_train = df_train,
+                              predict.factors = predict.factors,
+                              inner_cv = inner_cv,
+                              retrain_cox = retrain_cox))
   }
+  # if not Lasso
+  # wrapper for coxph() function returning a trained Cox model
+  cox.m <- NULL
+  try({
+    cox.m <- survival::coxph(as.formula(
+      paste(
+        "survival::Surv(df_train$time, df_train$event) ~",
+        paste(predict.factors, collapse = "+")
+      )
+    ),
+    data = df_train, x = TRUE)
+    # replace NA with 0 i.e. ignore params that Cox couldn't estimate
+    cox.m$coefficients[is.na(cox.m$coefficients)] <- 0
+  },
+  silent = TRUE)
+  if (is.null(cox.m)) {
+    print(paste("Warning: cox.m == NULL, N/Events=",
+                dim(df_train)[1],sum(df_train$event == 1)))
+  }
+  return(cox.m)
 }
 
 
@@ -93,38 +92,35 @@ survcoxlasso_train <- function(df_train,
       rownames(coef(cv10, s = "lambda.min"))[as.matrix(coef(cv10, s = "lambda.min")) != 0]
 
     if (length(new.predictors) == 0) {
-      if (verbose) {
-        print("0 predictors in lasso!")
-      }
+      if (verbose) {print("Warning: No predictors are left in lasso.")}
       cox.m <-
         survival::coxph(
           survival::Surv(df_train$time, df_train$event) ~ 1,
           data = df_train,
           x = TRUE
         )
+      return(cox.m)
+    }
+
+    # check if non-regularized model to be re-trained
+    if (retrain_cox) {
+      # re-train cox on new.predictors
+      f <-as.formula(paste("survival::Surv(df_train$time, df_train$event) ~",
+                           paste(new.predictors, collapse = "+")))
+      cox.m <- survival::coxph(f, data = df_train, x = TRUE)
+      # replace NA  with 0 i.e. ignore params that Cox couldn't estimate
+      cox.m$coefficients[is.na(cox.m$coefficients)] <- 0
     } else {
-      # check if non-regularised model to be re-trained
-      if (retrain_cox) {
-        # re-train cox on new.predictors
-        f <-
-          as.formula(paste(
-            "survival::Surv(df_train$time, df_train$event) ~",
-            paste(new.predictors, collapse = "+")
-          ))
-        cox.m <- survival::coxph(f, data = df_train, x = TRUE)
-        # replace NA  with 0 i.e. ignore params that Cox couldn't estimate
-        cox.m$coefficients[is.na(cox.m$coefficients)] <- 0
-      } else {
-        # return coxlasso in coxph object
-        f <-
-          as.formula(paste(
-            "survival::Surv(df_train$time, df_train$event) ~",
-            paste(predict.factors, collapse = "+")
-          ))
-        cox.m <- survival::coxph(f, data = df_train, x = TRUE)
-        cox.m$coefficients <-
-          as.numeric(coef(cv10, s = "lambda.min"))
-      }
+      # return coxlasso in coxph object
+      f <-
+        as.formula(paste(
+          "survival::Surv(df_train$time, df_train$event) ~",
+          paste(predict.factors, collapse = "+")
+        ))
+      cox.m <- survival::coxph(f, data = df_train, x = TRUE)
+      temp<- as.numeric(coef(cv10, s = "lambda.min"))
+      names(temp) = predict.factors
+      cox.m$coefficients <- temp
     }
   },
   silent = TRUE)
@@ -147,99 +143,50 @@ survcox_predict <- function(trained_model,
 
   #checks
   if (!inherits(trained_model, "coxph")) {
-    stop("Supply coxph model.")
-    return(NULL)
+    stop("Supply coxph model.");    return(NULL)
   }
-  if (!inherits(newdata, "data.frame"))
-    stop("Supply newdata as data.frame.")
+  if (!inherits(newdata, "data.frame"))   stop("Supply newdata as data.frame.")
   if (!inherits(fixed_time, "numeric"))
     stop("Supply fixed_time as a non-empty numeric list.")
   if (length(fixed_time) == 0)
     stop("Supply fixed_time as a non-empty numeric list.")
-  if (is.null(newdata) |
-      dim(newdata)[1] == 0 |
-      dim(newdata)[2] == 0)
+  if (is.null(newdata) |  dim(newdata)[1] == 0 |  dim(newdata)[2] == 0)
     stop("Empty or NULL data is supplied.")
 
-  # define bh - baseline hazard as dataframe with "time" and "hazard"
-  # if baseline hazard can't be calibrated, # return mean(y) for all fixed_time
-  # we take baseline hazard from K-M estimate and lp from Cox !!!! :((
+  # compute baseline hazard function
   temp <- try(survival::basehaz(trained_model), silent = TRUE)
-  explp <-
-    predict(trained_model, newdata, type = "risk") #exp(beta x X)
 
-  if (inherits(temp, "try-error")) {
-    bh <-
-      summary(survival::survfit(trained_model$y ~ 1), fixed_time)$cumhaz
-    predicted_event_prob <-
-      matrix(nrow = dim(newdata)[1], ncol = length(fixed_time))
-    for (i in seq(length(fixed_time))) {
-      predicted_event_prob[, i] <- 1 -
-        exp(-bh[i] * explp)
-    }
-    colnames(predicted_event_prob) <- round(fixed_time, 6)
-    return(predicted_event_prob)
-  } else {
-    bh <- temp
-  }
+  #compute exponentiated linear predictors
+  explp <- predict(trained_model, newdata, type = "risk") #exp(beta x X)
+
+  # if baseline hazard can't be calibrated, return NaNs
+  if (inherits(temp, "try-error")) {return(rep(NaN, dim(newdata)[1]))   }
   remove(temp)
 
-  # define bh as function to compute bh for any time
+  # define bh as function to compute bh for variable time points
+  bh <- survival::basehaz(trained_model)
   bh_approx <-
     stats::approxfun(bh[, "time"], bh[, "hazard"], method = interpolation)
 
-  # define bh_extrap how to extrapolate outside of training data times
-  # although this is not recommended, it is necessary to make code work when
-  # training data is by chance (durgin cross-validation train-test split)
-  # has limited time range
-  temp <-
-    try(stats::lm(hazard ~ poly(time, 3, raw = TRUE), data = bh), silent = TRUE)
+  # compute event probability if possible
+  # this would not work for the times outside of training data, return NaN
+  if (is.na(bh_approx(fixed_time))) {
+    return(rep(NaN, dim(newdata)[1]))
+    } else {
+      if(fixed_time > max(bh[,"time"])) {return(rep(NaN, dim(newdata)[1]))}
+      bh_t <- bh_approx(fixed_time)
+    }
+  # if baseline cumulative hazard == Inf, event probability is 1
+  # if  == 0, event prob is 0 for all with survival==1
+  # (somehow "survival" calculates even with bh==0)
+  if (bh_t == Inf) {
+      predicted_event_prob <- rep(1, dim(newdata)[1])
+    } else if (bh_t == 0) {
+      predicted_event_prob <- rep(0, dim(newdata)[1])
+    } else {
+      predicted_event_prob <- 1 - exp(-bh_t * explp)
+    }
 
-  if (!inherits(temp, "try-error")) {
-    extrap <- temp
-    bh_extrap <- function(x) {
-      sum(c(1, x, x ** 2, x ** 3) * extrap$coefficients[1:4])
-    }
-  } else {
-    min_bh <- min(bh[, "hazard"], na.rm = 1)
-    max_bh <- max(bh[, "hazard"], na.rm = 1)
-    l <- dim(bh)[1]
-    bh[1, c("hazard", "time")] <- c(0.0000001, min_bh)
-    bh[l + 1, c("hazard", "time")] <-
-      c(bh[l, "time"] + 100000, max_bh)
-    bh_extrap <-
-      stats::approxfun(bh[, "time"], bh[, "hazard"], method = "constant")
-  }
-  # compute event probability for fixed_time:
-  # create placeholder
-  predicted_event_prob <-
-    matrix(nrow = dim(newdata)[1], ncol = length(fixed_time))
-  # go over each time in fixed_time
-  for (i in seq(length(fixed_time))) {
-    if (is.na(bh_approx(fixed_time))) {
-      # if interpolation doesn't work, take extrapolated value
-      bh_time <- bh_extrap(fixed_time[i])
-      if (is.na(bh_time)) {
-        bh_time <- mean(bh[, "hazard"], na.rm = TRUE)
-      }
-    } else {
-      bh_time <- bh_approx(fixed_time[i])
-    }
-    # if baseline hazard is infinite, event probability is 1
-    if (bh_time == Inf) {
-      predicted_event_prob[, i] <- 1
-      # if baseline hazard is ==0, event prob is 0 for all with survival==1
-      # (somehow "survival" calculates even with bh==0)
-    } else if (bh_time == 0) {
-      predicted_event_prob[, i] <- 0
-      # if baseline hazard is a number, use the survival formula
-    } else {
-      predicted_event_prob[, i] <-
-        1 - exp(-bh_time * explp)
-    }
-  }
-  # name columns by the time for which it predicts event prob
-  colnames(predicted_event_prob) <- round(fixed_time, 6)
   return(predicted_event_prob)
 }
 
@@ -268,7 +215,7 @@ survcox_cv <- function(df,
                        fixed_time = NaN,
                        outer_cv = 3,
                        repeat_cv = 2,
-                       randomseed = NULL,
+                       randomseed = NaN,
                        return_models = FALSE,
                        inner_cv = 3,
                        useCoxLasso = FALSE) {
@@ -300,7 +247,7 @@ survcox_cv <- function(df,
     train_function = survcox_train,
     predict_function = survcox_predict,
     model_args = list("useCoxLasso" = useCoxLasso),
-    model_name = "Cox PH model"
+    model_name = ifelse(!useCoxLasso, "CoxPH", "CoxLasso")
   )
   output$call <- Call
   return(output)

@@ -1,0 +1,399 @@
+% Options for packages loaded elsewhere
+\PassOptionsToPackage{unicode}{hyperref}
+\PassOptionsToPackage{hyphens}{url}
+%
+\documentclass[
+]{article}
+\usepackage{amsmath,amssymb}
+\usepackage{iftex}
+\ifPDFTeX
+  \usepackage[T1]{fontenc}
+  \usepackage[utf8]{inputenc}
+  \usepackage{textcomp} % provide euro and other symbols
+\else % if luatex or xetex
+  \usepackage{unicode-math} % this also loads fontspec
+  \defaultfontfeatures{Scale=MatchLowercase}
+  \defaultfontfeatures[\rmfamily]{Ligatures=TeX,Scale=1}
+\fi
+\usepackage{lmodern}
+\ifPDFTeX\else
+  % xetex/luatex font selection
+\fi
+% Use upquote if available, for straight quotes in verbatim environments
+\IfFileExists{upquote.sty}{\usepackage{upquote}}{}
+\IfFileExists{microtype.sty}{% use microtype if available
+  \usepackage[]{microtype}
+  \UseMicrotypeSet[protrusion]{basicmath} % disable protrusion for tt fonts
+}{}
+\makeatletter
+\@ifundefined{KOMAClassName}{% if non-KOMA class
+  \IfFileExists{parskip.sty}{%
+    \usepackage{parskip}
+  }{% else
+    \setlength{\parindent}{0pt}
+    \setlength{\parskip}{6pt plus 2pt minus 1pt}}
+}{% if KOMA class
+  \KOMAoptions{parskip=half}}
+\makeatother
+\usepackage{xcolor}
+\usepackage[margin=1in]{geometry}
+\usepackage{color}
+\usepackage{fancyvrb}
+\newcommand{\VerbBar}{|}
+\newcommand{\VERB}{\Verb[commandchars=\\\{\}]}
+\DefineVerbatimEnvironment{Highlighting}{Verbatim}{commandchars=\\\{\}}
+% Add ',fontsize=\small' for more characters per line
+\usepackage{framed}
+\definecolor{shadecolor}{RGB}{248,248,248}
+\newenvironment{Shaded}{\begin{snugshade}}{\end{snugshade}}
+\newcommand{\AlertTok}[1]{\textcolor[rgb]{0.94,0.16,0.16}{#1}}
+\newcommand{\AnnotationTok}[1]{\textcolor[rgb]{0.56,0.35,0.01}{\textbf{\textit{#1}}}}
+\newcommand{\AttributeTok}[1]{\textcolor[rgb]{0.13,0.29,0.53}{#1}}
+\newcommand{\BaseNTok}[1]{\textcolor[rgb]{0.00,0.00,0.81}{#1}}
+\newcommand{\BuiltInTok}[1]{#1}
+\newcommand{\CharTok}[1]{\textcolor[rgb]{0.31,0.60,0.02}{#1}}
+\newcommand{\CommentTok}[1]{\textcolor[rgb]{0.56,0.35,0.01}{\textit{#1}}}
+\newcommand{\CommentVarTok}[1]{\textcolor[rgb]{0.56,0.35,0.01}{\textbf{\textit{#1}}}}
+\newcommand{\ConstantTok}[1]{\textcolor[rgb]{0.56,0.35,0.01}{#1}}
+\newcommand{\ControlFlowTok}[1]{\textcolor[rgb]{0.13,0.29,0.53}{\textbf{#1}}}
+\newcommand{\DataTypeTok}[1]{\textcolor[rgb]{0.13,0.29,0.53}{#1}}
+\newcommand{\DecValTok}[1]{\textcolor[rgb]{0.00,0.00,0.81}{#1}}
+\newcommand{\DocumentationTok}[1]{\textcolor[rgb]{0.56,0.35,0.01}{\textbf{\textit{#1}}}}
+\newcommand{\ErrorTok}[1]{\textcolor[rgb]{0.64,0.00,0.00}{\textbf{#1}}}
+\newcommand{\ExtensionTok}[1]{#1}
+\newcommand{\FloatTok}[1]{\textcolor[rgb]{0.00,0.00,0.81}{#1}}
+\newcommand{\FunctionTok}[1]{\textcolor[rgb]{0.13,0.29,0.53}{\textbf{#1}}}
+\newcommand{\ImportTok}[1]{#1}
+\newcommand{\InformationTok}[1]{\textcolor[rgb]{0.56,0.35,0.01}{\textbf{\textit{#1}}}}
+\newcommand{\KeywordTok}[1]{\textcolor[rgb]{0.13,0.29,0.53}{\textbf{#1}}}
+\newcommand{\NormalTok}[1]{#1}
+\newcommand{\OperatorTok}[1]{\textcolor[rgb]{0.81,0.36,0.00}{\textbf{#1}}}
+\newcommand{\OtherTok}[1]{\textcolor[rgb]{0.56,0.35,0.01}{#1}}
+\newcommand{\PreprocessorTok}[1]{\textcolor[rgb]{0.56,0.35,0.01}{\textit{#1}}}
+\newcommand{\RegionMarkerTok}[1]{#1}
+\newcommand{\SpecialCharTok}[1]{\textcolor[rgb]{0.81,0.36,0.00}{\textbf{#1}}}
+\newcommand{\SpecialStringTok}[1]{\textcolor[rgb]{0.31,0.60,0.02}{#1}}
+\newcommand{\StringTok}[1]{\textcolor[rgb]{0.31,0.60,0.02}{#1}}
+\newcommand{\VariableTok}[1]{\textcolor[rgb]{0.00,0.00,0.00}{#1}}
+\newcommand{\VerbatimStringTok}[1]{\textcolor[rgb]{0.31,0.60,0.02}{#1}}
+\newcommand{\WarningTok}[1]{\textcolor[rgb]{0.56,0.35,0.01}{\textbf{\textit{#1}}}}
+\usepackage{graphicx}
+\makeatletter
+\def\maxwidth{\ifdim\Gin@nat@width>\linewidth\linewidth\else\Gin@nat@width\fi}
+\def\maxheight{\ifdim\Gin@nat@height>\textheight\textheight\else\Gin@nat@height\fi}
+\makeatother
+% Scale images if necessary, so that they will not overflow the page
+% margins by default, and it is still possible to overwrite the defaults
+% using explicit options in \includegraphics[width, height, ...]{}
+\setkeys{Gin}{width=\maxwidth,height=\maxheight,keepaspectratio}
+% Set default figure placement to htbp
+\makeatletter
+\def\fps@figure{htbp}
+\makeatother
+\setlength{\emergencystretch}{3em} % prevent overfull lines
+\providecommand{\tightlist}{%
+  \setlength{\itemsep}{0pt}\setlength{\parskip}{0pt}}
+\setcounter{secnumdepth}{-\maxdimen} % remove section numbering
+\ifLuaTeX
+  \usepackage{selnolig}  % disable illegal ligatures
+\fi
+\IfFileExists{bookmark.sty}{\usepackage{bookmark}}{\usepackage{hyperref}}
+\IfFileExists{xurl.sty}{\usepackage{xurl}}{} % add URL line breaks if available
+\urlstyle{same}
+\hypersetup{
+  pdftitle={Model Validation and Cross Validation using survcompare},
+  pdfauthor={Diana Shamsutdinova},
+  hidelinks,
+  pdfcreator={LaTeX via pandoc}}
+
+\title{Model Validation and Cross Validation using survcompare}
+\author{Diana Shamsutdinova}
+\date{2023-11-13}
+
+\begin{document}
+\maketitle
+
+\hypertarget{package-background}{%
+\subsection{Package background}\label{package-background}}
+
+The main application of the survcompare package it to check whether
+there are considerable non-linear and interaction terms in the data, and
+to quantify their contributions to the models' performance. Please refer
+to \url{https://github.com/dianashams/survcompare/blob/main/README.md}.
+
+However, as the package uses Cox Proportionate Hazards and Survival
+Random Forest models, some of the developed functions may be helpful on
+its own, in particular, to perform a repeated nested cross-validation of
+these two underlying models.
+
+\hypertarget{other-use-cases-of-survcompare}{%
+\subsection{\texorpdfstring{Other use cases of
+\texttt{survcompare}}{Other use cases of survcompare}}\label{other-use-cases-of-survcompare}}
+
+\hypertarget{fitting-cross-validating-and-predicting-event-probabilities-using-survcompare-functionality-for-coxph-and-coxlasso}{%
+\subsubsection{\texorpdfstring{1. Fitting, cross-validating, and
+predicting event probabilities using \texttt{survcompare} functionality
+for CoxPH and
+CoxLasso}{1. Fitting, cross-validating, and predicting event probabilities using survcompare functionality for CoxPH and CoxLasso}}\label{fitting-cross-validating-and-predicting-event-probabilities-using-survcompare-functionality-for-coxph-and-coxlasso}}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\CommentTok{\#devtools::install\_github("dianashams/survcompare",build\_vignettes = TRUE)}
+\CommentTok{\#library(survcompare)}
+
+\CommentTok{\# We will use the GBSG data from survival package. }
+\CommentTok{\# Prepare the data for \textquotesingle{}survcompare\textquotesingle{}:}
+\FunctionTok{library}\NormalTok{(survival)}
+\NormalTok{mygbsg }\OtherTok{\textless{}{-}}\NormalTok{ gbsg}
+\NormalTok{mygbsg}\SpecialCharTok{$}\NormalTok{time}\OtherTok{\textless{}{-}}\NormalTok{ gbsg}\SpecialCharTok{$}\NormalTok{rfstime}\SpecialCharTok{/}\DecValTok{365}
+\NormalTok{mygbsg}\SpecialCharTok{$}\NormalTok{event}\OtherTok{\textless{}{-}}\NormalTok{ gbsg}\SpecialCharTok{$}\NormalTok{status}
+\NormalTok{myfactors }\OtherTok{\textless{}{-}} \FunctionTok{c}\NormalTok{(}\StringTok{"age"}\NormalTok{, }\StringTok{"meno"}\NormalTok{, }\StringTok{"size"}\NormalTok{, }\StringTok{"grade"}\NormalTok{, }\StringTok{"nodes"}\NormalTok{, }\StringTok{"pgr"}\NormalTok{, }\StringTok{"er"}\NormalTok{, }\StringTok{"hormon"}\NormalTok{)}
+\NormalTok{mygbsg}\OtherTok{\textless{}{-}}\NormalTok{ mygbsg[}\FunctionTok{c}\NormalTok{(}\StringTok{"time"}\NormalTok{, }\StringTok{"event"}\NormalTok{, myfactors)]}
+\FunctionTok{sum}\NormalTok{(}\FunctionTok{is.na}\NormalTok{(mygbsg[myfactors])) }\CommentTok{\# 0 {-}\textgreater{} no missing data,can use survcompare}
+\CommentTok{\#\textgreater{} [1] 0}
+
+\CommentTok{\# Make a random split into train (400) and test (the rest 286 observations)}
+\NormalTok{train\_index}\OtherTok{\textless{}{-}} \FunctionTok{sample}\NormalTok{(}\FunctionTok{seq}\NormalTok{(}\FunctionTok{nrow}\NormalTok{(mygbsg)), }\DecValTok{400}\NormalTok{, }\AttributeTok{replace =} \ConstantTok{FALSE}\NormalTok{)}
+\NormalTok{traindf}\OtherTok{\textless{}{-}}\NormalTok{ mygbsg[train\_index, ]}
+\NormalTok{testdf }\OtherTok{\textless{}{-}}\NormalTok{ mygbsg[}\SpecialCharTok{{-}}\NormalTok{train\_index, ]}
+
+\CommentTok{\# define the time at which time{-}dependent AUC{-}ROC and Brier scores are to be evaluated}
+\NormalTok{predict\_time }\OtherTok{\textless{}{-}} \DecValTok{6}
+
+\CommentTok{\# fit CoxPH }
+\NormalTok{cox1}\OtherTok{\textless{}{-}} \FunctionTok{survcox\_train}\NormalTok{(traindf, myfactors, }\AttributeTok{useCoxLasso =} \ConstantTok{FALSE}\NormalTok{)}
+
+\CommentTok{\# predict event probability at predict\_time}
+\NormalTok{cox\_p6\_test}\OtherTok{\textless{}{-}} \FunctionTok{survcox\_predict}\NormalTok{(cox1, testdf, predict\_time)}
+\NormalTok{cox\_p6\_train }\OtherTok{\textless{}{-}} \FunctionTok{survcox\_predict}\NormalTok{(cox1, traindf, predict\_time)}
+
+\CommentTok{\# compute performance stats }
+\NormalTok{cox\_performance\_test }\OtherTok{\textless{}{-}} 
+  \FunctionTok{surv\_validate}\NormalTok{(cox\_p6\_test, predict\_time, traindf, testdf)}
+\NormalTok{cox\_performance\_train }\OtherTok{\textless{}{-}} 
+  \FunctionTok{surv\_validate}\NormalTok{(cox\_p6\_train, predict\_time, traindf, traindf)}
+\FunctionTok{print}\NormalTok{(}
+  \FunctionTok{rbind}\NormalTok{(}\StringTok{"CoxTest"} \OtherTok{=}\NormalTok{ cox\_performance\_test,}
+        \StringTok{"CoxTrain"}\OtherTok{=}\NormalTok{ cox\_performance\_train))}
+\CommentTok{\#\textgreater{}          T    AUCROC        BS BS\_scaled   C\_score Calib\_slope Calib\_alpha}
+\CommentTok{\#\textgreater{} CoxTest  6 0.7622267        NA        NA 0.6892178   0.4734169  {-}0.5560519}
+\CommentTok{\#\textgreater{} CoxTrain 6 0.7713267 0.1899048 0.3045897 0.6985373   0.6924631  {-}0.9077409}
+
+\CommentTok{\# Further validation: repeated cross{-}validation }
+\NormalTok{coxcv }\OtherTok{\textless{}{-}} \FunctionTok{survcox\_cv}\NormalTok{(mygbsg, myfactors, predict\_time)}
+\CommentTok{\#\textgreater{} [1] "Cross{-}validating CoxPH using 2 repeat(s), 3 outer, 3 inner loops)."}
+\CommentTok{\#\textgreater{} [1] "Repeated CV 1 / 2"}
+\CommentTok{\#\textgreater{}   |                                                                              |                                                                      |   0\%  |                                                                              |=======================                                               |  33\%  |                                                                              |===============================================                       |  67\%  |                                                                              |======================================================================| 100\%}
+\CommentTok{\#\textgreater{} [1] "Repeated CV 2 / 2"}
+\CommentTok{\#\textgreater{}   |                                                                              |                                                                      |   0\%  |                                                                              |=======================                                               |  33\%  |                                                                              |===============================================                       |  67\%  |                                                                              |======================================================================| 100\%}
+\CommentTok{\#\textgreater{} Time difference of 0.499182 secs}
+\FunctionTok{summary}\NormalTok{(coxcv)}
+\CommentTok{\#\textgreater{} Cross{-}validation results. Computation time: 0.5 sec. }
+\CommentTok{\#\textgreater{} Call:}
+\CommentTok{\#\textgreater{} survcox\_cv(df = mygbsg, predict.factors = myfactors, fixed\_time = predict\_time)}
+\CommentTok{\#\textgreater{}           T      AUCROC          BS   BS\_scaled     C\_score Calib\_slope }
+\CommentTok{\#\textgreater{}      6.0000      0.7214      0.2179      0.2195      0.6736      0.6570 }
+\CommentTok{\#\textgreater{} Calib\_alpha   repeat\_cv    outer\_cv        test }
+\CommentTok{\#\textgreater{}     {-}0.7076      1.5000      2.0000      1.0000 }
+\CommentTok{\#\textgreater{} }
+\CommentTok{\#\textgreater{} The stats are computed from the  6  data splits.}
+\CommentTok{\#\textgreater{}             test.mean test.sd test.95CILow test.95CIHigh test.median train.mean}
+\CommentTok{\#\textgreater{} T              6.0000  0.0000       6.0000        6.0000      6.0000     6.0000}
+\CommentTok{\#\textgreater{} AUCROC         0.7214  0.1023       0.5478        0.8011      0.7555     0.7711}
+\CommentTok{\#\textgreater{} BS             0.2179  0.0153       0.2025        0.2312      0.2205     0.1929}
+\CommentTok{\#\textgreater{} BS\_scaled      0.2195  0.0276       0.1901        0.2382      0.2322     0.2747}
+\CommentTok{\#\textgreater{} C\_score        0.6736  0.0217       0.6531        0.7076      0.6682     0.6899}
+\CommentTok{\#\textgreater{} Calib\_slope    0.6570  0.2661       0.4118        1.0261      0.5341     0.7204}
+\CommentTok{\#\textgreater{} Calib\_alpha   {-}0.7076  0.1334      {-}0.8063       {-}0.4842     {-}0.7699    {-}0.7069}
+\CommentTok{\#\textgreater{}             train.sd train.95CILow train.95CIHigh train.median}
+\CommentTok{\#\textgreater{} T             0.0000        6.0000         6.0000       6.0000}
+\CommentTok{\#\textgreater{} AUCROC        0.0297        0.7360         0.8171       0.7688}
+\CommentTok{\#\textgreater{} BS            0.0102        0.1774         0.2037       0.1938}
+\CommentTok{\#\textgreater{} BS\_scaled     0.0306        0.2460         0.3242       0.2683}
+\CommentTok{\#\textgreater{} C\_score       0.0078        0.6802         0.6982       0.6917}
+\CommentTok{\#\textgreater{} Calib\_slope   0.0241        0.6928         0.7508       0.7170}
+\CommentTok{\#\textgreater{} Calib\_alpha   0.0321       {-}0.7604        {-}0.6815      {-}0.6926}
+
+\CommentTok{\# Comments on the results: }
+\CommentTok{\# wide confidence intervals show that the data is rather heterogeneous, }
+\CommentTok{\# that is, quality of predictions differs substantially depending on }
+\CommentTok{\# which random sub sample was chosen as the training data}
+\CommentTok{\# e.g. AUCROC can be anywhere from 0.62 to 0.92.}
+\CommentTok{\# }
+\CommentTok{\# This illustrates that one should perform a repeated CV and acknowledge}
+\CommentTok{\# model variance rather than relying on a single train{-}test, where the}
+\CommentTok{\# results may be poor or excellent by chance and mask model\textquotesingle{}s}
+\CommentTok{\# instability. }
+\end{Highlighting}
+\end{Shaded}
+
+\hypertarget{fitting-cross-validating-and-predicting-survival-probabilities-using-survcompare-functionality-for-survival-random-forest.}{%
+\subsubsection{\texorpdfstring{2. Fitting, cross-validating, and
+predicting survival probabilities using \texttt{survcompare}
+functionality for Survival Random
+Forest.}{2. Fitting, cross-validating, and predicting survival probabilities using survcompare functionality for Survival Random Forest.}}\label{fitting-cross-validating-and-predicting-survival-probabilities-using-survcompare-functionality-for-survival-random-forest.}}
+
+Here, we perform the same for Survival Random Forest. First, let's train
+SRF on the train data:
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\FunctionTok{library}\NormalTok{(survcompare)}
+\CommentTok{\# fit and tune SRF:}
+\NormalTok{srfmodel1 }\OtherTok{\textless{}{-}}
+  \FunctionTok{survsrf\_train}\NormalTok{(traindf,}
+\NormalTok{                myfactors,}
+\NormalTok{                predict\_time,}
+                \AttributeTok{inner\_cv =} \DecValTok{2}\NormalTok{,}
+                \AttributeTok{randomseed =} \DecValTok{42}\NormalTok{)}
+\CommentTok{\#\textgreater{}    mtry nodesize nodedepth  allmeans}
+\CommentTok{\#\textgreater{} 49    2       15         5 0.7187182}
+
+\CommentTok{\# predict event probability at predict\_time}
+\NormalTok{srf\_p6\_test}\OtherTok{\textless{}{-}} \FunctionTok{survsrf\_predict}\NormalTok{(srfmodel1, testdf, predict\_time)}
+\NormalTok{srf\_p6\_train }\OtherTok{\textless{}{-}} \FunctionTok{survsrf\_predict}\NormalTok{(srfmodel1, traindf, predict\_time)}
+
+\CommentTok{\# compute performance stats }
+\NormalTok{srf\_performance\_test }\OtherTok{\textless{}{-}} 
+  \FunctionTok{surv\_validate}\NormalTok{(srf\_p6\_test, predict\_time, traindf, testdf)}
+\NormalTok{srf\_performance\_train }\OtherTok{\textless{}{-}} 
+  \FunctionTok{surv\_validate}\NormalTok{(srf\_p6\_train, predict\_time, traindf, traindf)}
+\FunctionTok{print}\NormalTok{(}
+  \FunctionTok{rbind}\NormalTok{(}\StringTok{"SRFTest"} \OtherTok{=}\NormalTok{ srf\_performance\_test,}
+        \StringTok{"SRFTrain"}\OtherTok{=}\NormalTok{ srf\_performance\_train))}
+\CommentTok{\#\textgreater{}          T    AUCROC        BS BS\_scaled   C\_score Calib\_slope Calib\_alpha}
+\CommentTok{\#\textgreater{} SRFTest  6 0.7624362        NA        NA 0.6747032   0.8445957  {-}0.5202670}
+\CommentTok{\#\textgreater{} SRFTrain 6 0.8747892 0.1631123 0.4027006 0.7642428   1.6375451  {-}0.7725865}
+
+\CommentTok{\# Further validation: repeated cross{-}validation. We keep low repeat\_cv number for quick compilation, but even 2 repetitions of the 3{-}fold CVs show large variance of the SRF predictions, similar to that of CoxPH.}
+\NormalTok{srfcv }\OtherTok{\textless{}{-}} \FunctionTok{survsrf\_cv}\NormalTok{(mygbsg,}
+\NormalTok{                    myfactors,}
+\NormalTok{                    predict\_time,}
+                    \AttributeTok{inner\_cv =} \DecValTok{2}\NormalTok{)}
+\CommentTok{\#\textgreater{} [1] "Cross{-}validating Survival Random Forest using 2 repeat(s), 3 outer, 2 inner loops).For SRF inner CV is not used if oob = TRUE (default)"}
+\CommentTok{\#\textgreater{} [1] "Repeated CV 1 / 2"}
+\CommentTok{\#\textgreater{}   |                                                                              |                                                                      |   0\%  |                                                                              |=======================                                               |  33\%  |                                                                              |===============================================                       |  67\%  |                                                                              |======================================================================| 100\%}
+\CommentTok{\#\textgreater{} [1] "Repeated CV 2 / 2"}
+\CommentTok{\#\textgreater{}   |                                                                              |                                                                      |   0\%  |                                                                              |=======================                                               |  33\%  |                                                                              |===============================================                       |  67\%  |                                                                              |======================================================================| 100\%}
+\CommentTok{\#\textgreater{} Time difference of 23.5328 secs}
+
+\FunctionTok{summary}\NormalTok{(srfcv)}
+\CommentTok{\#\textgreater{} Cross{-}validation results. Computation time: 23.53 sec. }
+\CommentTok{\#\textgreater{} Call:}
+\CommentTok{\#\textgreater{} survsrf\_cv(df = mygbsg, predict.factors = myfactors, fixed\_time = predict\_time, }
+\CommentTok{\#\textgreater{}     inner\_cv = 2)}
+\CommentTok{\#\textgreater{}           T      AUCROC          BS   BS\_scaled     C\_score Calib\_slope }
+\CommentTok{\#\textgreater{}      6.0000      0.7353      0.2256      0.1874      0.6838      1.5800 }
+\CommentTok{\#\textgreater{} Calib\_alpha   repeat\_cv    outer\_cv        test }
+\CommentTok{\#\textgreater{}     {-}0.5838      1.5000      2.0000      1.0000 }
+\CommentTok{\#\textgreater{} }
+\CommentTok{\#\textgreater{} The stats are computed from the  6  data splits.}
+\CommentTok{\#\textgreater{}             test.mean test.sd test.95CILow test.95CIHigh test.median train.mean}
+\CommentTok{\#\textgreater{} T              6.0000  0.0000       6.0000        6.0000      6.0000     6.0000}
+\CommentTok{\#\textgreater{} AUCROC         0.7353  0.0419       0.6672        0.7699      0.7438     0.8293}
+\CommentTok{\#\textgreater{} BS             0.2256  0.0294       0.2079        0.2571      0.2095     0.1919}
+\CommentTok{\#\textgreater{} BS\_scaled      0.1874  0.0559       0.1277        0.2226      0.2162     0.2774}
+\CommentTok{\#\textgreater{} C\_score        0.6838  0.0279       0.6582        0.7252      0.6752     0.7366}
+\CommentTok{\#\textgreater{} Calib\_slope    1.5800  0.6132       0.6813        2.0689      1.8678     2.1411}
+\CommentTok{\#\textgreater{} Calib\_alpha   {-}0.5838  0.1233      {-}0.7354       {-}0.4226     {-}0.5824    {-}0.5724}
+\CommentTok{\#\textgreater{}             train.sd train.95CILow train.95CIHigh train.median}
+\CommentTok{\#\textgreater{} T             0.0000        6.0000         6.0000       6.0000}
+\CommentTok{\#\textgreater{} AUCROC        0.0385        0.7860         0.8769       0.8308}
+\CommentTok{\#\textgreater{} BS            0.0194        0.1593         0.2063       0.1998}
+\CommentTok{\#\textgreater{} BS\_scaled     0.0736        0.2269         0.4019       0.2449}
+\CommentTok{\#\textgreater{} C\_score       0.0162        0.7159         0.7596       0.7385}
+\CommentTok{\#\textgreater{} Calib\_slope   0.5043        1.3651         2.6571       2.2651}
+\CommentTok{\#\textgreater{} Calib\_alpha   0.0316       {-}0.6095        {-}0.5327      {-}0.5732}
+\end{Highlighting}
+\end{Shaded}
+
+\hypertarget{notes-on-the-srf-tuning}{%
+\subparagraph{Notes on the SRF tuning}\label{notes-on-the-srf-tuning}}
+
+Note, that the function \texttt{survsrf\_train()} does not just fit a
+default SRF version, but uses a k-fold CV (k is controlled by
+\texttt{inner\_cv}) to tune its hyperparameters mtry, nodesize, and
+nodedepth. To remind,
+
+\begin{itemize}
+\tightlist
+\item
+  mtry - number of variables randomly selected as candidates for
+  splitting a node
+\item
+  nodedepth - maximum depth to which a tree is grown.
+\item
+  nodesize - minumum size of terminal node.
+\end{itemize}
+
+There are more hyperparameters in the underlying
+\texttt{randomForestSRC::rfsrc()} function, however, these are the ones
+that tend to affect prediction accuracy the most. See also
+\url{https://CRAN.R-project.org/package=randomForestSRC}.
+
+The tuning values for mtry, nodesize and nodedepth depend on the data
+size and total number of predictors. One can check the tuning grid and
+the final optimized parameters by running:
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\CommentTok{\# Tuning grid:}
+\FunctionTok{print}\NormalTok{(srfmodel1}\SpecialCharTok{$}\NormalTok{grid)}
+\CommentTok{\#\textgreater{}     mtry nodesize nodedepth}
+\CommentTok{\#\textgreater{} 49     2       15         5}
+\CommentTok{\#\textgreater{} 65     2       35         5}
+\CommentTok{\#\textgreater{} 153    2       25        50}
+\CommentTok{\#\textgreater{} 74     3       15         7}
+\CommentTok{\#\textgreater{} 146    3       15        50}
+\CommentTok{\#\textgreater{} 122    3       15        15}
+\CommentTok{\#\textgreater{} 168    5       40        50}
+\CommentTok{\#\textgreater{} 128    5       20        15}
+\CommentTok{\#\textgreater{} 47     4       40         3}
+\CommentTok{\#\textgreater{} 24     5       40         2}
+
+\CommentTok{\# Selected hyperparameters and their performance metrics (measured on out{-}of{-}sample observations):}
+\FunctionTok{print}\NormalTok{(srfmodel1}\SpecialCharTok{$}\NormalTok{bestparams)  }
+\CommentTok{\#\textgreater{}    mtry nodesize nodedepth  allmeans}
+\CommentTok{\#\textgreater{} 49    2       15         5 0.7187182}
+\end{Highlighting}
+\end{Shaded}
+
+It is possible to use a custom grid to tune SRF. First, create a list
+containing three numerical vectors, named as ``mtry'', ``nodesize'', and
+``nodedepth'', containing their candidate values. Then, supply the list
+as an argument to \texttt{survsrf\_train()}. We suggest running default
+option, and then adjusting the grid to include higher or lower values,
+if the highest or lowest value was chosen in the default run.
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\CommentTok{\# creating list for the customised tuning of SRF:}
+\NormalTok{my\_srf\_tuning }\OtherTok{\textless{}{-}}
+  \FunctionTok{list}\NormalTok{(}
+    \StringTok{"mtry"} \OtherTok{=} \FunctionTok{c}\NormalTok{(}\DecValTok{2}\NormalTok{),}
+    \StringTok{"nodesize"} \OtherTok{=} \FunctionTok{c}\NormalTok{(}\DecValTok{10}\NormalTok{, }\DecValTok{20}\NormalTok{, }\DecValTok{30}\NormalTok{),}
+    \StringTok{"nodedepth"} \OtherTok{=} \FunctionTok{c}\NormalTok{(}\DecValTok{15}\NormalTok{, }\DecValTok{25}\NormalTok{, }\DecValTok{35}\NormalTok{)}
+\NormalTok{  )}
+\NormalTok{srfmodel2 }\OtherTok{\textless{}{-}}
+  \FunctionTok{survsrf\_train}\NormalTok{(}
+\NormalTok{    traindf,}
+\NormalTok{    myfactors,}
+\NormalTok{    predict\_time,}
+    \AttributeTok{tuningparams =}\NormalTok{ my\_srf\_tuning,}
+    \AttributeTok{inner\_cv =} \DecValTok{2}\NormalTok{,}
+    \AttributeTok{randomseed =} \DecValTok{42}
+\NormalTok{  )}
+
+\CommentTok{\# Compare the fits (we see some marginal improvement)}
+\FunctionTok{rbind}\NormalTok{(}
+  \AttributeTok{default\_tune =}\NormalTok{ srfmodel1}\SpecialCharTok{$}\NormalTok{bestparams,}
+  \AttributeTok{custom\_tune =}\NormalTok{ srfmodel2}\SpecialCharTok{$}\NormalTok{bestparams )}
+
+\CommentTok{\#          mtry nodesize nodedepth time AUCROC  BS   BS\_scaled C\_score}
+\CommentTok{\#default\_tune    2   20     25       6     0.730    0.179   0.273       0.673   }
+\CommentTok{\#custom\_tune     2   10     25       6     0.769    0.173   0.300       0.668}
+\end{Highlighting}
+\end{Shaded}
+
+
+\end{document}

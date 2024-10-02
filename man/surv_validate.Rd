@@ -24,7 +24,7 @@ surv_validate(
 
 \item{weighted}{TRUE/FALSE, for IPWC}
 
-\item{alpha}{calibration alpha as mean difference or from logistic regression}
+\item{alpha}{calibration alpha as mean difference in probabilities, or in log-odds (from logistic regression, default)}
 }
 \value{
 data.frame(T, AUCROC, Brier Score, Scaled Brier Score, C_score, Calib slope, Calib alpha)
