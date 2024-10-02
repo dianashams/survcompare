@@ -39,7 +39,11 @@ SRF is a machine learning algorithm that recursively splits the data into the su
 Given these qualities, SRF vs CoxPH's comparison is indicative of compex data dependencies, and quantifies the cost of using a simpler CoxPH model versus more flexible alternatives.
 
 #### FAQ2: Why the ensemble and not just SRF? 
-The ensemble of Cox and SRF takes the predictions of the Cox model and adds to the list of predictors to train SRF. This way, we make sure that linearity is captured by SRF at least as good as in the Cox model, and hence the marginal outperformance of the ensemble over the Cox model can be fully attributed to the qualities of SRF that Cox does not have, that is, data complexity.
+First, you can use the package to compare the performances of the CoxPH and SRF themselves. 
+
+Second, the ensembles aim to single out the predictive value of the non-linearities and other data relationships that could not be captured by the baseline models. In both ensembles, the final models has a direct access to the predictions of the baseline CoxPH, and hence, the outperformance can be fully attributed to such complex relationships. 
+
+For example, the sequential ensemble of Cox and SRF takes the predictions of the Cox model and adds to the list of predictors to train SRF. This way, we make sure that linearity is captured by SRF at least as good as in the Cox model, and hence the marginal outperformance of the ensemble over the Cox model can be fully attributed to the qualities of SRF that Cox does not have, that is, data complexity.
 
 #### FAQ3: How do I interpret and use the results? 
 First, try to run sufficient number of repetitions (repeat_cv), at least 5, ideally 20-50 depending on the data heterogeneity and size.
