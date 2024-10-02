@@ -48,8 +48,6 @@ There are two possible outcomes: "Survival Random Forest ensemble has outperform
   * In the case of **outperformance**, a researcher can 1) decide to go for a more complex model, 2) look for the interaction and non-linear terms that could be added to the CoxPH and re-run the test again, or 3) consider still using the CoxPH model if the difference is not large in the context of the performed task, or not enough to sacrifice model interpretability.
 
 ### Example:
-NB: More examples are located in the "Example/" folder. 
-
 ```R
 mydata <- simulate_crossterms()
 mypredictors <- names(mydata)[1:4]
@@ -131,7 +129,8 @@ compare2 <- survcompare2(cv1, cvstack)
 #   CoxLasso  0.6395(95CI=0.6325-0.6492;SD=0.0091)
 # Stacked_SRF_CoxPH 0.8119(95CI=0.7885-0.8296;SD=0.0224)
 
-``
+```
+NB: More examples are located in the "Example/" folder. 
 
 ### If you use the package or its code, please cite:
 Shamsutdinova, D., Stamate, D., Roberts, A., & Stahl, D. (2022). Combining Cox Model and Tree-Based Algorithms to Boost Performance and Preserve Interpretability for Health Outcomes. In IFIP International Conference on Artificial Intelligence Applications and Innovations (pp. 170-181). Springer, Cham.
