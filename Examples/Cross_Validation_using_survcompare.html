@@ -11,7 +11,7 @@
 
 <meta name="author" content="Diana Shamsutdinova" />
 
-<meta name="date" content="2023-11-13" />
+<meta name="date" content="2024-10-01" />
 
 <title>Model Validation and Cross Validation using survcompare</title>
 
@@ -353,7 +353,7 @@ display: none;
 <h1 class="title toc-ignore">Model Validation and Cross Validation using
 survcompare</h1>
 <h4 class="author">Diana Shamsutdinova</h4>
-<h4 class="date">2023-11-13</h4>
+<h4 class="date">2024-10-01</h4>
 
 </div>
 
@@ -369,18 +369,17 @@ Random Forest models, some of the developed functions may be helpful on
 its own, in particular, to perform a repeated nested cross-validation of
 these two underlying models.</p>
 </div>
-<div id="other-use-cases-of-survcompare" class="section level2">
-<h2>Other use cases of <code>survcompare</code></h2>
+<div id="some-use-cases-of-survcompare" class="section level2">
+<h2>Some use cases of <code>survcompare</code></h2>
 <div id="fitting-cross-validating-and-predicting-event-probabilities-using-survcompare-functionality-for-coxph-and-coxlasso" class="section level3">
 <h3>1. Fitting, cross-validating, and predicting event probabilities
 using <code>survcompare</code> functionality for CoxPH and CoxLasso</h3>
-<pre class="r"><code>devtools::install_github(&quot;dianashams/survcompare&quot;,build_vignettes = TRUE)
-#&gt; Skipping install of &#39;survcompare&#39; from a github remote, the SHA1 (62834bd9) has not changed since last install.
-#&gt;   Use `force = TRUE` to force installation
-library(survcompare)
-#&gt; Loading required package: survival
+<pre class="r"><code>#devtools::install_github(&quot;dianashams/survcompare&quot;,build_vignettes = TRUE)
+#library(survcompare)
+
 # We will use the GBSG data from survival package. 
 # Prepare the data for &#39;survcompare&#39;:
+library(survival)
 mygbsg &lt;- gbsg
 mygbsg$time&lt;- gbsg$rfstime/365
 mygbsg$event&lt;- gbsg$status
@@ -401,8 +400,8 @@ predict_time &lt;- 6
 cox1&lt;- survcox_train(traindf, myfactors, useCoxLasso = FALSE)
 
 # predict event probability at predict_time
-cox_p6_test&lt;- survcompare::survcox_predict(cox1, testdf, predict_time)
-cox_p6_train &lt;- survcompare::survcox_predict(cox1, traindf, predict_time)
+cox_p6_test&lt;- survcox_predict(cox1, testdf, predict_time)
+cox_p6_train &lt;- survcox_predict(cox1, traindf, predict_time)
 
 # compute performance stats 
 cox_performance_test &lt;- 
@@ -413,52 +412,43 @@ print(
   rbind(&quot;CoxTest&quot; = cox_performance_test,
         &quot;CoxTrain&quot;= cox_performance_train))
 #&gt;          T    AUCROC        BS BS_scaled   C_score Calib_slope Calib_alpha
-#&gt; CoxTest  6 0.7600402 0.2511767 0.1418167 0.6803289    1.427114    1.022997
-#&gt; CoxTrain 6 0.7721189 0.1535456 0.3740475 0.6976878    1.274171    1.822666
+#&gt; CoxTest  6 0.8073006 0.1265121 0.4145332 0.6822895   0.8183100  -0.7632235
+#&gt; CoxTrain 6 0.7382776 0.2023175 0.2415019 0.6795346   0.5837087  -0.7515219
 
 # Further validation: repeated cross-validation 
 coxcv &lt;- survcox_cv(mygbsg, myfactors, predict_time)
-#&gt; [1] &quot;Cross-validating Cox PH model using 2 repeat(s), 3 outer, 3 inner loops)&quot;
-#&gt; 
-  |                                                                            
-  |                                                                      |   0%
-  |                                                                            
-  |=                                                                     |   2%
-  |                                                                            
-  |============                                                          |  17%
-  |                                                                            
-  |=======================                                               |  33%
-  |                                                                            
-  |===================================                                   |  50%
-  |                                                                            
-  |===============================================                       |  67%
-  |                                                                            
-  |==========================================================            |  83%
-  |                                                                            
-  |======================================================================| 100%
-#&gt; Time difference of 1.249852 secs
+#&gt; [1] &quot;Cross-validating CoxPH using 2 repeat(s), 3 outer, 3 inner loops).&quot;
+#&gt; [1] &quot;Repeated CV 1 / 2&quot;
+#&gt;   |                                                                              |                                                                      |   0%  |                                                                              |=======================                                               |  33%  |                                                                              |===============================================                       |  67%  |                                                                              |======================================================================| 100%
+#&gt; [1] &quot;Repeated CV 2 / 2&quot;
+#&gt;   |                                                                              |                                                                      |   0%  |                                                                              |=======================                                               |  33%  |                                                                              |===============================================                       |  67%  |                                                                              |======================================================================| 100%
+#&gt; Time difference of 0.5268919 secs
 summary(coxcv)
-#&gt; Cross-validation results
+#&gt; Cross-validation results. Computation time: 0.53 sec. 
 #&gt; Call:
 #&gt; survcox_cv(df = mygbsg, predict.factors = myfactors, fixed_time = predict_time)
+#&gt;           T      AUCROC          BS   BS_scaled     C_score Calib_slope 
+#&gt;      6.0000      0.7495      0.2121      0.2234      0.6728      0.6565 
+#&gt; Calib_alpha   repeat_cv    outer_cv        test 
+#&gt;     -0.7080      1.5000      2.0000      1.0000 
 #&gt; 
 #&gt; The stats are computed from the  6  data splits.
-#&gt;             test.mean test.sd test.95CILow test.95CIHigh train.mean train.sd
-#&gt; T              6.0000  0.0000       6.0000        6.0000     6.0000   0.0000
-#&gt; AUCROC         0.7317  0.0645       0.6418        0.8078     0.7631   0.0437
-#&gt; BS             0.1931  0.0405       0.1513        0.2577     0.1763   0.0105
-#&gt; BS_scaled      0.2401  0.0751       0.1663        0.3602     0.2984   0.0389
-#&gt; C_score        0.6768  0.0246       0.6386        0.7064     0.6876   0.0170
-#&gt; Calib_slope    1.3489  0.5375       0.7822        1.9826     1.5293   0.1780
-#&gt; Calib_alpha    1.7556  0.5647       1.3093        2.6049     1.7035   0.1931
-#&gt;             train.95CILow train.95CIHigh
-#&gt; T                  6.0000         6.0000
-#&gt; AUCROC             0.7104         0.8112
-#&gt; BS                 0.1632         0.1906
-#&gt; BS_scaled          0.2573         0.3491
-#&gt; C_score            0.6693         0.7133
-#&gt; Calib_slope        1.3258         1.8065
-#&gt; Calib_alpha        1.5303         2.0001
+#&gt;             test.mean test.sd test.95CILow test.95CIHigh test.median train.mean
+#&gt; T              6.0000  0.0000       6.0000        6.0000      6.0000     6.0000
+#&gt; AUCROC         0.7495  0.0533       0.6803        0.8169      0.7505     0.7631
+#&gt; BS             0.2121  0.0503       0.1592        0.2508      0.2287     0.1946
+#&gt; BS_scaled      0.2234  0.0690       0.1732        0.2965      0.1964     0.2677
+#&gt; C_score        0.6728  0.0107       0.6566        0.6840      0.6740     0.6888
+#&gt; Calib_slope    0.6565  0.2139       0.3791        0.8702      0.7199     0.7356
+#&gt; Calib_alpha   -0.7080  0.2506      -0.9435       -0.3270     -0.7615    -0.6979
+#&gt;             train.sd train.95CILow train.95CIHigh train.median
+#&gt; T             0.0000        6.0000         6.0000       6.0000
+#&gt; AUCROC        0.0421        0.7119         0.8137       0.7529
+#&gt; BS            0.0123        0.1785         0.2076       0.1994
+#&gt; BS_scaled     0.0424        0.2278         0.3218       0.2486
+#&gt; C_score       0.0057        0.6827         0.6973       0.6878
+#&gt; Calib_slope   0.0605        0.6724         0.8113       0.7260
+#&gt; Calib_alpha   0.0637       -0.7763        -0.6217      -0.6939
 
 # Comments on the results: 
 # wide confidence intervals show that the data is rather heterogeneous, 
@@ -485,6 +475,8 @@ srfmodel1 &lt;-
                 predict_time,
                 inner_cv = 2,
                 randomseed = 42)
+#&gt;    mtry nodesize nodedepth  allmeans
+#&gt; 47    4       40         3 0.6684752
 
 # predict event probability at predict_time
 srf_p6_test&lt;- survsrf_predict(srfmodel1, testdf, predict_time)
@@ -499,57 +491,48 @@ print(
   rbind(&quot;SRFTest&quot; = srf_performance_test,
         &quot;SRFTrain&quot;= srf_performance_train))
 #&gt;          T    AUCROC        BS BS_scaled   C_score Calib_slope Calib_alpha
-#&gt; SRFTest  6 0.7624179 0.2621713 0.1042522 0.6961667    2.820937    1.143241
-#&gt; SRFTrain 6 0.8672482 0.1489845 0.3926417 0.7630174    4.790885    1.879417
+#&gt; SRFTest  6 0.8392935 0.1381530 0.3606620 0.6894918    1.444031  -0.6450818
+#&gt; SRFTrain 6 0.7781805 0.2058218 0.2283642 0.7205708    1.581868  -0.6408586
 
 # Further validation: repeated cross-validation. We keep low repeat_cv number for quick compilation, but even 2 repetitions of the 3-fold CVs show large variance of the SRF predictions, similar to that of CoxPH.
 srfcv &lt;- survsrf_cv(mygbsg,
                     myfactors,
                     predict_time,
                     inner_cv = 2)
-#&gt; [1] &quot;Cross-validating Survival Random Forest using 2 repeat(s), 3 outer, 2 inner loops)&quot;
-#&gt; 
-  |                                                                            
-  |                                                                      |   0%
-  |                                                                            
-  |=                                                                     |   2%
-  |                                                                            
-  |============                                                          |  17%
-  |                                                                            
-  |=======================                                               |  33%
-  |                                                                            
-  |===================================                                   |  50%
-  |                                                                            
-  |===============================================                       |  67%
-  |                                                                            
-  |==========================================================            |  83%
-  |                                                                            
-  |======================================================================| 100%
-#&gt; Time difference of 17.36296 secs
+#&gt; [1] &quot;Cross-validating Survival Random Forest using 2 repeat(s), 3 outer, 2 inner loops).For SRF inner CV is not used if oob = TRUE (default)&quot;
+#&gt; [1] &quot;Repeated CV 1 / 2&quot;
+#&gt;   |                                                                              |                                                                      |   0%  |                                                                              |=======================                                               |  33%  |                                                                              |===============================================                       |  67%  |                                                                              |======================================================================| 100%
+#&gt; [1] &quot;Repeated CV 2 / 2&quot;
+#&gt;   |                                                                              |                                                                      |   0%  |                                                                              |=======================                                               |  33%  |                                                                              |===============================================                       |  67%  |                                                                              |======================================================================| 100%
+#&gt; Time difference of 26.16289 secs
 
 summary(srfcv)
-#&gt; Cross-validation results
+#&gt; Cross-validation results. Computation time: 26.16 sec. 
 #&gt; Call:
 #&gt; survsrf_cv(df = mygbsg, predict.factors = myfactors, fixed_time = predict_time, 
 #&gt;     inner_cv = 2)
+#&gt;           T      AUCROC          BS   BS_scaled     C_score Calib_slope 
+#&gt;      6.0000      0.7353      0.2256      0.1874      0.6838      1.5800 
+#&gt; Calib_alpha   repeat_cv    outer_cv        test 
+#&gt;     -0.5838      1.5000      2.0000      1.0000 
 #&gt; 
 #&gt; The stats are computed from the  6  data splits.
-#&gt;             test.mean test.sd test.95CILow test.95CIHigh train.mean train.sd
-#&gt; T              6.0000  0.0000       6.0000        6.0000     6.0000   0.0000
-#&gt; AUCROC         0.7416  0.0877       0.6178        0.8342     0.9001   0.0362
-#&gt; BS             0.1884  0.0403       0.1512        0.2454     0.1464   0.0176
-#&gt; BS_scaled      0.2599  0.1079       0.1041        0.3716     0.4191   0.0686
-#&gt; C_score        0.6914  0.0086       0.6813        0.7016     0.7775   0.0265
-#&gt; Calib_slope    2.1287  0.9496       0.9450        3.2955     3.9245   0.6138
-#&gt; Calib_alpha    1.7108  0.1385       1.5121        1.8454     1.5778   0.1238
-#&gt;             train.95CILow train.95CIHigh
-#&gt; T                  6.0000         6.0000
-#&gt; AUCROC             0.8630         0.9498
-#&gt; BS                 0.1210         0.1633
-#&gt; BS_scaled          0.3532         0.5106
-#&gt; C_score            0.7475         0.8159
-#&gt; Calib_slope        3.2860         4.8573
-#&gt; Calib_alpha        1.4753         1.7425</code></pre>
+#&gt;             test.mean test.sd test.95CILow test.95CIHigh test.median train.mean
+#&gt; T              6.0000  0.0000       6.0000        6.0000      6.0000     6.0000
+#&gt; AUCROC         0.7353  0.0419       0.6672        0.7699      0.7438     0.8293
+#&gt; BS             0.2256  0.0294       0.2079        0.2571      0.2095     0.1919
+#&gt; BS_scaled      0.1874  0.0559       0.1277        0.2226      0.2162     0.2774
+#&gt; C_score        0.6838  0.0279       0.6582        0.7252      0.6752     0.7366
+#&gt; Calib_slope    1.5800  0.6132       0.6813        2.0689      1.8678     2.1411
+#&gt; Calib_alpha   -0.5838  0.1233      -0.7354       -0.4226     -0.5824    -0.5724
+#&gt;             train.sd train.95CILow train.95CIHigh train.median
+#&gt; T             0.0000        6.0000         6.0000       6.0000
+#&gt; AUCROC        0.0385        0.7860         0.8769       0.8308
+#&gt; BS            0.0194        0.1593         0.2063       0.1998
+#&gt; BS_scaled     0.0736        0.2269         0.4019       0.2449
+#&gt; C_score       0.0162        0.7159         0.7596       0.7385
+#&gt; Calib_slope   0.5043        1.3651         2.6571       2.2651
+#&gt; Calib_alpha   0.0316       -0.6095        -0.5327      -0.5732</code></pre>
 <div id="notes-on-the-srf-tuning" class="section level5">
 <h5>Notes on the SRF tuning</h5>
 <p>Note, that the function <code>survsrf_train()</code> does not just
@@ -569,22 +552,23 @@ ones that tend to affect prediction accuracy the most. See also <a href="https:/
 size and total number of predictors. One can check the tuning grid and
 the final optimized parameters by running:</p>
 <pre class="r"><code># Tuning grid:
-print(srfmodel1$tuning)
-#&gt; $mtry
-#&gt; [1] 2
-#&gt; 
-#&gt; $nodesize
-#&gt; [1] 15 20 25 30 35 40
-#&gt; 
-#&gt; $nodedepth
-#&gt; [1]  5 25
+print(srfmodel1$grid)
+#&gt;     mtry nodesize nodedepth
+#&gt; 49     2       15         5
+#&gt; 65     2       35         5
+#&gt; 153    2       25        50
+#&gt; 74     3       15         7
+#&gt; 146    3       15        50
+#&gt; 122    3       15        15
+#&gt; 168    5       40        50
+#&gt; 128    5       20        15
+#&gt; 47     4       40         3
+#&gt; 24     5       40         2
 
 # Selected hyperparameters and their performance metrics (measured on out-of-sample observations):
-print(srfmodel1$beststats)  
-#&gt;    mtry nodesize nodedepth time    AUCROC     BS BS_scaled   C_score
-#&gt; V1    2       25         5    6 0.6505459 0.1812 0.2613102 0.6777204
-#&gt;    Calib_alpha Calib_slope
-#&gt; V1     1.98665    1.763914</code></pre>
+print(srfmodel1$bestparams)  
+#&gt;    mtry nodesize nodedepth  allmeans
+#&gt; 47    4       40         3 0.6684752</code></pre>
 <p>It is possible to use a custom grid to tune SRF. First, create a list
 containing three numerical vectors, named as “mtry”, “nodesize”, and
 “nodedepth”, containing their candidate values. Then, supply the list as
@@ -603,15 +587,15 @@ srfmodel2 &lt;-
     traindf,
     myfactors,
     predict_time,
-    srf_tuning = my_srf_tuning,
+    tuningparams = my_srf_tuning,
     inner_cv = 2,
     randomseed = 42
   )
 
 # Compare the fits (we see some marginal improvement)
-round(rbind(
-  default_tune = srfmodel1$beststats,
-  custom_tune = srfmodel2$beststats ),3)
+rbind(
+  default_tune = srfmodel1$bestparams,
+  custom_tune = srfmodel2$bestparams )
 
 #          mtry nodesize nodedepth time AUCROC  BS   BS_scaled C_score
 #default_tune    2   20     25       6     0.730    0.179   0.273       0.673   
