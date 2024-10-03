@@ -95,14 +95,16 @@ surv_CV_parallel =
       ############################################################
       # parallel cluster-register
       cl= parallel::makeCluster(num_cores-2)
-      parallel::clusterExport(cl, varlist = c("package_path", "python_path"))
+      clusterEvalQ(cl, library(survcompare))
+      #parallel::clusterExport(cl, varlist = c("package_path", "python_path"))
       doParallel::registerDoParallel(cl)
       # cross-validation loop:
       results <- foreach::foreach(
         cv_iteration = 1:outer_cv
         ) %dopar% {
-          devtools::load_all(package_path)
-          if(!is.nan(python_path)) {reticulate::use_python(python_path)}
+
+          #devtools::load_all(package_path)
+          #if(!is.nan(python_path)) {reticulate::use_python(python_path)}
 
         df_train_cv <- df[cv_folds != cv_iteration,]
         df_test_cv <- df[cv_folds == cv_iteration,]
