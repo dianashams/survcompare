@@ -23,12 +23,7 @@ surv_CV_parallel =
            predict_args = list(),
            model_name = "my model") {
 
-    if (is.nan(package_path)){
-      stop("Please supply package path for parallel computations.")
-    }
-
     time_0 <- Sys.time()
-    print(package_path)
 
     # Make parallel cluster, use all but 2 cores for parallel CV
     num_cores <- parallel::detectCores()
@@ -105,7 +100,7 @@ surv_CV_parallel =
         ) %dopar% {
 
           #devtools::load_all(package_path)
-          #if(!is.nan(python_path)) {reticulate::use_python(python_path)}
+        if(!is.nan(python_path)) {reticulate::use_python(python_path)}
 
         df_train_cv <- df[cv_folds != cv_iteration,]
         df_test_cv <- df[cv_folds == cv_iteration,]
