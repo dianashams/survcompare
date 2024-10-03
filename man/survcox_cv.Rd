@@ -13,7 +13,8 @@ survcox_cv(
   randomseed = NaN,
   return_models = FALSE,
   inner_cv = 3,
-  useCoxLasso = FALSE
+  useCoxLasso = FALSE,
+  suppresswarn = TRUE
 )
 }
 \arguments{
@@ -34,6 +35,8 @@ survcox_cv(
 \item{inner_cv}{k in the inner loop of k-fold CV, default is 3; only used if CoxLasso is TRUE}
 
 \item{useCoxLasso}{TRUE/FALSE, FALSE by default}
+
+\item{suppresswarn}{TRUE/FALSE, FALSE by default}
 }
 \value{
 list of outputs

@@ -143,6 +143,7 @@ survsrfens_train <- function(df_train,
 #' @param tuningparams if given, list of hyperparameters, list(mtry=c(), nodedepth=c(),nodesize=c()), otherwise a wide default grid is used
 #' @param max_grid_size number of random grid searches for model tuning
 #' @param verbose FALSE(default)/TRUE
+#' @param suppresswarn FALSE(default)/TRUE
 #' @examples \donttest{
 #' \dontshow{rfcores_old <- options()$rf.cores; options(rf.cores=1)}
 #' df <- simulate_nonlinear()
@@ -163,7 +164,8 @@ survsrfens_cv <- function(df,
                             useCoxLasso = FALSE,
                             tuningparams = list(),
                             max_grid_size = 10,
-                            verbose = FALSE) {
+                            verbose = FALSE,
+                          suppresswarn = TRUE) {
   Call <- match.call()
   inputs <- list(df , predict.factors, fixed_time,
                  outer_cv,inner_cv, repeat_cv,
@@ -181,6 +183,7 @@ survsrfens_cv <- function(df,
   if (sum(is.na(df[c("time", "event", predict.factors)])) > 0) {
     stop("Missing data can not be handled. Please impute first.")
   }
+  if (suppresswarn){ user_warn <-options()$warn; options(warn=-1)}
   output <- surv_CV(
     df = df,
     predict.factors = predict.factors,
@@ -200,6 +203,7 @@ survsrfens_cv <- function(df,
                       "verbose" = verbose),
     model_name = "SRF_ensemble"
   )
+  if (suppresswarn){ options(warn=user_warn)}
   output$call <- Call
   return(output)
 }

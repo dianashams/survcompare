@@ -203,6 +203,7 @@ survcox_predict <- function(trained_model,
 #' @param return_models TRUE/FALSE, if TRUE returns all CV objects
 #' @param inner_cv k in the inner loop of k-fold CV, default is 3; only used if CoxLasso is TRUE
 #' @param useCoxLasso TRUE/FALSE, FALSE by default
+#' @param suppresswarn TRUE/FALSE, FALSE by default
 #' @examples \donttest{
 #' df <- simulate_nonlinear()
 #' coxph_cv <- survcox_cv(df, names(df)[1:4])
@@ -218,7 +219,8 @@ survcox_cv <- function(df,
                        randomseed = NaN,
                        return_models = FALSE,
                        inner_cv = 3,
-                       useCoxLasso = FALSE) {
+                       useCoxLasso = FALSE,
+                       suppresswarn = TRUE) {
   Call <- match.call()
   inputs <- list(df , predict.factors, fixed_time,
                  outer_cv,inner_cv, repeat_cv,
@@ -234,21 +236,23 @@ survcox_cv <- function(df,
   if (sum(is.na(df[c("time", "event", predict.factors)])) > 0) {
     stop("Missing data can not be handled. Please impute first.")
   }
-
-  output <- surv_CV(
-    df = df,
-    predict.factors = predict.factors,
-    fixed_time = fixed_time,
-    outer_cv = outer_cv,
-    inner_cv = inner_cv,
-    repeat_cv = repeat_cv,
-    randomseed = randomseed,
-    return_models = return_models,
-    train_function = survcox_train,
-    predict_function = survcox_predict,
-    model_args = list("useCoxLasso" = useCoxLasso),
-    model_name = ifelse(!useCoxLasso, "CoxPH", "CoxLasso")
-  )
+  if (suppresswarn){ user_warn <-options()$warn; options(warn=-1)}
+    output <- surv_CV(
+      df = df,
+      predict.factors = predict.factors,
+      fixed_time = fixed_time,
+      outer_cv = outer_cv,
+      inner_cv = inner_cv,
+      repeat_cv = repeat_cv,
+      randomseed = randomseed,
+      return_models = return_models,
+      train_function = survcox_train,
+      predict_function = survcox_predict,
+      model_args = list("useCoxLasso" = useCoxLasso),
+      model_name = ifelse(!useCoxLasso, "CoxPH", "CoxLasso")
+      )
+  if (suppresswarn){ options(warn=user_warn)}
   output$call <- Call
   return(output)
 }
+

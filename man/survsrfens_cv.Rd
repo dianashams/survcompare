@@ -16,7 +16,8 @@ survsrfens_cv(
   useCoxLasso = FALSE,
   tuningparams = list(),
   max_grid_size = 10,
-  verbose = FALSE
+  verbose = FALSE,
+  suppresswarn = TRUE
 )
 }
 \arguments{
@@ -43,6 +44,8 @@ survsrfens_cv(
 \item{max_grid_size}{number of random grid searches for model tuning}
 
 \item{verbose}{FALSE(default)/TRUE}
+
+\item{suppresswarn}{FALSE(default)/TRUE}
 }
 \value{
 list of outputs

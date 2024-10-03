@@ -16,7 +16,8 @@ survsrfstack_cv(
   useCoxLasso = FALSE,
   tuningparams = list(),
   max_grid_size = 10,
-  verbose = FALSE
+  verbose = FALSE,
+  suppresswarn = TRUE
 )
 }
 \arguments{
@@ -43,6 +44,8 @@ survsrfstack_cv(
 \item{max_grid_size}{number of random grid searches for model tuning}
 
 \item{verbose}{FALSE(default)/TRUE}
+
+\item{suppresswarn}{FALSE(default)/TRUE}
 }
 \description{
 Cross-validates stacked ensemble of the CoxPH and Survival Random Forest models

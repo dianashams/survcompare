@@ -214,6 +214,7 @@ survsrfstack_train <-
 #' @param tuningparams if given, list of hyperparameters, list(mtry=c(), nodedepth=c(),nodesize=c()), otherwise a wide default grid is used
 #' @param max_grid_size number of random grid searches for model tuning
 #' @param verbose FALSE(default)/TRUE
+#' @param suppresswarn FALSE(default)/TRUE
 #' @export
 survsrfstack_cv <- function(df,
                          predict.factors,
@@ -226,14 +227,15 @@ survsrfstack_cv <- function(df,
                          useCoxLasso = FALSE,
                          tuningparams = list(),
                          max_grid_size =10,
-                         verbose = FALSE
+                         verbose = FALSE,
+                         suppresswarn = TRUE
 ) {
   Call <- match.call()
 
   if (sum(is.na(df[c("time", "event", predict.factors)])) > 0) {
     stop("Missing data can not be handled. Please impute first.")
   }
-
+  if (suppresswarn){ user_warn <-options()$warn; options(warn=-1)}
   output <- surv_CV(
     df = df,
     predict.factors = predict.factors,
@@ -254,6 +256,7 @@ survsrfstack_cv <- function(df,
     predict_args = list("predict.factors" = predict.factors),
     model_name = "Stacked_SRF_CoxPH"
   )
+  if (suppresswarn){ options(warn=user_warn)}
   output$call <- Call
   return(output)
 }

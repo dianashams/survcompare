@@ -15,7 +15,8 @@ survsrf_cv(
   return_models = FALSE,
   tuningparams = list(),
   max_grid_size = 10,
-  verbose = FALSE
+  verbose = FALSE,
+  suppresswarn = TRUE
 )
 }
 \arguments{
@@ -40,6 +41,8 @@ survsrf_cv(
 \item{max_grid_size}{number of random grid searches for model tuning}
 
 \item{verbose}{FALSE(default)/TRUE}
+
+\item{suppresswarn}{TRUE/FALSE, FALSE by default}
 }
 \value{
 list of outputs
