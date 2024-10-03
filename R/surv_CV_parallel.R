@@ -1,3 +1,10 @@
+#' @importFrom devtools load_all
+#' @importFrom doParallel registerDoParallel
+#' @importFrom parallel detectCores
+#' @importFrom foreach  %dopar%
+#' @importFrom foreach  foreach
+#' @importFrom reticulate use_python
+#' @importFrom survivalmodels deephit
 surv_CV_parallel =
   function(df,
            predict.factors,
@@ -15,7 +22,12 @@ surv_CV_parallel =
            predict_args = list(),
            model_name = "my model") {
 
+    if (is.nan(package_path)){
+      stop("Please supply package path for parallel computations.")
+    }
+
     time_0 <- Sys.time()
+    print(package_path)
 
     # Make parallel cluster, use all but 2 cores for parallel CV
     num_cores <- parallel::detectCores()
@@ -83,18 +95,14 @@ surv_CV_parallel =
       ############################################################
       # parallel cluster-register
       cl= parallel::makeCluster(num_cores-2)
+      parallel::clusterExport(cl, varlist = c("package_path", "python_path"))
       doParallel::registerDoParallel(cl)
-
       # cross-validation loop:
       results <- foreach::foreach(
         cv_iteration = 1:outer_cv
         ) %dopar% {
-
-          if (is.nan(package_path)) {
-            library(survcompare)
-          } else{
-            devtools::load_all(package_path)
-            reticulate::use_python(python_path)          }
+          devtools::load_all(package_path)
+          if(!is.nan(python_path)) {reticulate::use_python(python_path)}
 
         df_train_cv <- df[cv_folds != cv_iteration,]
         df_test_cv <- df[cv_folds == cv_iteration,]
@@ -158,7 +166,8 @@ surv_CV_parallel =
     df_modelstats_train$test <- 0
 
     bestparams = as.data.frame(do.call(rbind, params_for_each_cv))
-    if (dim(bestparams)[1]==outer_cv*repeat_cv) {bestparams$C_score_outer = df_modelstats_test$C_score}
+    if (dim(bestparams)[1]==outer_cv*repeat_cv) {
+      bestparams$C_score_outer = df_modelstats_test$C_score}
 
     #summary for printing and summary(obj)
     stats_summary <- function(x) {

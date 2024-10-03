@@ -195,6 +195,8 @@ survdhstack_train <-
 #' @param max_grid_size number of random grid searches for model tuning
 #' @param parallel if parallel calculations are used
 #' @param verbose FALSE(default)/TRUE
+#' @param package_path survcompare package path if not installed as a library
+#' @param python_path python path for survivalmodels
 #' @export
 survdhstack_cv <- function(df,
                            predict.factors,
@@ -208,11 +210,16 @@ survdhstack_cv <- function(df,
                            tuningparams = list(),
                            max_grid_size =10,
                            parallel = FALSE,
-                           verbose = FALSE
+                           verbose = FALSE,
+                           package_path = NaN,
+                           python_path = NaN
 ) {
   Call <- match.call()
   if (sum(is.na(df[c("time", "event", predict.factors)])) > 0) {
     stop("Missing data can not be handled. Please impute first.")
+  }
+  if (parallel&(is.nan(package_path)|(is.nan(python_path)))){
+    stop("Please supply package and python paths for parallel computations.")
   }
   output <- surv_CV(
     df = df,
@@ -233,7 +240,9 @@ survdhstack_cv <- function(df,
                       "verbose"= verbose),
     predict_args = list("predict.factors" = predict.factors),
     model_name = "Stacked_DeepHit_CoxPH",
-    parallel = parallel
+    parallel = parallel,
+    package_path = NaN,
+    python_path = NaN
   )
   output$call <- Call
   return(output)

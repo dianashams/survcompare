@@ -17,7 +17,9 @@ survdhstack_cv(
   tuningparams = list(),
   max_grid_size = 10,
   parallel = FALSE,
-  verbose = FALSE
+  verbose = FALSE,
+  package_path = NaN,
+  python_path = NaN
 )
 }
 \arguments{
@@ -47,6 +49,10 @@ e.g. (mod_alpha = c(0.2,0.5),dropout= c(0.1,0.8), learning_rate= c(0.001,0.01), 
 \item{parallel}{if parallel calculations are used}
 
 \item{verbose}{FALSE(default)/TRUE}
+
+\item{package_path}{survcompare package path if not installed as a library}
+
+\item{python_path}{python path for survivalmodels}
 }
 \description{
 Cross-validates Stacked Ensemble of CoxPH and DeepHit

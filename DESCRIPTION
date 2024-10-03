@@ -20,7 +20,12 @@ Imports:
   timeROC,
   caret,
   glmnet,
-  randomForestSRC
+  randomForestSRC,
+  devtools,
+  doParallel,
+  foreach,
+  reticulate,
+  survivalmodels
 Roxygen: list(markdown = TRUE)
 RoxygenNote: 7.3.2
 Suggests: 

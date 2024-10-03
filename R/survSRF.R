@@ -331,6 +331,9 @@ ml_hyperparams_srf <- function(mlparams = list(),
 #' @param tuningparams if given, list of hyperparameters, list(mtry=c(), nodedepth=c(),nodesize=c()), otherwise a wide default grid is used
 #' @param max_grid_size number of random grid searches for model tuning
 #' @param verbose FALSE(default)/TRUE
+#' @param parallel if parallel calculations are used
+#' @param package_path survcompare package path if not installed as a library
+#' @param python_path python path for survivalmodels
 #' @examples \donttest{
 #' \dontshow{rfcores_old<- options()$rf.cores; options(rf.cores = 1)}
 #' df <- simulate_nonlinear()
@@ -351,7 +354,10 @@ survsrf_cv <- function(df,
                        tuningparams = list(),
                        max_grid_size = 10,
                        verbose = FALSE,
-                       parallel = FALSE) {
+                       parallel = FALSE,
+                       package_path = NaN,
+                       python_path = NaN
+                       ) {
 
   Call <- match.call()
   inputs <- list(df,
@@ -401,7 +407,9 @@ survsrf_cv <- function(df,
                       randomseed = randomseed,
                       verbose = verbose),
     model_name = "Survival Random Forest",
-    parallel = parallel
+    parallel = parallel,
+    package_path = package_path,
+    python_path = NaN
   )
   output$call <- Call
   return(output)

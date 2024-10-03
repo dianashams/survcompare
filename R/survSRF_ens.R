@@ -143,6 +143,9 @@ survsrfens_train <- function(df_train,
 #' @param tuningparams if given, list of hyperparameters, list(mtry=c(), nodedepth=c(),nodesize=c()), otherwise a wide default grid is used
 #' @param max_grid_size number of random grid searches for model tuning
 #' @param verbose FALSE(default)/TRUE
+#' @param parallel if parallel calculations are used
+#' @param package_path survcompare package path if not installed as a library
+#' @param python_path python path for survivalmodels
 #' @examples \donttest{
 #' \dontshow{rfcores_old <- options()$rf.cores; options(rf.cores=1)}
 #' df <- simulate_nonlinear()
@@ -153,18 +156,21 @@ survsrfens_train <- function(df_train,
 #' @return list of outputs
 #' @export
 survsrfens_cv <- function(df,
-                            predict.factors,
-                            fixed_time = NaN,
-                            outer_cv = 3,
-                            inner_cv = 3,
-                            repeat_cv = 2,
-                            randomseed = NaN,
-                            return_models = FALSE,
-                            useCoxLasso = FALSE,
-                            tuningparams = list(),
-                            max_grid_size = 10,
-                            verbose = FALSE,
-                            parallel = FALSE) {
+                          predict.factors,
+                          fixed_time = NaN,
+                          outer_cv = 3,
+                          inner_cv = 3,
+                          repeat_cv = 2,
+                          randomseed = NaN,
+                          return_models = FALSE,
+                          useCoxLasso = FALSE,
+                          tuningparams = list(),
+                          max_grid_size = 10,
+                          verbose = FALSE,
+                          parallel = FALSE,
+                          package_path = NaN,
+                          python_path = NaN
+                          ) {
   Call <- match.call()
   inputs <- list(df , predict.factors, fixed_time,
                  outer_cv,inner_cv, repeat_cv,
@@ -200,7 +206,9 @@ survsrfens_cv <- function(df,
                       "randomseed" = randomseed,
                       "verbose" = verbose),
     model_name = "SRF_ensemble",
-    parallel = parallel
+    parallel = parallel,
+    package_path = package_path,
+    python_path = NaN
   )
   output$call <- Call
   return(output)

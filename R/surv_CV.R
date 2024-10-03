@@ -202,12 +202,9 @@ surv_CV <-
     output$test <- df_modelstats_test
     output$train <- df_modelstats_train
     output$test_pooled <- pooled_test(df_modelstats_test)
-    output$testaverage <-
-      sapply(df_modelstats_test, mean, na.rm = TRUE)
-    output$testmedian <-
-      sapply(df_modelstats_test, median, na.rm = TRUE)
-    output$trainaverage <-
-      sapply(df_modelstats_train, mean, na.rm = TRUE)
+    output$testaverage <- sapply(df_modelstats_test, mean, na.rm = TRUE)
+    output$testmedian <- sapply(df_modelstats_test, median, na.rm = TRUE)
+    output$trainaverage <- sapply(df_modelstats_train, mean, na.rm = TRUE)
     output$tuned_cv_models <- models_for_each_cv
     output$randomseed <- randomseed
     output$bestparams<- bestparams

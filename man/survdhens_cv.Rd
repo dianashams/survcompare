@@ -17,7 +17,9 @@ survdhens_cv(
   tuningparams = list(),
   max_grid_size = 10,
   parallel = FALSE,
-  verbose = FALSE
+  verbose = FALSE,
+  package_path = NaN,
+  python_path = NaN
 )
 }
 \arguments{
@@ -46,6 +48,10 @@ survdhens_cv(
 \item{parallel}{if parallel calculations are used}
 
 \item{verbose}{FALSE(default)/TRUE}
+
+\item{package_path}{survcompare package path if not installed as a library}
+
+\item{python_path}{python path for survivalmodels}
 }
 \description{
 Cross-validates the performance of DeepHit and CoxPH Ensemble

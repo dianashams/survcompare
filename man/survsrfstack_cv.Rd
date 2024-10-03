@@ -17,7 +17,9 @@ survsrfstack_cv(
   tuningparams = list(),
   max_grid_size = 10,
   verbose = FALSE,
-  parallel = FALSE
+  parallel = FALSE,
+  package_path = NaN,
+  python_path = NaN
 )
 }
 \arguments{
@@ -44,6 +46,12 @@ survsrfstack_cv(
 \item{max_grid_size}{number of random grid searches for model tuning}
 
 \item{verbose}{FALSE(default)/TRUE}
+
+\item{parallel}{if parallel calculations are used}
+
+\item{package_path}{survcompare package path if not installed as a library}
+
+\item{python_path}{python path for survivalmodels}
 }
 \description{
 Cross-validates stacked ensemble of the CoxPH and Survival Random Forest models

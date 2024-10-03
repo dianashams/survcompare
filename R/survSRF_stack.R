@@ -214,6 +214,9 @@ survsrfstack_train <-
 #' @param tuningparams if given, list of hyperparameters, list(mtry=c(), nodedepth=c(),nodesize=c()), otherwise a wide default grid is used
 #' @param max_grid_size number of random grid searches for model tuning
 #' @param verbose FALSE(default)/TRUE
+#' @param parallel if parallel calculations are used
+#' @param package_path survcompare package path if not installed as a library
+#' @param python_path python path for survivalmodels
 #' @export
 survsrfstack_cv <- function(df,
                          predict.factors,
@@ -227,7 +230,9 @@ survsrfstack_cv <- function(df,
                          tuningparams = list(),
                          max_grid_size =10,
                          verbose = FALSE,
-                         parallel = FALSE
+                         parallel = FALSE,
+                         package_path = NaN,
+                         python_path = NaN
 ) {
   Call <- match.call()
 
@@ -254,7 +259,9 @@ survsrfstack_cv <- function(df,
                       "verbose" = verbose),
     predict_args = list("predict.factors" = predict.factors),
     model_name = "Stacked_SRF_CoxPH",
-    parallel = parallel
+    parallel = parallel,
+    package_path = package_path,
+    python_path = NaN
   )
   output$call <- Call
   return(output)
