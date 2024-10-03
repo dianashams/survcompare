@@ -161,9 +161,6 @@ survdhens_cv <- function(df,
   if (sum(is.na(df[c("time", "event", predict.factors)])) > 0) {
     stop("Missing data can not be handled. Please impute first.")
   }
-  if (parallel&(is.nan(package_path)|(is.nan(python_path)))){
-    stop("Please supply package and python paths for parallel computations.")
-  }
   output <- surv_CV(
     df = df,
     predict.factors = predict.factors,
