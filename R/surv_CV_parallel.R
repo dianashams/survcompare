@@ -5,6 +5,7 @@
 #' @importFrom foreach  foreach
 #' @importFrom reticulate use_python
 #' @importFrom survivalmodels deephit
+#' @importFrom parallel clusterEvalQ
 surv_CV_parallel =
   function(df,
            predict.factors,
@@ -95,7 +96,7 @@ surv_CV_parallel =
       ############################################################
       # parallel cluster-register
       cl= parallel::makeCluster(num_cores-2)
-      clusterEvalQ(cl, library(survcompare))
+      parallel::clusterEvalQ(cl, library(survcompare))
       #parallel::clusterExport(cl, varlist = c("package_path", "python_path"))
       doParallel::registerDoParallel(cl)
       # cross-validation loop:
