@@ -35,7 +35,7 @@ The package checks whether there are considerable non-linear and interaction ter
 
     -   `randomForestSRC::rfsrc()`(Ishwaran & Kogalur, 2023).
 
--   Validates stacked ensemble of the CoxPH and Survival Random Forest, which predicts as a linear combination of the CoxPH and SRF, lambda x CoxPH + (1-lambda) x SRF. Lambda parameter is tuned within the package and the value can indicate if taking a share of SRF predictions could improve the baseline CoxPH's performance. Lambda = 0 means only CoxPH is used, lambda = 1 means the model is the same as SRF.
+-   Validates stacked ensemble of the CoxPH and Survival Random Forest, which predicts as a linear combination of the CoxPH and SRF, (1-lambda) x CoxPH + lambda x SRF. Lambda parameter is tuned within the package and the value can indicate if taking a share of SRF predictions could improve the baseline CoxPH's performance. Lambda = 0 means only CoxPH is used, lambda = 1 means the model is the same as SRF.
 
 -   Performs statistical testing of whether the Survival Random Forest [ensemble] outperforms the Cox model.
 
