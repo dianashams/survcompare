@@ -143,7 +143,7 @@ survsrfens_train <- function(df_train,
 #' @param tuningparams if given, list of hyperparameters, list(mtry=c(), nodedepth=c(),nodesize=c()), otherwise a wide default grid is used
 #' @param max_grid_size number of random grid searches for model tuning
 #' @param verbose FALSE(default)/TRUE
-#' @param suppresswarn FALSE(default)/TRUE
+#' @param suppresswarn TRUE/FALSE, TRUE by default
 #' @examples \donttest{
 #' \dontshow{rfcores_old <- options()$rf.cores; options(rf.cores=1)}
 #' df <- simulate_nonlinear()

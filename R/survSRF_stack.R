@@ -214,7 +214,7 @@ survsrfstack_train <-
 #' @param tuningparams if given, list of hyperparameters, list(mtry=c(), nodedepth=c(),nodesize=c()), otherwise a wide default grid is used
 #' @param max_grid_size number of random grid searches for model tuning
 #' @param verbose FALSE(default)/TRUE
-#' @param suppresswarn FALSE(default)/TRUE
+#' @param suppresswarn TRUE/FALSE, TRUE by default
 #' @export
 survsrfstack_cv <- function(df,
                          predict.factors,

@@ -203,7 +203,7 @@ survcox_predict <- function(trained_model,
 #' @param return_models TRUE/FALSE, if TRUE returns all CV objects
 #' @param inner_cv k in the inner loop of k-fold CV, default is 3; only used if CoxLasso is TRUE
 #' @param useCoxLasso TRUE/FALSE, FALSE by default
-#' @param suppresswarn TRUE/FALSE, FALSE by default
+#' @param suppresswarn TRUE/FALSE, TRUE by default
 #' @examples \donttest{
 #' df <- simulate_nonlinear()
 #' coxph_cv <- survcox_cv(df, names(df)[1:4])
