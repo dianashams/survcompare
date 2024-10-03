@@ -42,7 +42,7 @@ survsrf_cv(
 
 \item{verbose}{FALSE(default)/TRUE}
 
-\item{suppresswarn}{TRUE/FALSE, FALSE by default}
+\item{suppresswarn}{TRUE/FALSE, TRUE by default}
 }
 \value{
 list of outputs

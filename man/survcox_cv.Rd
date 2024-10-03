@@ -36,7 +36,7 @@ survcox_cv(
 
 \item{useCoxLasso}{TRUE/FALSE, FALSE by default}
 
-\item{suppresswarn}{TRUE/FALSE, FALSE by default}
+\item{suppresswarn}{TRUE/FALSE, TRUE by default}
 }
 \value{
 list of outputs

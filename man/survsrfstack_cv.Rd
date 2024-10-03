@@ -45,7 +45,7 @@ survsrfstack_cv(
 
 \item{verbose}{FALSE(default)/TRUE}
 
-\item{suppresswarn}{FALSE(default)/TRUE}
+\item{suppresswarn}{TRUE/FALSE, TRUE by default}
 }
 \description{
 Cross-validates stacked ensemble of the CoxPH and Survival Random Forest models
