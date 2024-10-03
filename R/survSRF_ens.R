@@ -41,6 +41,7 @@ survsrfens_predict <- function(trained_model,
 #' @param max_grid_size number of random grid searches for model tuning
 #' @param var_importance_calc if variable importance is computed
 #' @param verbose FALSE (default)/TRUE
+#' @param suppresswarn TRUE/FALSE, FALSE by default
 #' @return trained object of class survsrf_ens
 #' @export
 survsrfens_train <- function(df_train,
@@ -52,7 +53,8 @@ survsrfens_train <- function(df_train,
                                useCoxLasso = FALSE,
                                max_grid_size =10,
                                var_importance_calc = FALSE,
-                               verbose = FALSE) {
+                               verbose = FALSE,
+                             suppresswarn = TRUE) {
   # the function trains Cox model, then adds its predictions
   # into Survival Random Forest model
   # to mimic stacking procedure and reduce overfitting,
@@ -146,6 +148,7 @@ survsrfens_train <- function(df_train,
 #' @param parallel if parallel calculations are used
 #' @param package_path survcompare package path if not installed as a library
 #' @param python_path python path for survivalmodels
+#' @param suppresswarn TRUE/FALSE, TRUE by default
 #' @examples \donttest{
 #' \dontshow{rfcores_old <- options()$rf.cores; options(rf.cores=1)}
 #' df <- simulate_nonlinear()
@@ -169,7 +172,8 @@ survsrfens_cv <- function(df,
                           verbose = FALSE,
                           parallel = FALSE,
                           package_path = NaN,
-                          python_path = NaN
+                          python_path = NaN,
+                          suppresswarn = TRUE
                           ) {
   Call <- match.call()
   inputs <- list(df , predict.factors, fixed_time,
@@ -188,6 +192,7 @@ survsrfens_cv <- function(df,
   if (sum(is.na(df[c("time", "event", predict.factors)])) > 0) {
     stop("Missing data can not be handled. Please impute first.")
   }
+  if (suppresswarn){ user_warn <-options()$warn; options(warn=-1)}
   output <- surv_CV(
     df = df,
     predict.factors = predict.factors,
@@ -210,6 +215,7 @@ survsrfens_cv <- function(df,
     package_path = package_path,
     python_path = NaN
   )
+  if (suppresswarn){ options(warn=user_warn)}
   output$call <- Call
   return(output)
 }

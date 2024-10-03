@@ -334,6 +334,7 @@ ml_hyperparams_srf <- function(mlparams = list(),
 #' @param parallel if parallel calculations are used
 #' @param package_path survcompare package path if not installed as a library
 #' @param python_path python path for survivalmodels
+#' @param suppresswarn TRUE/FALSE, TRUE by default
 #' @examples \donttest{
 #' \dontshow{rfcores_old<- options()$rf.cores; options(rf.cores = 1)}
 #' df <- simulate_nonlinear()
@@ -356,8 +357,8 @@ survsrf_cv <- function(df,
                        verbose = FALSE,
                        parallel = FALSE,
                        package_path = NaN,
-                       python_path = NaN
-                       ) {
+                       python_path = NaN,
+                       suppresswarn = TRUE) {
 
   Call <- match.call()
   inputs <- list(df,
@@ -390,6 +391,7 @@ survsrf_cv <- function(df,
   if (sum(is.na(df[c("time", "event", predict.factors)])) > 0) {
     stop("Missing data can not be handled. Please impute first.")
   }
+  if (suppresswarn){ user_warn <-options()$warn; options(warn=-1)}
   output <- surv_CV(
     df = df,
     predict.factors = predict.factors,
@@ -411,6 +413,7 @@ survsrf_cv <- function(df,
     package_path = package_path,
     python_path = NaN
   )
+  if (suppresswarn){ options(warn=user_warn)}
   output$call <- Call
   return(output)
 }
