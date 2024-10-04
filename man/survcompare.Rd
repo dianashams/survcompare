@@ -18,7 +18,8 @@ survcompare(
   repeat_cv = 2,
   ml = "SRF",
   use_ensemble = FALSE,
-  max_grid_size = 10
+  max_grid_size = 10,
+  suppresswarn = TRUE
 )
 }
 \arguments{
@@ -47,6 +48,8 @@ survcompare(
 \item{use_ensemble}{TRUE/FALSE for whether to train SRF on its own, apart from the CoxPH->SRF ensemble. Default is FALSE as there is not much information in SRF itself compared to the ensembled version.}
 
 \item{max_grid_size}{number of random grid searches for model tuning}
+
+\item{suppresswarn}{TRUE/FALSE, TRUE by default}
 }
 \value{
 outcome - cross-validation results for CoxPH, SRF, and an object containing the comparison results
