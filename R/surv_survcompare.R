@@ -46,6 +46,7 @@
 #' @param ml this is currently for Survival Random Forest only ("SRF")
 #' @param use_ensemble TRUE/FALSE for whether to train SRF on its own, apart from the CoxPH->SRF ensemble. Default is FALSE as there is not much information in SRF itself compared to the ensembled version.
 #' @param max_grid_size number of random grid searches for model tuning
+#' @param suppresswarn TRUE/FALSE, TRUE by default
 #' @return outcome - cross-validation results for CoxPH, SRF, and an object containing the comparison results
 #' @examples
 #' \dontshow{rfcores_old <- options()$rf.cores; options(rf.cores=1)}
@@ -68,7 +69,8 @@ survcompare <- function(df_train,
                            repeat_cv = 2,
                            ml = "SRF",
                            use_ensemble = FALSE,
-                           max_grid_size = 10) {
+                           max_grid_size = 10,
+                        suppresswarn = TRUE) {
 
   Call <- match.call()
   inputs <- list(
@@ -114,6 +116,8 @@ survcompare <- function(df_train,
   #SRF_ensemble or DeepHit_ensemble
   ensemble_name <- paste(ml, "ensemble", sep="_")
 
+  if (suppresswarn){ user_warn <-options()$warn; options(warn=-1)}
+
   # CoxPH
   cv1 <- survcox_cv(
     df = df_train,
@@ -153,6 +157,8 @@ survcompare <- function(df_train,
       tuningparams = tuningparams,
       max_grid_size = max_grid_size)
   }
+
+  if (suppresswarn){ options(warn=user_warn)}
 
   output<- survcompare2(cv1, cv2)
   output$cv1 <- cv1
