@@ -1,5 +1,5 @@
 Package: survcompare
-Title: Compares Cox and Survival Random Forests to Quantify Nonlinearity
+Title: Nested cross-validation to compare Cox-PH, Cox-Lasso, Survival Random Forests
 Version: 0.2.0
 Date: 2024-10-02
 Authors@R: c(
