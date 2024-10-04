@@ -80,7 +80,7 @@ Before interpreting the results, ensure that a sufficient number of repetitions 
 First, you can use the package to compare the performances of the CoxPH and SRF, and leave the ensembles out
 (by specifying the survcompare(use_ensemble = FALSE).
 
-However, the ensembles aim to provide a higher degree of generalisability of the results. In 
+However, the ensembles aim to provide a higher degree of generalisability of the results.  
 The ensemble of CoxPH and SRF takes CoxPH's predictions and adds them to the list of predictors to train SRF. This way, we make sure that linearity is captured by the ensembled SRF at least as good as in the CoxPH, and hence its outperformance can be fully attributed to the qualities of SRF that CoxPH does not have, that is, handling data non-linearity. 
 
 ### Package installation
