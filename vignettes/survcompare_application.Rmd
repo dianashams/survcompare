@@ -37,9 +37,11 @@ The package checks whether there are considerable non-linear and interaction ter
 
 -   Validates stacked ensemble of the CoxPH and Survival Random Forest, which predicts as a linear combination of the CoxPH and SRF, (1-lambda) x CoxPH + lambda x SRF. Lambda parameter is tuned within the package and the value can indicate if taking a share of SRF predictions could improve the baseline CoxPH's performance. Lambda = 0 means only CoxPH is used, lambda = 1 means the model is the same as SRF.
 
+-  GitHit only: deep learning model DeepHit 'survivalmodels::deephit()', as well as its sequential and stacked ensembles with CoxPH or Cox-Lasso. 
+
 -   Performs statistical testing of whether the Survival Random Forest [ensemble] outperforms the Cox model.
 
--   It does NOT handle missing data at the moment.
+-   Does NOT handle missing data at the moment.
 
 Predictive performance is evaluated by averaging different measures across all train-test splits. The following measures are computed:
 
@@ -77,17 +79,22 @@ Before interpreting the results, ensure that a sufficient number of repetitions 
 
 ### Why the CoxPH-SRF ensemble and not just SRF?
 
-First, you can use the package to compare the performances of the CoxPH and SRF, and leave the ensembles out
-(by specifying the survcompare(use_ensemble = FALSE).
+First, you can use the package to compare the performances of the CoxPH and SRF themselves.
 
-However, the ensembles aim to provide a higher degree of generalisability of the results. In 
-The ensemble of CoxPH and SRF takes CoxPH's predictions and adds them to the list of predictors to train SRF. This way, we make sure that linearity is captured by the ensembled SRF at least as good as in the CoxPH, and hence its outperformance can be fully attributed to the qualities of SRF that CoxPH does not have, that is, handling data non-linearity. 
+Second, the ensembles aim to single out the predictive value of the non-linearity and other data relationships that could not be captured by the baseline models. In both ensembles, the final models has a direct access to the predictions of the baseline CoxPH, and hence, the outperformance can be fully attributed to such complex relationships.
+
+For example, the sequential ensemble of Cox and SRF takes the predictions of the Cox model and adds to the list of predictors to train SRF. This way, we make sure that linearity is captured by SRF at least as good as in the Cox model, and hence the marginal outperformance of the ensemble over the Cox model can be fully attributed to the qualities of SRF that Cox does not have, that is, data complexity.
 
 ### Package installation
 
 ```{r setup}
+# For the main version:
+
 # install.packages("devtools")
 # devtools::install_github("dianashams/survcompare")
+
+# DeepHit Extension:
+# devtools::install_github("dianashams/survcompare", ref = "DeepHit")
 library(survcompare)
 
 ```
@@ -216,6 +223,7 @@ SRF_ensemble 0.7211(95CI=0.7177-0.7241;SD=0.0034)
  ```
 
 This example illustrates a situation when outperformance of the non-linear model is statistically significant, but not large in absolute terms. The ultimate model choice will depend on how critical such an improvement is for the model stakeholders.
+
 
 ```{r, include = FALSE}
 # reinstating the value for rf.cores back to default/user-defined value
