@@ -1,0 +1,196 @@
+---
+title: "Survcompare: DeepHit extension"
+author: "Diana Shamsutdinova"
+date: "`r Sys.Date()`"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteEncoding{UTF-8}
+  %\VignetteIndexEntry{Survcompare: DeepHit extension}
+  %\VignetteEngine{knitr::rmarkdown}
+---
+
+```{r setup0, include = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>",
+  rf_user <- rfcores_old <- options()$rf.cores,
+  warnings_user<- options()$warn,
+  scipen_user<- options()$scipen,
+  digits_user<- options()$digits,
+  options(rf.cores = 1),
+  options(warn = -1),
+  options(scipen = 100, digits = 4)
+)
+reticulate::use_python("C:/Users/dinab/anaconda3") # home
+library(survivalmodels)
+library(survival)
+library(devtools)
+
+dir<- "C:/Users/dinab/Desktop/PhD Projects/Ensemble methods/GitHub_App/generalisability_of_nonlinearity/Data"
+
+mydata <- read.csv(paste(dir, "hnscc_merged.csv", sep="/"))
+params <- names(mydata)[4:110]
+
+```
+
+This is an extension to the main vingette to demonstrate most of the 'survcompare' functionality
+
+### Package installation
+
+```{r setup}
+# Install DeepHit's extension from GitHub:
+# devtools::install_github("dianashams/survcompare", ref= "DeepHit")
+
+# make sure that "survivalmodels" is installed
+# install.packages("survivalmodels")
+# library(survivalmodels)
+
+library(survcompare)
+
+```
+
+### Example
+
+#### Describe the data
+
+We will run the analyses for HNSCC data.
+
+For this exercise, a pre-processed HNSCC dataset from Yang et al.(2022) [^1] was used, as downloaded from the their project's GitHub page, <https://github.com/lasso-net/lassonet>. Yang and colleagues used HNSCC to test their deep learning extension of the Cox-PH, FastCPH.
+
+[^1]: Yang X, Abraham L, Kim S, Smirnov P, Ruan F, et al. 2022. FastCPH: Efficient Survival Analysis for Neural Networks. arXiv
+
+Head and neck squamous cell carcinoma (HNSCC) is the most common type of head and neck cancers, attributed to the human papillomavirus infection. The HNSCC data include clinical and imaging data of 451 cancer patients treated with radiotherapy, collected by the Anderson Cancer Center Head and Neck Quantitative Imaging Working Group [^2] and publicly available at The Cancer Imaging Archive [^3].
+
+[^2]: Grossberg AJ, Mohamed ASR, Elhalawani H, Bennett WC, Smith KE, et al. 2018. Imaging and clinical data archive for head and neck squamous cell carcinoma patients treated with radiotherapy. Sci. Data. 5:180173
+
+[^3]: Clark K, Vendt B, Smith K, Freymann J, Kirby J, et al. 2013. The Cancer Imaging Archive (TCIA): maintaining and operating a public information repository. J Digit Imaging. 26(6):1045--1057
+
+The outcome was the mortality event, observed in 56 individuals (12%); the list of predictors comprised 107 entries, the majority of which were imaging features. As some features were highly correlated, there was a multicollinearity issue, as noticed by Yang et al. (2022). For this reason, Cox Lasso extension of our methods was employed to analyse this dataset.
+
+References:
+
+```{r data_describe}
+
+cc = cor(mydata[params])
+high_cor_pairs <- which(abs(cc) > 0.99 & abs(cc) < 1, arr.ind = TRUE)
+# take those above the diagonal (the matrix is symmetrical, to remove duplicates)
+exclude_params<- rownames(high_cor_pairs[high_cor_pairs[,2]>high_cor_pairs[,1], ])
+params = params [!params %in% exclude_params]
+
+# describe the data
+print(paste("The data contains ", dim(mydata)[1], " observations, ", 
+            sum(mydata$event==1), " events (",
+            round(sum(mydata$event==1)/dim(mydata)[1],4)*100, "%) ",
+            "and ",length(params)," predictors. ",
+            "Mean observation time ",round(mean(mydata$time),1)," .", sep=""
+            ))
+fit = survfit(as.formula(paste("Surv(time, event) ~ 1")), data = mydata)
+survminer::ggsurvplot(fit, data = mydata, ylim = c(0.8,1))
+
+hist(mydata[mydata$event == 1, "time"],
+     main = "Event times' histogram",
+     xlab = "years",
+     ylab = "number of events")
+
+```
+
+#### Cross-validate all available models
+
+```{r hnscc_analyses}
+t = 6
+
+#Cox-PH
+coxm = survcox_cv(mydata,params,fixed_time = t, repeat_cv = 5, outer_cv = 5, randomseed = 1000) 
+#Cox_lasso
+coxlm = survcox_cv(mydata,params,fixed_time = t, repeat_cv = 5, outer_cv = 5, randomseed = 1000, useCoxLasso = TRUE)
+
+#SRF
+srfm = survsrf_cv(mydata,params,fixed_time = t, repeat_cv = 5, outer_cv = 5, randomseed = 1000, max_grid_size = 5)
+#SRF - CoxPH ensemble
+srfem = survsrfens_cv(mydata,params,fixed_time = t, repeat_cv = 5, outer_cv = 5, randomseed = 1000, max_grid_size = 5)
+#SRF _CoxPH stacked ensemble
+srfsm = survsrfstack_cv(mydata,params,fixed_time = t, repeat_cv = 5, outer_cv = 5, randomseed = 1000, max_grid_size = 5)
+
+tuningparams_dh <-
+  list(early_stopping = FALSE, epochs = 100, batch_size = 100, 
+       dropout = 0.7, mod_alpha = 0.8, cuts = 200,
+       num_nodes = list(c(32,32)), learning_rate = 0.001, weight_decay = 0)
+#Deephit
+dhm = survdeephit_cv(mydata, params, t, repeat_cv = 5, outer_cv = 5, randomseed = 1000,
+                 max_grid_size = 5,tuningparams = tuningparams_dh)
+#Deephit - CoxPH ensemlbe
+dhem = survdhens_cv(mydata, params, t, repeat_cv = 5, outer_cv = 5, randomseed = 1000,
+                      max_grid_size = 5,tuningparams = tuningparams_dh)
+#Deephit - CoxPH stacked ensemlbe
+dhsm = survdhstack_cv(mydata, params, t, repeat_cv = 5, outer_cv = 5, randomseed = 1000,
+                        max_grid_size = 5,tuningparams = tuningparams_dh)
+
+rbind(
+  cox = coxm$summarydf_pooled["C_score", ],
+  coxl = coxlm$summarydf_pooled["C_score", ],
+  srf = srfm$summarydf_pooled["C_score", ],
+  srf_ens = srfem$summarydf_pooled["C_score", ],
+  srf_stack = srfsm$summarydf_pooled["C_score", ]
+  ,dh = dhm$summarydf_pooled["C_score", ]
+  ,dh_ens = dhem$summarydf_pooled["C_score", ]
+  ,dh_stack = dhsm$summarydf_pooled["C_score", ]
+  )
+
+
+```
+
+We have gotten the following C-scores results, but those can differ between the runs:
+
+```         
+     test.mean test.sd 95CILow 95CIHigh test.median  train.mean 
+cox       0.4772    0.0216  0.4459  0.4971  0.4779     0.9597   
+coxl        0.6290  0.0408  0.5835  0.6656  0.6437     0.6615   
+srf       0.7129    0.0070  0.7039  0.7212  0.7116     0.8853   
+srf_ens   0.7173    0.0036  0.7136  0.7215  0.7171     0.8909   
+srf_stack 0.6981    0.0183  0.6817  0.7194  0.6895     0.9046   
+dh        0.7023    0.0168  0.6906  0.7282  0.6945     0.7569   
+dh_ens    0.6911    0.0220  0.6690  0.7217  0.6856     0.7133   
+dh_stack  0.6605    0.0265  0.6273  0.6873  0.6678     0.8354
+```
+
+#### Plots
+
+```{r plots }
+
+res <- cbind(  "cox" = coxm$test$C_score,  "cox_lasso" = coxlm$test$C_score,
+               "srf" = srfm$test$C_score,   "ens_srf" = srfem$test$C_score,
+               "stack_srf" = srfsm$testt$C_score,
+               "dh" = dhm$test$C_score,  "ens_dh" = dhem$test$C_score,   
+               "stack_dh" = dhsm$test$C_score)
+
+r1<- reshape2::melt(res)
+colnames(r1) = c("id", "model", "C_index")
+# Replace everything after the dot (including the dot) with an empty string
+r1$model <- sub("\\..*", "", r1$model)
+r1$model<- dplyr::recode(r1$model,"cox"=" CoxPH","cox_lasso"= "CoxLasso",
+                           "srf"="SRF","ens_srf"="SRF_Ens","stack_srf"="SRF_Stack",
+ "dh"="DeepHit","ens_dh"="DeepHit_Ens","stack_dh"="DeepHit_Stack")
+library(ggplot2)                          
+cplot <-
+    ggplot(r1, aes(x=model, y=C_index))+
+    geom_jitter(alpha = 0.8, width = 0.1, color = "lightblue3")+
+    stat_summary(fun.data = "mean_sdl", fun.args = list(mult = 0.36),
+                 geom =  "errorbar", width= 0.7, size = 0.5, color = "steelblue")+
+    stat_summary(fun.data = "mean_sdl", fun.args = list(mult = 1),
+                 geom =  "pointrange", width= 0.4, size = 0.5, color = "steelblue")+
+    labs(x="", y = "C Index", title = "HNSCC") +
+    theme_minimal()+
+    theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust = 1,size = 9.5))
+cplot
+
+
+```
+
+```{r, include = FALSE}
+# reinstating the value for rf.cores back to default/user-defined value
+options(rf.cores = rfcores_old)
+options(warn = warnings_user)
+options(digits = digits_user)
+options(scipen = scipen_user)
+
+```
