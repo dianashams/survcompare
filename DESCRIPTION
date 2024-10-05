@@ -1,5 +1,5 @@
 Package: survcompare
-Title: Nested cross-validation to compare Cox-PH, Cox-Lasso, Survival Random Forests
+Title: Nested Cross-Validation to Compare Cox-PH, Cox-Lasso, Survival Random Forests
 Version: 0.2.0
 Date: 2024-10-02
 Authors@R: c(
