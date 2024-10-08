@@ -247,7 +247,7 @@ survdeephit_tune_single <-
         #   trained_model = deephitm,newdata = df_test_cv,
         #   predict.factors = predict.factors,fixed_time = fixed_time)
         # new - we only need "risk" for tuning, not event prob predictions
-        pp <- 1-survivalmodels::predict(deephitm,newdata = df_test_cv,type ="risk")
+        pp <- 1-predict(deephitm,newdata = df_test_cv,type ="risk")
         cind[i, cv_iteration] =
           surv_validate(pp, fixed_time, df_train_cv, df_test_cv)[1, "C_score"]
         #cind[i, cv_iteration] =
