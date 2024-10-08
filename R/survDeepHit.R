@@ -83,8 +83,8 @@ survdeephit_train <-
     } else{
       #if there are options, we tune the grid of hyperparams
       tuning_m <- survdeephit_tune(
-        df_train,
-        predict.factors,
+        df_tune = df_train,
+        predict.factors =  predict.factors,
         repeat_tune = 1,
         fixed_time = fixed_time,
         tuningparams = tuningparams,
@@ -95,7 +95,6 @@ survdeephit_train <-
       bestparams = tuning_m$bestparams
     }
     if (verbose) {print(bestparams)}
-
     deephitm <- survivalmodels::deephit(
       data = df_train,
       x = df_train[predict.factors],
@@ -112,6 +111,7 @@ survdeephit_train <-
       weight_decay = bestparams$weight_decay,
       batch_norm = bestparams$batch_norm
     )
+
     output = list()
     output$model_name = "DeepHit"
     output$model = deephitm
