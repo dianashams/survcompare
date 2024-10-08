@@ -53,7 +53,7 @@ survdhens_train <-
            useCoxLasso = FALSE,
            tuningparams = list(),
            max_grid_size =10,
-           verbose = verbose) {
+           verbose = TRUE) {
 
     Call <- match.call()
 
