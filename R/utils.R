@@ -169,8 +169,8 @@ surv_validate <- function(y_predict,
 
   # Exclude censored observations before predict_time, leave those with known state
   df_test_in_scope <-
-    df_test[(df_test$time >= y_predict) |
-              (df_test$time < y_predict & df_test$event == 1), ]
+    df_test[(df_test$time >= predict_time) |
+              (df_test$time < predict_time & df_test$event == 1), ]
 
   # 4) Calibration slope and alpha.
   y_predict_hat <-
