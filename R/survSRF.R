@@ -355,37 +355,22 @@ survsrf_cv <- function(df,
                        suppresswarn = TRUE) {
 
   Call <- match.call()
-  inputs <- list(df,
-                 predict.factors,
-                 fixed_time,
-                 outer_cv,
-                 inner_cv,
-                 repeat_cv,
-                 randomseed,
-                 return_models,
-                 tuningparams,
-                 max_grid_size,
-                 verbose
-                 )
-  inputclass<- list(df = "data.frame",
-                    predict.factors = "character",
-                    fixed_time = "numeric",
-                    outer_cv = "numeric",
-                    inner_cv = "numeric",
-                    repeat_cv = "numeric",
-                    randomseed = "numeric",
-                    return_models = "logical",
-                    tuningparams = "list",
-                    max_grid_size = "numeric",
-                    verbose = "logical")
-
+  inputs <- list(df, predict.factors,fixed_time,
+                 outer_cv,inner_cv,repeat_cv,
+                 randomseed,return_models,tuningparams,
+                 max_grid_size,verbose)
+  inputclass<- list(
+    df = "data.frame", predict.factors = "character",fixed_time = "numeric",
+    outer_cv = "numeric",inner_cv = "numeric",repeat_cv = "numeric",
+    randomseed = "numeric",return_models = "logical",tuningparams = "list",
+    max_grid_size = "numeric",verbose = "logical")
   cp<- check_call(inputs, inputclass, Call)
   if (cp$anyerror) stop (paste(cp$msg[cp$msg!=""], sep=""))
-
   if (sum(is.na(df[c("time", "event", predict.factors)])) > 0) {
     stop("Missing data can not be handled. Please impute first.")
   }
   if (suppresswarn){ user_warn <-options()$warn; options(warn=-1)}
+
   output <- surv_CV(
     df = df,
     predict.factors = predict.factors,

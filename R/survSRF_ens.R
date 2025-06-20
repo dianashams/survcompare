@@ -176,14 +176,13 @@ survsrfens_cv <- function(df,
                     inner_cv = "numeric", repeat_cv = "numeric",
                     randomseed = "numeric",return_models = "logical",
                     useCoxLasso="logical", tuningparams = "list")
-
   cp<- check_call(inputs, inputclass, Call)
   if (cp$anyerror) stop (paste(cp$msg[cp$msg!=""], sep=""))
-
   if (sum(is.na(df[c("time", "event", predict.factors)])) > 0) {
     stop("Missing data can not be handled. Please impute first.")
   }
   if (suppresswarn){ user_warn <-options()$warn; options(warn=-1)}
+
   output <- surv_CV(
     df = df,
     predict.factors = predict.factors,
