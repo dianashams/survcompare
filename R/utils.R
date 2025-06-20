@@ -5,7 +5,6 @@
 #' https://github.com/sebp/scikit-survival/blob/v0.19.0.post1/sksurv/metrics.py#L524-L644
 #' The function uses IPCW (inverse probability of censoring weights), computed using the Kaplan-Meier
 #' survival function, where events are censored events from train data
-#'
 #' @param y_predicted_newdata computed event probabilities (! not survival probabilities)
 #' @param df_brier_train train data
 #' @param df_newdata test data for which brier score is computed
@@ -19,39 +18,31 @@ surv_brierscore <-
            time_point,
            weighted = TRUE) {
 
+    cut01 = function(x) {return(pmax(pmin(x,0.9999),0.0001))}
     # compute K-M probabilities of censoring for each observation till its individual time
-    df_newdata$p_km_obs <- pmax(pmin(
-      survival_prob_km(df_brier_train, df_newdata$time, estimate_censoring = TRUE),
-      0.9999),0.0001)
+    if (weighted) {
+      df_newdata$p_km_obs <-
+        cut01(survival_prob_km(df_brier_train, df_newdata$time, estimate_censoring = TRUE))
+      p_km_t <-
+        cut01(survival_prob_km(df_brier_train, time_point, estimate_censoring = TRUE))
+    }else{
+      df_newdata$p_km_obs = 1
+      p_km_t=1
+      }
+    ppp <- cut01(y_predicted_newdata)
+    #! impute with mean observations if can't estimate !
+    df_newdata[is.na(df_newdata$p_km_obs), "p_km_obs"] <- mean(df_newdata$p_km_obs, na.rm = TRUE)
 
-    # ! impute with mean observations if can't estimate !
-    df_newdata[is.na(df_newdata$p_km_obs), "p_km_obs"] <-
-      mean(df_newdata$p_km_obs, na.rm = 1)
-
-    p_km_t <- pmax(pmin(
-      survival_prob_km(df_brier_train, time_point, estimate_censoring = TRUE),
-      0.9999), 0.0001)
-
-    ppp <- pmax(pmin(y_predicted_newdata, 0.9999), 0.0001)
-
-    # cases and controls by time time_point
+    # cases and controls by time_point
     id_case <- ((df_newdata$time <= time_point) & (df_newdata$event == 1))
     id_control <- (df_newdata$time > time_point)|
       ((df_newdata$time == time_point)&(df_newdata$event == 0))
 
     # compute BS with weights which are 1/G(t) for controls and 1/G(obs_i) for cases
-    # if weights == false, use w=1 for all
-    if (weighted == TRUE) {
-        # brier score is average of weighted squared errors
-        bs <-
-          (sum(as.numeric(id_case) * (1 - ppp) ^ 2 * 1 / df_newdata$p_km_obs,na.rm = 0) +
-              sum(id_control * (0 - ppp) ^ 2 * 1 / p_km_t, na.rm = 0)
-           ) / dim(df_newdata)[1]
-        } else {
-        # un-weighted BS
-        bs <- sum(id_case * (1 - ppp) ^ 2 +
-                       id_control * (0 - ppp) ^ 2, na.rm = 0) / dim(df_newdata)[1]
-        }
+    bs <-
+      (sum(as.numeric(id_case) * (1 - ppp) ^ 2 * 1 / df_newdata$p_km_obs,na.rm = FALSE) +
+         sum(id_control * (0 - ppp) ^ 2 * 1 / p_km_t, na.rm = FALSE)
+       ) / dim(df_newdata)[1]
     return(bs)
 }
 
@@ -60,18 +51,15 @@ surv_brierscore <-
 #' Uses polynomial extrapolation in survival function space, using poly(n=3)
 #' @param df_km_train event probabilities (!not survival)
 #' @param times times at which survival is estimated
-#' @param estimate_censoring FALSE by default, if TRUE, event and censoring is reversed (for IPCW calculations)
+#' @param estimate_censoring FALSE by default, if TRUE, event and censoring are reversed (for IPCW calculations)
 #' @return vector of survival probabilities for time_point
 survival_prob_km <-
   function(df_km_train, times, estimate_censoring = FALSE) {
     if (estimate_censoring == FALSE) {
-      km <-
-        survival::survfit(survival::Surv(time, event) ~ 1, data = df_km_train)
+      km <- survival::survfit(survival::Surv(time, event) ~ 1, data = df_km_train)
     } else {
-      df_km_train$censor_as_event <- 1 - df_km_train$event
       times[times==max(df_km_train$time)] = 0.9999*max(df_km_train$time)
-      km <-
-        survival::survfit(survival::Surv(time, censor_as_event) ~ 1, data = df_km_train)
+      km <- survival::survfit(survival::Surv(time, 1- event) ~ 1, data = df_km_train)
     }
     kmf <- stats::approxfun(km$time, km$surv, method = "constant")
     return(kmf(times))
@@ -162,8 +150,7 @@ surv_validate <- function(y_predict,
   }
   # 4) Calibration slope and alpha:
   # 1/0 by predict_time:
-  df_test$event_ti <-
-    ifelse(df_test$time <= predict_time & df_test$event == 1, 1, 0)
+  df_test$event_ti <- ifelse(df_test$time <= predict_time & df_test$event == 1, 1, 0)
   # cut 0 and 1 predicted probabilities for the logit to work:
   df_test$predict_ti <- pmax(pmin(y_predict, 0.9999), 0.0001)
 
@@ -198,6 +185,7 @@ surv_validate <- function(y_predict,
         mean(y_actual_i) - mean(df_test_in_scope$predict_ti)
     }# end "else"
   } # end if try-error
+
   remove(temp)
   output <- data.frame(
     "T" = predict_time,
