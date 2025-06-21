@@ -15,9 +15,7 @@ surv_CV <-
 
     if (!is.null(model_args$max_grid_size)) {
       max_grid_size = model_args$max_grid_size
-    } else{
-      max_grid_size = NaN
-    }
+    } else{       max_grid_size = NaN     }
 
     time_0 <- Sys.time()
 
@@ -28,8 +26,7 @@ surv_CV <-
       predict.factors %in% colnames(df),
       c("time", "event") %in% colnames(df)
     )) {
-      stop("Data should be a data frame, predictors
-           should correspond to the columns.")
+      stop("Data should be a data frame, predictors should correspond to the columns.")
     }
     if (sum(is.na(df[c("time", "event", predict.factors)])) > 0) {
       stop("Missing data can not be handled. Please impute first.")

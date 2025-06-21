@@ -26,13 +26,13 @@ summary.survcompare <-
       "Mean performance:\n")
 
     # PRINT MEAN TEST RESULTS
-    printing_columns= c("T", "C_score", "AUCROC","Calib_slope","sec")
+    printing_columns= c("T", "C_score", "AUCROC","Calib_slope","BS", "BS_scaled","sec")
     xx = x$results_mean[printing_columns]
     print(round(x$results_mean[printing_columns], 4))
 
     cat("\nMedian performance:\n")
     # MEDIAN RESULTS
-    printing_columns= c("T", "C_score", "AUCROC","Calib_slope","sec")
+    printing_columns= c("T", "C_score", "AUCROC","Calib_slope","BS", "BS_scaled", "sec")
     print(round(x$results_median[printing_columns], 4))
 
     cat("\n")
