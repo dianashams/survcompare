@@ -11,8 +11,28 @@ surv_CV <-
            predict_function,
            model_args = list(),
            predict_args = list(),
-           model_name = "my model") {
+           model_name = "my model",
+           impute = 0,
+           impute_method = "missForest") {
 
+    # Imputation: if impute = 0, then there is no imputation.
+    # If missing data present, we stop with a message.
+    if (impute == 0){ 
+      if (sum(is.na(df[c("time", "event", predict.factors)])) > 0) {
+        stop("Some data are missing. By default, no imputation is performed, please change 'impute' to 1 or 2 for proper or fast imputation.")
+      }
+    }
+    
+    # Imputation: if impute = 2, then we inpute first, then perform all validations
+    if (impute == 2){ 
+      if (sum(is.na(df[c("time", "event", predict.factors)])) > 0) {
+        temp <- missForestPredict::missForest(df[c("time", "event", predict.factors)],
+                                      save_models = FALSE,maxiter = 5, num.trees = 100)
+        df = temp$imp
+        remove(temp)
+      }
+    }
+    
     if (!is.null(model_args$max_grid_size)) {
       max_grid_size = model_args$max_grid_size
     } else{
