@@ -204,7 +204,7 @@ survcox_predict <- function(trained_model,
 #' @param inner_cv k in the inner loop of k-fold CV, default is 3; only used if CoxLasso is TRUE
 #' @param useCoxLasso TRUE/FALSE, FALSE by default
 #' @param suppresswarn TRUE/FALSE, TRUE by default
-#' @param impute  0/1/2 for no imputation / option 1 (proper way) / option 2 (faster way), more in documentation and vignette
+#' @param impute  0/1/2/3 for no imputation / option 1 (proper way) / option 2 (faster way) / option 3 (complete cases), more in documentation and vignette
 #' @param impute_method "missForest"
 #' @examples \donttest{
 #' df <- simulate_nonlinear()

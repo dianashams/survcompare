@@ -14,36 +14,15 @@ surv_CV <-
            model_name = "my model",
            impute = 0,
            impute_method = "missForest") {
-
-    # Imputation: if impute = 0, then there is no imputation.
-    # If missing data present, we stop with a message.
-    if (impute == 0){ 
-      if (sum(is.na(df[c("time", "event", predict.factors)])) > 0) {
-        stop("Some data are missing. By default, no imputation is performed, please change 'impute' to 1 or 2 for proper or fast imputation.")
-      }
-    }
-    # Imputation: if impute = 2, then we impute first, then perform all validations
-    if (impute == 2){ 
-      if (sum(is.na(df[c("time", "event", predict.factors)])) > 0) {
-        temp <- 
-          missForestPredict::missForest(
-            df[c("time", "event", predict.factors)],
-            save_models = FALSE, maxiter = 5, num.trees = 100)
-        df = temp$ximp; remove(temp)
-      }
-    }
     
-    if (!is.null(model_args$max_grid_size)) {
-      max_grid_size = model_args$max_grid_size
-    } else{
-      max_grid_size = NaN
-    }
 
     time_0 <- Sys.time()
 
     if (is.nan(fixed_time)) {fixed_time <-quantile(df[df$event == 1, "time"], 0.9, na.rm = TRUE)}
     if (is.nan(randomseed)) {randomseed <- round(stats::runif(1) * 1e9, 0)}
-
+    if (!is.null(model_args$max_grid_size)) { 
+      max_grid_size = model_args$max_grid_size } else{ max_grid_size = NaN }
+    
     if (!any(is.data.frame(df),
       predict.factors %in% colnames(df),
       c("time", "event") %in% colnames(df)
@@ -51,15 +30,17 @@ surv_CV <-
       stop("Data should be a data frame, predictors
            should correspond to the columns.")
     }
-    # if (sum(is.na(df[c("time", "event", predict.factors)])) > 0) {
-    #   stop("Missing data can not be handled. Please impute first.")
-    # }
     predict.factors <- eligible_params(predict.factors, df)
     if (length(predict.factors) == 0) {
       print("No eligible params")
       return(NULL)
     }
     Call <- match.call()
+    
+    if (sum(is.na(df[c("time", "event", predict.factors)])) > 0){ 
+      df = missing_data_handle(df, predict.factors, impute)
+      }
+    
     #defining number of repeated cv
     if (is.null(repeat_cv)) {      repeat_cv = 1    }
     if (is.numeric(repeat_cv) & repeat_cv > 1) {
@@ -82,19 +63,19 @@ surv_CV <-
       cv_folds <- caret::createFolds(df$event, k = outer_cv, list = FALSE)
 
       # cross-validation loop:
-      pb <- utils::txtProgressBar(0, outer_cv, style = 3)# progress bar
+      pb <- utils::txtProgressBar(0, outer_cv, style = 3) # progress bar
       for (cv_iteration in 1:outer_cv) {
         utils::setTxtProgressBar(pb, cv_iteration) #progress bar update
         df_train_cv <- df[cv_folds != cv_iteration,]
         df_test_cv <- df[cv_folds == cv_iteration,]
         
-        # impute train and test if impute ==2 and there are missing values 
+        # impute train and test if impute == 1 and there are missing values 
         if (impute == 1){
           temp = impute1(df_train_cv, df_test_cv, predict.factors)
           df_train_cv = temp$train
-          df_train_cv = temp$test
+          df_test_cv = temp$test
+          remove(temp)
         }
-        
         predict.factors.cv <- eligible_params(predict.factors, df_train_cv)
         
         # tune the model using train_function
@@ -208,12 +189,9 @@ surv_CV <-
     output$test <- df_modelstats_test
     output$train <- df_modelstats_train
     output$test_pooled <- pooled_test(df_modelstats_test)
-    output$testaverage <-
-      sapply(df_modelstats_test, mean, na.rm = TRUE)
-    output$testmedian <-
-      sapply(df_modelstats_test, median, na.rm = TRUE)
-    output$trainaverage <-
-      sapply(df_modelstats_train, mean, na.rm = TRUE)
+    output$testaverage <- sapply(df_modelstats_test, mean, na.rm = TRUE)
+    output$testmedian <- sapply(df_modelstats_test, median, na.rm = TRUE)
+    output$trainaverage <- sapply(df_modelstats_train, mean, na.rm = TRUE)
     output$tuned_cv_models <- models_for_each_cv
     output$randomseed <- randomseed
     output$bestparams<- bestparams
@@ -230,19 +208,72 @@ surv_CV <-
     return(output)
   }
 
-impute1 <- function(df_train, df_test, predict.factors) {
+impute1 <- 
+  function(df_train, df_test, predict.factors) {
   miss_train = sum(is.na(df_train[predict.factors]))
   miss_test = sum(is.na(df_test[ predict.factors]))
   if (miss_train > 0 | miss_test > 0) {
     mf = missForestPredict::missForest(
-      df_train[predict.factors], save_models = TRUE, num.trees = 100, maxiter = 5)
+      df_train[predict.factors], save_models = TRUE,
+      num.trees = 100, maxiter = 5, verbose = FALSE)
     df_train[predict.factors] = mf$ximp
     if (miss_test > 0) {
-      df_test[predict.factors] = missForestPredict::missForestPredict(mf, newdata = df_test[predict.factors])
+      df_test[predict.factors] = 
+        missForestPredict::missForestPredict(
+          mf, newdata = df_test[predict.factors])
     }
   }
   output = list()
   output$train = df_train
   output$test = df_test
   return (output)
+}
+
+missing_data_handle <- function(df, predict.factors, impute){
+  msg0 <- "Set 'impute' to 0 for no imputation, 1 for proper imputation by missForest, 2 for fast imputation by missForest, 3 for complete cases."
+  # If impute = 0, then there is no imputation, we stop with a message.
+  if (impute == 0) {
+    stop(paste("Some data are missing. By default ('impute' = 0), no imputation is performed.", msg0))
+  }
+  # If impute = 3, then analyse complete cases.
+  if (impute == 3) {
+    msg3 =  "Some data are missing, 'impute' is set to 3 for complete cases analysis."
+    print(paste(msg3, msg0))
+    print(paste("Share of complete cases = ", round(mean(complete.cases(df)),2)))
+    df <- df[complete.cases(df), ]
+    return(df)
+  }
+  # If impute = 2, then we impute first, then perform all validations
+  if (impute == 2) {
+    msg2 <- "Some data are missing, 'impute' is set to 2 for fast imputation (impute all the data, then cross-validate)."
+    print(paste(msg2,msg0))
+    temp <-
+      missForestPredict::missForest(
+        df[c("time", "event", predict.factors)],
+        save_models = FALSE,
+        maxiter = 5,
+        num.trees = 100,
+        verbose = FALSE
+      )
+    df = temp$ximp
+    remove(temp)
+    return(df)
+  }
+  # If impute = 2, then we impute properly, train, then test. Only information message here
+  if (impute == 1) {
+    msg1 <- "Some data are missing, 'impute' is set to 1 for proper imputation (impute train, then test for each data split)."
+    print(paste(msg1,msg0))
+    temp <-
+      missForestPredict::missForest(
+        df[c("time", "event", predict.factors)],
+        save_models = FALSE,
+        maxiter = 5,
+        num.trees = 100,
+        verbose = FALSE
+      )
+    df = temp$ximp
+    remove(temp)
+    return(df)
+  }
+  return(df)
 }
