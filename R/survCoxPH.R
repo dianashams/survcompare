@@ -249,7 +249,7 @@ survcox_cv <- function(df,
       train_function = survcox_train,
       predict_function = survcox_predict,
       model_args = list("useCoxLasso" = useCoxLasso),
-      model_name = ifelse(!useCoxLasso, "CoxPH", "CoxLasso"),
+      model_name = ifelse(useCoxLasso, "CoxPH", "CoxLasso"),
       impute = impute,
       impute_method = impute_method
       )
