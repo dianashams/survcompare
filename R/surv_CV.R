@@ -22,14 +22,14 @@ surv_CV <-
         stop("Some data are missing. By default, no imputation is performed, please change 'impute' to 1 or 2 for proper or fast imputation.")
       }
     }
-    
-    # Imputation: if impute = 2, then we inpute first, then perform all validations
+    # Imputation: if impute = 2, then we impute first, then perform all validations
     if (impute == 2){ 
       if (sum(is.na(df[c("time", "event", predict.factors)])) > 0) {
-        temp <- missForestPredict::missForest(df[c("time", "event", predict.factors)],
-                                      save_models = FALSE,maxiter = 5, num.trees = 100)
-        df = temp$imp
-        remove(temp)
+        temp <- 
+          missForestPredict::missForest(
+            df[c("time", "event", predict.factors)],
+            save_models = FALSE, maxiter = 5, num.trees = 100)
+        df = temp$ximp; remove(temp)
       }
     }
     
@@ -51,9 +51,9 @@ surv_CV <-
       stop("Data should be a data frame, predictors
            should correspond to the columns.")
     }
-    if (sum(is.na(df[c("time", "event", predict.factors)])) > 0) {
-      stop("Missing data can not be handled. Please impute first.")
-    }
+    # if (sum(is.na(df[c("time", "event", predict.factors)])) > 0) {
+    #   stop("Missing data can not be handled. Please impute first.")
+    # }
     predict.factors <- eligible_params(predict.factors, df)
     if (length(predict.factors) == 0) {
       print("No eligible params")
@@ -87,8 +87,16 @@ surv_CV <-
         utils::setTxtProgressBar(pb, cv_iteration) #progress bar update
         df_train_cv <- df[cv_folds != cv_iteration,]
         df_test_cv <- df[cv_folds == cv_iteration,]
+        
+        # impute train and test if impute ==2 and there are missing values 
+        if (impute == 1){
+          temp = impute1(df_train_cv, df_test_cv, predict.factors)
+          df_train_cv = temp$train
+          df_train_cv = temp$test
+        }
+        
         predict.factors.cv <- eligible_params(predict.factors, df_train_cv)
-
+        
         # tune the model using train_function
         trained_model <-
           do.call(train_function,
@@ -221,3 +229,20 @@ surv_CV <-
     print(time_1 - time_0)
     return(output)
   }
+
+impute1 <- function(df_train, df_test, predict.factors) {
+  miss_train = sum(is.na(df_train[predict.factors]))
+  miss_test = sum(is.na(df_test[ predict.factors]))
+  if (miss_train > 0 | miss_test > 0) {
+    mf = missForestPredict::missForest(
+      df_train[predict.factors], save_models = TRUE, num.trees = 100, maxiter = 5)
+    df_train[predict.factors] = mf$ximp
+    if (miss_test > 0) {
+      df_test[predict.factors] = missForestPredict::missForestPredict(mf, newdata = df_test[predict.factors])
+    }
+  }
+  output = list()
+  output$train = df_train
+  output$test = df_test
+  return (output)
+}
