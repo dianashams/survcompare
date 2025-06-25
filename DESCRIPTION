@@ -1,7 +1,7 @@
 Package: survcompare
 Title: Nested Cross-Validation to Compare Cox-PH, Cox-Lasso, Survival Random Forests
-Version: 0.2.0
-Date: 2024-10-02
+Version: 0.3.0
+Date: 2025-06-25
 Authors@R: c(
       person("Diana", "Shamsutdinova", , "diana.shamsutdinova.github@gmail.com", role = c("aut", "cre"), 
              comment = c(ORCID = "0000-0003-2434-3641")),
