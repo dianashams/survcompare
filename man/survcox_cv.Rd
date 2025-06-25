@@ -14,7 +14,9 @@ survcox_cv(
   return_models = FALSE,
   inner_cv = 3,
   useCoxLasso = FALSE,
-  suppresswarn = TRUE
+  suppresswarn = TRUE,
+  impute = 0,
+  impute_method = "missForest"
 )
 }
 \arguments{
@@ -37,6 +39,10 @@ survcox_cv(
 \item{useCoxLasso}{TRUE/FALSE, FALSE by default}
 
 \item{suppresswarn}{TRUE/FALSE, TRUE by default}
+
+\item{impute}{0/1/2/3 for no imputation / option 1 (proper way) / option 2 (faster way) / option 3 (complete cases), more in documentation and vignette}
+
+\item{impute_method}{"missForest"}
 }
 \value{
 list of outputs

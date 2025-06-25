@@ -25,6 +25,8 @@
 #' @importFrom stats sd
 #' @importFrom randomForestSRC rfsrc
 #' @importFrom survival coxph
+#' @importFrom missForestPredict missForestPredict
+#' @importFrom missForestPredict missForest
 #' @param base an object of type "survensemble_cv", for example, outcomes of survcox_cv, survsrf_cv, survsrfens_cv, survsrfstack_cv
 #' @param alternative an object of type "survensemble_cv", to compare to "base"
 #' @return outcome = list(data frame with performance results, fitted Cox models, fitted DeespSurv)

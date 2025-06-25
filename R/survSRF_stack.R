@@ -215,6 +215,8 @@ survsrfstack_train <-
 #' @param max_grid_size number of random grid searches for model tuning
 #' @param verbose FALSE(default)/TRUE
 #' @param suppresswarn TRUE/FALSE, TRUE by default
+#' @param impute  0/1/2/3 for no imputation / option 1 (proper way) / option 2 (faster way) / option 3 (complete cases), more in documentation and vignette
+#' @param impute_method "missForest"
 #' @export
 survsrfstack_cv <- function(df,
                          predict.factors,
@@ -228,7 +230,9 @@ survsrfstack_cv <- function(df,
                          tuningparams = list(),
                          max_grid_size =10,
                          verbose = FALSE,
-                         suppresswarn = TRUE
+                         suppresswarn = TRUE,
+                         impute = 0,
+                         impute_method = "missForest"
 ) {
   Call <- match.call()
   inputs <- list(df , predict.factors, fixed_time,
@@ -242,9 +246,6 @@ survsrfstack_cv <- function(df,
                     useCoxLasso="logical", tuningparams = "list")
   cp<- check_call(inputs, inputclass, Call)
   if (cp$anyerror) stop (paste(cp$msg[cp$msg!=""], sep=""))
-  if (sum(is.na(df[c("time", "event", predict.factors)])) > 0) {
-    stop("Missing data can not be handled. Please impute first.")
-  }
   if (suppresswarn){ user_warn <-options()$warn; options(warn=-1)}
 
   output <- surv_CV(
@@ -265,7 +266,9 @@ survsrfstack_cv <- function(df,
                       "fixed_time" = fixed_time,
                       "verbose" = verbose),
     predict_args = list("predict.factors" = predict.factors),
-    model_name = "Stacked_SRF_CoxPH"
+    model_name = "Stacked_SRF_CoxPH",
+    impute = impute,
+    impute_method = impute_method
   )
   if (suppresswarn){ options(warn=user_warn)}
   output$call <- Call

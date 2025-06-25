@@ -14,8 +14,6 @@ surv_CV <-
            model_name = "my model",
            impute = 0,
            impute_method = "missForest") {
-    
-
     time_0 <- Sys.time()
 
     if (is.nan(fixed_time)) {fixed_time <-quantile(df[df$event == 1, "time"], 0.9, na.rm = TRUE)}
@@ -37,6 +35,7 @@ surv_CV <-
     }
     Call <- match.call()
     
+    # Missing data handling
     if (sum(is.na(df[c("time", "event", predict.factors)])) > 0){ 
       df = missing_data_handle(df, predict.factors, impute)
       }
@@ -263,16 +262,6 @@ missing_data_handle <- function(df, predict.factors, impute){
   if (impute == 1) {
     msg1 <- "Some data are missing, 'impute' is set to 1 for proper imputation (impute train, then test for each data split)."
     print(paste(msg1,msg0))
-    temp <-
-      missForestPredict::missForest(
-        df[c("time", "event", predict.factors)],
-        save_models = FALSE,
-        maxiter = 5,
-        num.trees = 100,
-        verbose = FALSE
-      )
-    df = temp$ximp
-    remove(temp)
     return(df)
   }
   return(df)

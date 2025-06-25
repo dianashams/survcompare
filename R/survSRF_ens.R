@@ -144,6 +144,8 @@ survsrfens_train <- function(df_train,
 #' @param max_grid_size number of random grid searches for model tuning
 #' @param verbose FALSE(default)/TRUE
 #' @param suppresswarn TRUE/FALSE, TRUE by default
+#' @param impute  0/1/2/3 for no imputation / option 1 (proper way) / option 2 (faster way) / option 3 (complete cases), more in documentation and vignette
+#' @param impute_method "missForest"
 #' @examples \donttest{
 #' \dontshow{rfcores_old <- options()$rf.cores; options(rf.cores=1)}
 #' df <- simulate_nonlinear()
@@ -154,18 +156,20 @@ survsrfens_train <- function(df_train,
 #' @return list of outputs
 #' @export
 survsrfens_cv <- function(df,
-                            predict.factors,
-                            fixed_time = NaN,
-                            outer_cv = 3,
-                            inner_cv = 3,
-                            repeat_cv = 2,
-                            randomseed = NaN,
-                            return_models = FALSE,
-                            useCoxLasso = FALSE,
-                            tuningparams = list(),
-                            max_grid_size = 10,
-                            verbose = FALSE,
-                          suppresswarn = TRUE) {
+                          predict.factors,
+                          fixed_time = NaN,
+                          outer_cv = 3,
+                          inner_cv = 3,
+                          repeat_cv = 2,
+                          randomseed = NaN,
+                          return_models = FALSE,
+                          useCoxLasso = FALSE,
+                          tuningparams = list(),
+                          max_grid_size = 10,
+                          verbose = FALSE,
+                          suppresswarn = TRUE,
+                          impute = 0,
+                          impute_method = "missForest") {
   Call <- match.call()
   inputs <- list(df , predict.factors, fixed_time,
                  outer_cv,inner_cv, repeat_cv,
@@ -178,9 +182,6 @@ survsrfens_cv <- function(df,
                     useCoxLasso="logical", tuningparams = "list")
   cp<- check_call(inputs, inputclass, Call)
   if (cp$anyerror) stop (paste(cp$msg[cp$msg!=""], sep=""))
-  if (sum(is.na(df[c("time", "event", predict.factors)])) > 0) {
-    stop("Missing data can not be handled. Please impute first.")
-  }
   if (suppresswarn){ user_warn <-options()$warn; options(warn=-1)}
 
   output <- surv_CV(
@@ -200,7 +201,9 @@ survsrfens_cv <- function(df,
                       "max_grid_size" = max_grid_size,
                       "randomseed" = randomseed,
                       "verbose" = verbose),
-    model_name = "SRF_ensemble"
+    model_name = "SRF_ensemble",
+    impute = impute,
+    impute_method = impute_method
   )
   if (suppresswarn){ options(warn=user_warn)}
   output$call <- Call

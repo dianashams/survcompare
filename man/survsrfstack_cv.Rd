@@ -17,7 +17,9 @@ survsrfstack_cv(
   tuningparams = list(),
   max_grid_size = 10,
   verbose = FALSE,
-  suppresswarn = TRUE
+  suppresswarn = TRUE,
+  impute = 0,
+  impute_method = "missForest"
 )
 }
 \arguments{
@@ -46,6 +48,10 @@ survsrfstack_cv(
 \item{verbose}{FALSE(default)/TRUE}
 
 \item{suppresswarn}{TRUE/FALSE, TRUE by default}
+
+\item{impute}{0/1/2/3 for no imputation / option 1 (proper way) / option 2 (faster way) / option 3 (complete cases), more in documentation and vignette}
+
+\item{impute_method}{"missForest"}
 }
 \description{
 Cross-validates stacked ensemble of the CoxPH and Survival Random Forest models

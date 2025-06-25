@@ -26,6 +26,13 @@ The performance metrics include [5]:
  * Calibration measures: calibration slope, calibration alpha.
  * Overall fit: Brier score, Scaled Brier score. 
 
+Missing data handling:
+ * In all cross-validation functions, parameter 'impute' defines imputation strategy.
+ * Impute = 0 means no imputation to be performed, the function is aborted if missing values are in predictors, event or time.
+ * Impute = 1 means imputation by missForest is performed in a proper way: during cross-validation, missForest imputer is trained on the train dataset, and used to impute both the train and the test. 
+ * Impute = 2 means imputation by missForest in a fast way, where the entire data is imputed, then nested cross-validation is performed. There is some leakage of information from the test set into the train set as imputed values in the train set used all the data including test.
+ * Impute = 3 means complete cases analysis. Only instances (rows) with no missing data in predict.factors, event, and time columns are used.
+ 
 NB: Sequential ensemble is the first ensemble method described in https://dianashams.github.io/ensemble-methods-for-survival-analysis/ as published in Shamsutdinova, Stamate, Roberts, & Stahl (2022, June) [6]. 
 
 ### Getting started 

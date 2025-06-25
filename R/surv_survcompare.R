@@ -31,6 +31,7 @@
 #' @importFrom stats sd
 #' @importFrom stats approxfun
 #' @importFrom stats median
+#' @importFrom stats complete.cases
 #' @importFrom randomForestSRC rfsrc
 #' @importFrom survival coxph
 #' @param df_train training data, a data frame with "time" and "event" columns to define the survival outcome
