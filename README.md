@@ -26,7 +26,7 @@ The performance metrics include [5]:
  * Calibration measures: calibration slope, calibration alpha.
  * Overall fit: Brier score, Scaled Brier score. 
 
-![image](https://github.com/dianashams/ensemble-methods-for-survival-analysis/blob/gh-pages/Survcompare_workflow.pdf)
+![image](https://github.com/dianashams/ensemble-methods-for-survival-analysis/blob/gh-pages/Survcompare_workflow.png)
 
 Missing data handling:
  * In all cross-validation functions, parameter 'impute' defines imputation strategy.
@@ -37,7 +37,7 @@ Missing data handling:
  
 NB: Sequential ensemble is the first ensemble method described in https://dianashams.github.io/ensemble-methods-for-survival-analysis/ as published in Shamsutdinova, Stamate, Roberts, & Stahl (2022, June) [6]. 
 
-![image](https://github.com/dianashams/ensemble-methods-for-survival-analysis/blob/gh-pages/Survcompare_missing_data.pdf)
+![image](https://github.com/dianashams/ensemble-methods-for-survival-analysis/blob/gh-pages/Survcompare_missing_data.png)
 
 ### Getting started 
 You can install the package from CRAN as `install.packages("survcompare")`, or from its github directory by running the `devtools::install_github("dianashams/survcompare")` command. The main function to use is `survcompare(data, predictors)`. The data should be in a form of a data frame, with "time" and "event" columns defining the survival outcome. A list of column names corresponding to the predictors to be used should also be supplied.
