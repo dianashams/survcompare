@@ -86,7 +86,7 @@ survcoxlasso_train <- function(df_train,
       family = "cox",
       nfold = inner_cv,
       alpha = 1,
-      maxit = 200
+      maxit = 1000
     )
     new.predictors <-
       rownames(coef(cv10, s = "lambda.min"))[as.matrix(coef(cv10, s = "lambda.min")) != 0]
