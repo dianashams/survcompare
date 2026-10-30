@@ -12,7 +12,7 @@ survival_prob_km(df_km_train, times, estimate_censoring = FALSE)
 
 \item{times}{times at which survival is estimated}
 
-\item{estimate_censoring}{FALSE by default, if TRUE, event and censoring is reversed (for IPCW calculations)}
+\item{estimate_censoring}{FALSE by default, if TRUE, event and censoring are reversed (for IPCW calculations)}
 }
 \value{
 vector of survival probabilities for time_point
