@@ -96,7 +96,8 @@ survsrfstack_train <-
     if (verbose) cat("CoxPH...")
     #base cox model
     cox_base_model <-
-      survcox_train(df_train, predict.factors, useCoxLasso = useCoxLasso)
+      survcox_train(df_train, predict.factors, useCoxLasso = useCoxLasso,
+                    inner_cv = inner_cv)
 
     #first, using k-fold CV, underlying models are trained
     # (using already tuned parameters)
@@ -135,7 +136,8 @@ survsrfstack_train <-
 
       # train cox model on data_cvtrain
       cox_m_cv <-
-        survcox_train(data_cvtrain,predict.factors,useCoxLasso = useCoxLasso)
+        survcox_train(data_cvtrain,predict.factors,useCoxLasso = useCoxLasso,
+                      inner_cv = inner_cv)
       # predict for data_oob
       cox_predict_oob <-
         survcox_predict(cox_m_cv, data_oob, fixed_time)
@@ -259,6 +261,7 @@ survsrfstack_cv <- function(df,
     train_function = survsrfstack_train,
     predict_function = survsrfstack_predict,
     model_args = list("tuningparams" = tuningparams,
+                      "inner_cv" = inner_cv,
                       "useCoxLasso" = useCoxLasso,
                       "max_grid_size" = max_grid_size,
                       "randomseed" = randomseed,

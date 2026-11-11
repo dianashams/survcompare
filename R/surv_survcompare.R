@@ -39,7 +39,7 @@
 #' @param randomseed random seed for replication
 #' @param useCoxLasso TRUE / FALSE, for whether to use regularized version of the Cox model, FALSE is default
 #' @param outer_cv k in k-fold CV
-#' @param inner_cv k in k-fold CV for internal CV to tune survival random forest hyper-parameters
+#' @param inner_cv k in k-fold CV for internal tuning of survival random forest hyperparameters and Cox-Lasso lambda (when useCoxLasso is TRUE)
 #' @param tuningparams list of tuning parameters for random forest: 1) NULL for using a default tuning grid, or 2) a list("mtry"=c(...), "nodedepth" = c(...), "nodesize" = c(...))
 #' @param return_models TRUE/FALSE to return the trained models; default is FALSE, only performance is returned
 #' @param repeat_cv if NULL, runs once, otherwise repeats several times with different random split for CV, reports average of all
@@ -124,6 +124,7 @@ survcompare <- function(df_train,
     predict.factors = predict_factors,
     fixed_time = fixed_time ,
     outer_cv = outer_cv,
+    inner_cv = inner_cv,
     randomseed = randomseed,
     useCoxLasso = useCoxLasso,
     return_models = return_models,
