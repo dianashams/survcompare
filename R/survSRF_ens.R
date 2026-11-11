@@ -84,7 +84,8 @@ survsrfens_train <- function(df_train,
     cox_m_cv <-
       survcox_train(cox_train,
                     eligible_params(predict.factors, cox_train),
-                    useCoxLasso = useCoxLasso)
+                    useCoxLasso = useCoxLasso,
+                    inner_cv = inner_cv)
     # predict for cox_oob - linear predictors, not event probabilities
     cox_predict_oob <- predict(cox_m_cv, cox_oob, type = "lp") #beta x X
 
@@ -113,7 +114,8 @@ survsrfens_train <- function(df_train,
 
   #base cox model
   cox_base_model <-
-    survcox_train(df_train, predict.factors, useCoxLasso = useCoxLasso)
+    survcox_train(df_train, predict.factors, useCoxLasso = useCoxLasso,
+                  inner_cv = inner_cv)
 
   #output
   output = list()
@@ -195,6 +197,7 @@ survsrfens_cv <- function(df,
     train_function = survsrfens_train,
     predict_function = survsrfens_predict,
     model_args = list("useCoxLasso" = useCoxLasso,
+                      "inner_cv" = inner_cv,
                       "tuningparams" = tuningparams,
                       "fixed_time" = fixed_time,
                       "max_grid_size" = max_grid_size,

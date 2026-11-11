@@ -80,14 +80,26 @@ survcoxlasso_train <- function(df_train,
 
   cox.m <- NULL
   try({
-    cv10 <- glmnet::cv.glmnet(
-      as.matrix(df_train[predict.factors]),
-      survival::Surv(df_train$time, df_train$event),
+    glmnet_args <- list(
+      x = as.matrix(df_train[predict.factors]),
+      y = survival::Surv(df_train$time, df_train$event),
       family = "cox",
-      nfold = inner_cv,
-      alpha = 1,
-      maxit = 5000
+      nfolds = inner_cv,
+      alpha = 1
     )
+    # Newer glmnet releases support control and configurable Cox ties. Keep the
+    # historical Breslow fit and iteration limit without deprecated arguments.
+    # Older glmnet releases require maxit directly and only support Breslow.
+    glmnet_formals <- names(formals(glmnet::glmnet))
+    if ("control" %in% glmnet_formals) {
+      glmnet_args$control <- list(maxit = 5000)
+    } else {
+      glmnet_args$maxit <- 5000
+    }
+    if ("cox.ties" %in% glmnet_formals) {
+      glmnet_args$cox.ties <- "breslow"
+    }
+    cv10 <- do.call(glmnet::cv.glmnet, glmnet_args)
     new.predictors <-
       rownames(coef(cv10, s = "lambda.min"))[as.matrix(coef(cv10, s = "lambda.min")) != 0]
 
@@ -246,7 +258,8 @@ survcox_cv <- function(df,
       return_models = return_models,
       train_function = survcox_train,
       predict_function = survcox_predict,
-      model_args = list("useCoxLasso" = useCoxLasso),
+      model_args = list("useCoxLasso" = useCoxLasso,
+                        "inner_cv" = inner_cv),
       model_name = ifelse(!useCoxLasso, "CoxPH", "CoxLasso")
       )
   if (suppresswarn){ options(warn=user_warn)}

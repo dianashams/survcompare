@@ -35,7 +35,7 @@ survcompare(
 
 \item{outer_cv}{k in k-fold CV}
 
-\item{inner_cv}{k in k-fold CV for internal CV to tune survival random forest hyper-parameters}
+\item{inner_cv}{k in k-fold CV for internal tuning of survival random forest hyperparameters and Cox-Lasso lambda (when useCoxLasso is TRUE)}
 
 \item{tuningparams}{list of tuning parameters for random forest: 1) NULL for using a default tuning grid, or 2) a list("mtry"=c(...), "nodedepth" = c(...), "nodesize" = c(...))}
 
